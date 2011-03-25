@@ -1,0 +1,56 @@
+###########################################
+#                                         #
+#  repostlib - Brains behimd the beauty   #
+#                                         #
+###########################################
+
+import os
+import sys
+Import('env')
+
+# Repost Packages
+packages = '''
+common
+network
+storage
+'''
+
+# Library Dependencies
+deplibs = '''
+glib-2.0
+uuid
+libxml2
+sqlite3
+purple
+'''
+
+# Handle WIN32 libraries
+if( env['PLATFORM'] == 'win' ):
+    deplibs += 'pthreadVC2'
+    env.Append(
+        CPPPATH=['.','$ROOT/lib/include',
+                     '$ROOT/third_party/sqlite3/include/',
+                     '$ROOT/third_party/pthreads/include/',
+                     '$ROOT/third_party/purple/include/',
+                     '$ROOT/third_party/glib-2.0/include/'],
+        LIBPATH = [ '$ROOT/third_party/glib-2.0/$PLATFORM/',
+                    '$ROOT/third_party/purple/$PLATFORM/',
+                    '$ROOT/third_party/libxml2/$PLATFORM/',
+                    '$ROOT/third_party/sqlite3/$PLATFORM/',
+                    '$ROOT/third_party/pthreads/$PLATFORM/'])
+else:
+    deplibs += 'pthread'
+    env.ParseConfig( 'pkg-config --cflags --libs uuid glib-2.0')
+
+env.Append(
+        LIBS=[Split(deplibs)],
+    )
+
+# Build the components
+buildscripts = '\n'.join("%s/build/%s/%s/SConscript" % ( env['ROOT'], env['PLATFORM'] , k) for k in Split(packages))
+env.VariantDir('$ROOT/build/$PLATFORM/', '.')
+objs = env.SConscript(Split(buildscripts),'env')
+
+# Build the library
+ret = env.StaticLibrary('rpl_s',objs)
+Return('ret','deplibs')

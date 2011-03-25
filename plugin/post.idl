@@ -1,0 +1,11 @@
+/* All functions must be camel case. */
+[binding_model=by_value, include="post.h"] class Post {
+    Post();
+    [getter,setter] std::string content_;
+    [getter,setter] int metric_;
+    [getter,setter] std::string comments_;
+    [getter,setter] std::string tags_;
+    [getter] std::string certs_;
+    [getter,setter] std::string uuid_;
+};
+

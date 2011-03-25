@@ -1,0 +1,17 @@
+/* All functions must be camel case. */
+[binding_model=by_value, include="rpl.h"] class rePoster {
+    rePoster();
+    void init();
+    void startRepost();
+    void stopRepost();
+
+    Post newPost();
+    void sendPost(Post p);
+
+    /* Call back so when new posts come in we call */
+    callback void NewPostCB(Post p);
+    void setNewPostCB(NewPostCB? newPostCB);
+
+    void addAccount(std::string user, std::string pass, std::string network);
+};
+

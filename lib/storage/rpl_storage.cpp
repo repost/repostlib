@@ -1,0 +1,300 @@
+#include <stdio.h>
+#include <iostream>
+#include <sstream>
+#include <cstdlib>
+#include <string>
+
+#include "rpl.h"
+#include "rpl_storage.h"
+
+using namespace std;
+
+const char rpl_storage::DATABASE_NAME[] = "repost";
+const char rpl_storage::CREATE_POST_TABLE[] = 
+    "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, author TEXT, \
+    uuid TEXT, post TEXT, upvotes INTEGER, downvotes INTEGER);";
+bool initialised = false;
+
+rpl_storage *rpl_storage::INSTANCE = new rpl_storage();
+
+void print_error ( int err )
+{
+    switch (err)
+    {
+        case SQLITE_OK:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_ERROR:
+            cout << "SQLITE_ERROR" << endl;
+            break;
+        case SQLITE_INTERNAL:
+            cout << "SQLITE_INTERNAL" << endl;
+            break;
+        case SQLITE_PERM:
+            cout << "SQLITE_PERM" << endl;
+            break;
+        case SQLITE_ABORT:
+            cout << "SQLITE_ABORT" << endl;
+            break;
+        case SQLITE_BUSY:
+            cout << "SQLITE_BUSY" << endl;
+            break;
+        case SQLITE_LOCKED:
+            cout << "SQLITE_LOCKED" << endl;
+            break;
+        case SQLITE_NOMEM:
+            cout << "SQLITE_NOMEM" << endl;
+            break;
+        case SQLITE_READONLY:
+            cout << "SQLITE_READONLY" << endl;
+            break;
+        case SQLITE_INTERRUPT:
+            cout << "SQLITE_INTERRUPT" << endl;
+            break;
+        case SQLITE_IOERR:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_CORRUPT:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_NOTFOUND:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_FULL:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_CANTOPEN:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_PROTOCOL:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_EMPTY:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_SCHEMA:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_TOOBIG:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_CONSTRAINT:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_MISMATCH:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_MISUSE:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_NOLFS:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_AUTH:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_FORMAT:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_RANGE:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_NOTADB:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_ROW:
+            cout << "SQLITE_OK" << endl;
+            break;
+        case SQLITE_DONE:
+            cout << "SQLITE_OK" << endl;
+            break;
+     }
+}
+
+/**
+ * @brief initialises the store 
+ */
+rpl_storage::rpl_storage()
+{
+    int rc;
+
+    printf( "> rpl_storage\n" );
+    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rc )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+    }
+    else
+    {
+        this->initialised = true;
+        this->setup_tables();
+    }
+
+#ifdef CLOSE_CONNECTION
+    sqlite3_close( this->db );
+#endif
+    printf( "< rpl_storage\n" );
+}
+
+rpl_storage::~rpl_storage()
+{
+}
+
+rpl_storage *rpl_storage::get_instance ()
+{
+    return INSTANCE;
+}
+
+void rpl_storage::add_link (rp_link &link)
+{
+
+}
+void rpl_storage::add_friends (rp_friend &my_friend)
+{
+
+}
+void rpl_storage::add_network (rp_network &network)
+{
+
+}
+
+void rpl_storage::add_post (Post &post)
+{
+    int rc;
+    int rV;
+    char *errmsg;
+    string sql_stmt;
+
+    printf( "> add_post\n" );
+#ifdef CLOSE_CONNECTION
+    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rc )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+        return;
+    }
+#endif
+
+    sql_stmt = "INSERT INTO posts ( uuid, post ) VALUES"
+              "('" + post.uuid() + "', '" + post.content() + "')";
+
+    printf ( "insert sql: %s\n", sql_stmt.c_str());
+    rV = sqlite3_exec ( this->db, sql_stmt.c_str(), NULL, NULL, &errmsg );
+
+    if ( errmsg != NULL )
+    {
+        printf( "error insert: %s\n", errmsg );
+        sqlite3_free ( errmsg );
+    }
+    cout << post.uuid() << endl;
+    cout << post.content() << endl;
+
+#ifdef CLOSE_CONNECTION
+    sqlite3_close( this->db );
+#endif
+
+    printf( "< add_post\n" );
+
+}
+
+void rpl_storage::get_link (rp_link *link)
+{
+
+}
+void rpl_storage::get_friends (rp_friend *my_friend)
+{
+
+}
+void rpl_storage::get_network (rp_network *network)
+{
+
+}
+int print_post (void * id, int columns, char **column_text, char **column_name)
+{
+    cout << ">" << __FUNCTION__ << endl;
+
+    for ( int i = 0; i < columns; i ++ )
+    {
+        printf ( "%s: %s\n", column_name[i], column_text[i] );
+    }
+    cout << "<" << __FUNCTION__ << endl;
+    return 0;
+}
+
+void rpl_storage::get_post (Post *post, int from, int count, void *callback)
+{
+    int rc, rV;
+    char *errmsg;
+    stringstream sql_stmt;
+
+    cout << "> get_post" << endl;
+
+#ifdef CLOSE_CONNECTION
+    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rc )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+        return;
+    }
+#endif
+
+    sql_stmt << "SELECT * FROM posts LIMIT " << count << " OFFSET " << from; 
+
+    rV = sqlite3_exec ( this->db, sql_stmt.str().c_str(), print_post, NULL, &errmsg );
+    if ( rV != SQLITE_OK )
+    {
+        cout << "sqlite error! error number " << rV << endl;
+    }
+    else
+    {
+        cout << "sqlite ok!" << endl;
+
+        /* do stuff with *post here */
+#if 0
+        post = (Post *) calloc ( count, sizeof(Post) );
+        /* put stuff into Post */
+        for ( int i = 0; i < count; i++ )
+        {
+            post[i].set_content("test");
+        }
+#endif
+    }
+
+    if ( errmsg != NULL )
+    {
+        printf( "error get_post: %s\n", errmsg );
+        sqlite3_free ( errmsg );
+    }
+
+#ifdef CLOSE_CONNECTION
+    sqlite3_close( this->db );
+#endif
+
+    cout << "< get_post" << endl;
+}
+
+bool rpl_storage::setup_tables ()
+{
+    int rV;
+    char *errmsg = NULL;
+
+    printf( "> %s\n", __FUNCTION__);
+
+    rV = sqlite3_exec ( this->db, 
+            CREATE_POST_TABLE, 
+            NULL,
+            NULL,
+            &errmsg);
+
+    if ( errmsg != NULL )
+    {
+        printf( "error create post table: %s\n", errmsg );
+        sqlite3_free ( errmsg );
+    }
+    
+    printf( "< %s\n", __FUNCTION__ );
+}
+

@@ -1,0 +1,8 @@
+# import env
+Import('env')
+env.Append(LIBS=['purple'])
+env.Append(LIBPATH='.')
+env.Append(CPPPATH = ['/usr/include/glib-2.0/','/usr/lib/glib-2.0/include/','/usr/include/libpurple/'])
+#env.ParseConfig( 'pkg-config --cflags --libs glib-2.0')
+
+env.Object([Glob('*.cpp')])
