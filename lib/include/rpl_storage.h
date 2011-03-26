@@ -8,11 +8,11 @@
 class rpl_storage
 {
   public:
-    rpl_storage *get_instance ();
+    static rpl_storage *get_instance ();
     void add_link(Link &link);
-    void add_post (Post &post);
+    void add_post (Post *post);
     void get_link(Link *link);
-    void get_post (Post *post, int len, int count, void *callback);
+    int get_post ( Post **post, int len, int count );
   private:
     rpl_storage();
     ~rpl_storage();
