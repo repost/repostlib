@@ -17,7 +17,7 @@ public:
      * registered networks.
      */
     void post(Post &post);
-    void addlink(rp_link &link);
+    void addlink(Link &link);
     /**
      * @brief Blocking call that when released returns a new post
      * from a network. User of function is responsible for deallocation

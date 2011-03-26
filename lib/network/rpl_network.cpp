@@ -22,7 +22,7 @@ void rpl_network::post(Post &post)
     jbp->sendpost(&post);
 }
 
-void rpl_network::addlink(rp_link &link)
+void rpl_network::addlink(Link &link)
 {
     jbp->addlink(link);
 }

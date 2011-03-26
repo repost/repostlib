@@ -1,0 +1,6 @@
+/* All functions must be camel case. */
+[binding_model=by_value, include="link.h"] class Link {
+    Link();
+    [getter,setter] std::string name_;
+};
+

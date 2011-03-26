@@ -2,13 +2,14 @@
 #define RPL_H_
 
 #include <string>
+#include <vector>
 
+#include "link.h"
 #include "post.h"
 
 class rpl_network;
 class rpl_storage;
 class rpl_con;
-
 
 class rePoster{
 public:
@@ -29,6 +30,7 @@ public:
     static void cb_wrap(void *reposter, Post *p);   
 
     void addAccount(std::string user, std::string pass, std::string network);
+    std::vector<Link> getLinks();
 
 private:
     void cb(Post *p);   
@@ -39,30 +41,4 @@ private:
 
 };
 
-class rp_link
-{
-public:
-    rp_link(std::string linkname):linkname(linkname){};
-    std::string get_name(){ return linkname;};
-private:
-    std::string linkname;
-};
-class rp_network
-{
-public:
-    std::string get_title();
-private:
-    std::string title;
-};
-
-class rp_friend
-{
-public:
-    std::string get_name();
-
-private:
-    std::string name;
-    rp_network network;
-
-};
 #endif

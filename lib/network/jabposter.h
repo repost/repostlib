@@ -2,6 +2,7 @@
 #define JABPOSTER_H_
 
 #include "rpl.h"
+#include "link.h"
 #include "slavenetwork.h"
 #include "rpqueue.h"
 
@@ -27,9 +28,9 @@ class jabposter : public slavenet
 public:
     jabposter(rpqueue *i);
     ~jabposter();
-    int getlinks(rp_link &links, int num);
+    int getlinks(Link &links, int num);
     void sendpost(Post *post);
-    void addlink(rp_link &link);
+    void addlink(Link &link);
     void go();
     void add_jab(string user, string pass, string port);
     void add_bon(string user);

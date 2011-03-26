@@ -233,17 +233,19 @@ void jabposter::sendpost(Post *post)
         }
 }
 
-void jabposter::addlink(rp_link &link)
+void jabposter::addlink(Link &link)
 {
+#if 0
     GList *l;
     for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) {
         PurpleAccount *account = (PurpleAccount *)l->data;
         purple_account_add_buddy(account, purple_buddy_new(account,link.get_name().c_str(),NULL));
     }
+#endif
 }
 
 
-int jabposter::getlinks(rp_link &links, int num)
+int jabposter::getlinks(Link &links, int num)
 {
     return 0;
 }

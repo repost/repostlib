@@ -146,15 +146,7 @@ rpl_storage *rpl_storage::get_instance ()
     return INSTANCE;
 }
 
-void rpl_storage::add_link (rp_link &link)
-{
-
-}
-void rpl_storage::add_friends (rp_friend &my_friend)
-{
-
-}
-void rpl_storage::add_network (rp_network &network)
+void rpl_storage::add_link (Link &link)
 {
 
 }
@@ -199,18 +191,12 @@ void rpl_storage::add_post (Post &post)
 
 }
 
-void rpl_storage::get_link (rp_link *link)
+void rpl_storage::get_link (Link *link)
 {
 
 }
-void rpl_storage::get_friends (rp_friend *my_friend)
-{
 
-}
-void rpl_storage::get_network (rp_network *network)
-{
 
-}
 int print_post (void * id, int columns, char **column_text, char **column_name)
 {
     cout << ">" << __FUNCTION__ << endl;
