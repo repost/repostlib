@@ -38,6 +38,9 @@ void rpl_con::consume()
     while(running == true)
     {
         Post *p = pnet->getpost();
+
+        this->pstore->add_post(p);
+
         npCB(reposter,p);
         // add to storage here
     }
