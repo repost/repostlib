@@ -13,5 +13,7 @@
     void setNewPostCB(NewPostCB? newPostCB);
 
     void addAccount(std::string user, std::string pass, std::string network);
+
+    void getInitialPosts(NewPostCB? newPostCB);
 };
 
