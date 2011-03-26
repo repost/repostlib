@@ -184,8 +184,6 @@ void jabposter::received_im_msg(PurpleAccount *account, char *sender, char *mess
             }
             char *unescaped =  purple_unescape_html(message);
             string content(unescaped);
-            content.erase(0,sizeof("<body>")-1); /*remove the body tag. -1 for null char size of counts */
-            content.erase(content.length()-sizeof("</body>")+1,sizeof("</body>")-1);
 /*need a free here */
             Post *post = new Post();
             xml2post(&content, post);
