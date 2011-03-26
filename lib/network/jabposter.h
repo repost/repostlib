@@ -28,7 +28,7 @@ class jabposter : public slavenet
 public:
     jabposter(rpqueue *i);
     ~jabposter();
-    int getlinks(Link &links, int num);
+    int getlinks(Link* links, int num);
     void sendpost(Post *post);
     void addlink(Link &link);
     void go();

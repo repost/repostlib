@@ -4,6 +4,8 @@
 #include "rpqueue.h"
 #include "jabposter.h"
 
+#define MAXLINKS 100
+
 rpl_network::rpl_network()
 {
     in_queue = new rpqueue();
@@ -20,6 +22,20 @@ rpl_network::~rpl_network()
 void rpl_network::post(Post &post)
 {
     jbp->sendpost(&post);
+}
+
+std::vector<Link> rpl_network::getLinks()
+{
+    Link arr_link[MAXLINKS];
+    std::vector<Link> links;
+    int numret = 0, x;
+
+    numret = jbp->getlinks(arr_link, MAXLINKS);
+    for( x = 0; x<numret; x++)
+    {
+        links.push_back(arr_link[x]);
+    }
+    return links;
 }
 
 void rpl_network::addlink(Link &link)

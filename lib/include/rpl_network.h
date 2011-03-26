@@ -1,6 +1,8 @@
 #ifndef RPL_NETWORK_H_
 #define RPL_NETWORK_H_
 
+#include <vector>
+
 #include "rpl.h"
 
 class rpqueue;
@@ -18,6 +20,8 @@ public:
      */
     void post(Post &post);
     void addlink(Link &link);
+    std::vector<Link> getLinks();
+
     /**
      * @brief Blocking call that when released returns a new post
      * from a network. User of function is responsible for deallocation

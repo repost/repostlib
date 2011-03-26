@@ -12,6 +12,11 @@
     callback void NewPostCB(Post p);
     void setNewPostCB(NewPostCB? newPostCB);
 
-    void addAccount(std::string user, std::string pass, std::string network);
+    Account newAccount();
+/*    Account[] getAccounts();*/
+    void addAccount(Account newaccount);
+    
+    Link[] getLinks();
+    void addLink(Link newlink);
 };
 

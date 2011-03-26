@@ -3,6 +3,7 @@
 #include "rpl_network.h"
 #include "rpl_storage.h"
 #include "rpl_con.h"
+
 #ifndef WIN32
 #include <dlfcn.h>
 #endif
@@ -61,15 +62,15 @@ void rePoster::cb_wrap(void *reposter, Post *p){
 
 }
 
-void rePoster::addAccount(string user, string pass, string network){
+void rePoster::addAccount(Account newaccount){
 
-    if( network == "jabber" )
+    if( newaccount.type() == "jabber" )
     {
-        pnet->add_jab(user, pass, "");
+        pnet->add_jab(newaccount.user(), newaccount.pass(), "");
     }
-    else if( network == "bonjour")
+    else if( newaccount.type() == "bonjour")
     {
-        pnet->add_bon(user);
+        pnet->add_bon(newaccount.user());
     }
     else
     {

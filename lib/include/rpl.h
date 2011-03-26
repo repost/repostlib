@@ -6,6 +6,7 @@
 
 #include "link.h"
 #include "post.h"
+#include "acct.h"
 
 class rpl_network;
 class rpl_storage;
@@ -29,8 +30,12 @@ public:
     void setNewPostCB(NewPostCB *newPostCB){this->newPostCB = newPostCB;}; /* set cb */
     static void cb_wrap(void *reposter, Post *p);   
 
-    void addAccount(std::string user, std::string pass, std::string network);
+    Account newAccount(){Account a; return a;};
+    std::vector<Account> getAccounts();
+    void addAccount(Account newaccount);
+
     std::vector<Link> getLinks();
+    void addLink(Link newlink);
 
 private:
     void cb(Post *p);   

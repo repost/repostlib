@@ -215,22 +215,22 @@ void jabposter::connect_to_signals(void)
 
 void jabposter::sendpost(Post *post)
 {
-        static string strpost;
-        post2xml(&strpost, post);
-        PurpleConversation* conv;
- 	PurpleBlistNode * bnode = purple_blist_get_root();
-        while(bnode != NULL){
-                if(bnode->type == PURPLE_BLIST_BUDDY_NODE){
-                     conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
-                         purple_buddy_get_account(PURPLE_BUDDY(bnode)),
-                         purple_buddy_get_name(PURPLE_BUDDY(bnode)));
-                    char *nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-                    purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), nomarkup,PURPLE_MESSAGE_RAW);
-                    purple_conversation_destroy(conv);
-                    g_free(nomarkup);
-                }
-                bnode = purple_blist_node_next (bnode, false);
+    static string strpost;
+    post2xml(&strpost, post);
+    PurpleConversation* conv;
+    PurpleBlistNode * bnode = purple_blist_get_root();
+    while(bnode != NULL){
+        if(bnode->type == PURPLE_BLIST_BUDDY_NODE){
+            conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
+                    purple_buddy_get_account(PURPLE_BUDDY(bnode)),
+                    purple_buddy_get_name(PURPLE_BUDDY(bnode)));
+            char *nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
+            purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), nomarkup,PURPLE_MESSAGE_RAW);
+            purple_conversation_destroy(conv);
+            g_free(nomarkup);
         }
+        bnode = purple_blist_node_next (bnode, false);
+    }
 }
 
 void jabposter::addlink(Link &link)
@@ -245,9 +245,18 @@ void jabposter::addlink(Link &link)
 }
 
 
-int jabposter::getlinks(Link &links, int num)
+int jabposter::getlinks(Link* links, int num)
 {
-    return 0;
+    int x = 0;
+    PurpleBlistNode * bnode = purple_blist_get_root();
+    while(bnode != NULL && x < num){
+        if(bnode->type == PURPLE_BLIST_BUDDY_NODE){
+            links[x].set_name(purple_buddy_get_name(PURPLE_BUDDY(bnode)));
+            links[x].set_host(purple_buddy_get_account(PURPLE_BUDDY(bnode))->username);
+        }
+        bnode = purple_blist_node_next (bnode, false);
+    }
+    return x;
 }
 
 void jabposter::add_jab(string user, string pass, string port)
