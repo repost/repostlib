@@ -22,7 +22,7 @@ void rePoster::startRepost(){
     pnet->go();
 
     /* Create storage class here */
-    pstore = NULL;
+    pstore = rpl_storage::get_instance();
     
     /* Create consumer here */
     pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
@@ -76,4 +76,14 @@ void rePoster::addAccount(string user, string pass, string network){
     }
 }   
 
+void rePoster::getInitialPosts(NewPostCB *newPostCB)
+{
+    int i = 0;
+    Post *post[10];
+    int rowsReturned = this->pstore->get_post( post, 0, 10 );
+    for ( int i = 0; i < rowsReturned; i++ )
+    {
+        this->newPostCB->Run(*post[i]);
+    }
+}
 
