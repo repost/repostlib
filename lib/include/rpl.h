@@ -30,6 +30,7 @@ public:
     static void cb_wrap(void *reposter, Post *p);   
 
     void addAccount(std::string user, std::string pass, std::string network);
+    void getInitialPosts(NewPostCB *newPostCB);
     std::vector<Link> getLinks();
 
 private:
