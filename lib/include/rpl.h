@@ -6,6 +6,7 @@
 
 #include "link.h"
 #include "post.h"
+#include "acct.h"
 
 class rpl_network;
 class rpl_storage;
@@ -23,15 +24,19 @@ public:
     void startRepost();
     void stopRepost();
 
-    Post newPost();
     void sendPost(Post p);
 
     void setNewPostCB(NewPostCB *newPostCB){this->newPostCB = newPostCB;}; /* set cb */
     static void cb_wrap(void *reposter, Post *p);   
 
-    void addAccount(std::string user, std::string pass, std::string network);
+    std::vector<Account> getAccounts();
+    void addAccount(Account newaccount);
+    void rmAccount(Account account);
+
     void getInitialPosts(NewPostCB *newPostCB);
     std::vector<Link> getLinks();
+    void addLink(Link newlink, Account acct);
+    void rmLink(Link link);
 
 private:
     void cb(Post *p);   
