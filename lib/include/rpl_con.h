@@ -9,13 +9,14 @@
 class rpl_con 
 {
 public:
-    rpl_con(rpl_network *net, rpl_storage *store, void (*cb)(void *rp, Post *p), void *rp);
+    rpl_con(rpl_network *net, rpl_storage *store, 
+        void (*cb)(void *rp, Post *p, int rank), void *rp);
     void go();
     void stop();
 private:
     rpl_network *pnet;
     rpl_storage *pstore;
-    void (*npCB)(void *rp, Post *p);
+    void (*npCB)(void *rp, Post *p, int rank);
     void *reposter;
     bool running;
     pthread_t m_thread;
