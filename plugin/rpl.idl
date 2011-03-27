@@ -5,18 +5,18 @@
     void startRepost();
     void stopRepost();
 
-    Post newPost();
     void sendPost(Post p);
 
     /* Call back so when new posts come in we call */
     callback void NewPostCB(Post p);
     void setNewPostCB(NewPostCB? newPostCB);
 
-    Account newAccount();
-/*    Account[] getAccounts();*/
+    Account[] getAccounts();
     void addAccount(Account newaccount);
+    void rmAccount(Account account);
     
     Link[] getLinks();
-    void addLink(Link newlink);
+    void addLink(Link newlink, Account acct);
+    void rmLink(Link link);
 };
 

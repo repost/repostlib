@@ -5,6 +5,7 @@
 #include "jabposter.h"
 
 #define MAXLINKS 100
+#define MAXACCS  100
 
 rpl_network::rpl_network()
 {
@@ -12,11 +13,15 @@ rpl_network::rpl_network()
     jbp = new jabposter(in_queue);
 }
 
-
 rpl_network::~rpl_network()
 {
     free(in_queue);
     free(jbp);
+}
+
+Post *rpl_network::getpost()
+{
+    return this->in_queue->get();
 }
 
 void rpl_network::post(Post &post)
@@ -38,26 +43,46 @@ std::vector<Link> rpl_network::getLinks()
     return links;
 }
 
-void rpl_network::addlink(Link &link)
+void rpl_network::addLink(Link& link, Account& acct)
 {
-    jbp->addlink(link);
+    jbp->addlink(link, acct);
 }
 
-Post *rpl_network::getpost()
+void rpl_network::rmLink(Link& link)
 {
-    return this->in_queue->get();
+
 }
 
-void rpl_network::add_jab(string user, string pass, string post)
+std::vector<Account> rpl_network::getAccounts()
 {
-     this->jbp->add_jab(user,pass,post);
+    Account arr_acc[MAXACCS];
+    std::vector<Account> accts;
+    int numret = 0, x;
+
+    numret = jbp->getaccounts(arr_acc, MAXACCS);
+    for( x = 0; x<numret; x++)
+    {
+        accts.push_back(arr_acc[x]);
+    }
+    return accts;
 }
 
-void rpl_network::add_bon(string user)
+void rpl_network::addAccount(Account& acct)
 {
-     this->jbp->add_bon(user);
+    if(acct.type() == "XMPP")
+    {
+        this->jbp->addJabber(acct.user(),acct.pass());
+    }
+    else if(acct.type() == "Bonjour")
+    {
+        this->jbp->addBonjour(acct.user());
+    }
 }
 
+void rpl_network::rmAccount(Account& acct)
+{
+
+}
 void rpl_network::go()
 {
     this->jbp->go();

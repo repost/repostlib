@@ -24,18 +24,18 @@ public:
     void startRepost();
     void stopRepost();
 
-    Post newPost();
     void sendPost(Post p);
 
     void setNewPostCB(NewPostCB *newPostCB){this->newPostCB = newPostCB;}; /* set cb */
     static void cb_wrap(void *reposter, Post *p);   
 
-    Account newAccount(){Account a; return a;};
     std::vector<Account> getAccounts();
     void addAccount(Account newaccount);
+    void rmAccount(Account account);
 
     std::vector<Link> getLinks();
-    void addLink(Link newlink);
+    void addLink(Link newlink, Account acct);
+    void rmLink(Link link);
 
 private:
     void cb(Post *p);   

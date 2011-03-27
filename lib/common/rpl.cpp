@@ -7,74 +7,80 @@
 #ifndef WIN32
 #include <dlfcn.h>
 #endif
+
 using namespace std;
 
-void rePoster::init() {
+void rePoster::init() 
+{
+#ifndef WIN32
+    /* We force load libpurple as the chrome plugin loader doesn't 
+       do it properly */
+    void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
+#endif
+
     pnet = new rpl_network();
 }
 
 void rePoster::startRepost(){
 
-#ifndef WIN32
-/* We force load libpurple as the chrome plugin loader doesn't 
-    do it properly */
-    void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
-#endif
-    pnet->go();
+   pnet->go();
 
     /* Create storage class here */
     pstore = NULL;
-    
+
     /* Create consumer here */
     pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
     pcon->go();
 }
 
-void rePoster::stopRepost(){
+void rePoster::stopRepost()
+{
     pnet->stop();
     pcon->stop();
 }
 
-Post rePoster::newPost(){
-    
-    Post p;
-    return p;
-
-}
-
-void rePoster::sendPost(Post p){
-
+void rePoster::sendPost(Post p)
+{
     pnet->post(p);
-
 }
 
-
-void rePoster::cb(Post *p){
-
+void rePoster::cb(Post *p)
+{
     this->newPostCB->Run(*p);
-
 }
 
-void rePoster::cb_wrap(void *reposter, Post *p){
-    
+void rePoster::cb_wrap(void *reposter, Post *p)
+{    
     rePoster *rp = (rePoster*)reposter;
     rp->cb(p);
-
 }
 
-void rePoster::addAccount(Account newaccount){
+std::vector<Account> rePoster::getAccounts()
+{
+    return pnet->getAccounts();
+}
 
-    if( newaccount.type() == "jabber" )
-    {
-        pnet->add_jab(newaccount.user(), newaccount.pass(), "");
-    }
-    else if( newaccount.type() == "bonjour")
-    {
-        pnet->add_bon(newaccount.user());
-    }
-    else
-    {
-    }
+void rePoster::addAccount(Account newaccount)
+{
+    pnet->addAccount(newaccount);
 }   
 
+void rePoster::rmAccount(Account account)
+{
+    pnet->rmAccount(account);
+}
 
+std::vector<Link> rePoster::getLinks()
+{
+    return pnet->getLinks();
+}
+
+void rePoster::addLink(Link newlink, Account acct)
+{
+    pnet->addLink(newlink,acct);
+}
+
+void rePoster::rmLink(Link link)
+{
+    pnet->rmLink(link);
+}
