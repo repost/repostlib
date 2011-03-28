@@ -26,13 +26,13 @@ void slavenet::xml2post(string *spost, Post *post)
     n = r->children; /* first item */
     while(n != NULL){
         char * name = (char *)n->name;
-	xmlNodePtr child = n->children;
+        xmlNodePtr child = n->children;
         if(strcmp(name,"uuid")==0 && child != NULL){
-             post->set_uuid(string((char *)child->content));
+            post->set_uuid(string((char *)child->content));
         }else if(strcmp(name,"content")==0&& child != NULL){
-             post->set_content(string((char *)child->content));
+            post->set_content(string((char *)child->content));
         }else if(strcmp(name,"certs")==0&child != NULL){
-             post->set_certs(string((char *)child->content));
+            post->set_certs(string((char *)child->content));
         }
         n = n->next;
         continue;

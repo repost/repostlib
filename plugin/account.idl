@@ -1,0 +1,8 @@
+/* All functions must be camel case. */
+[binding_model=by_value, include="acct.h"] class Account{
+    Account();
+    [getter,setter] std::string user_;
+    [getter,setter] std::string pass_;
+    [getter,setter] std::string type_;
+};
+
