@@ -20,5 +20,6 @@
     void rmLink(Link link);
 
     void getInitialPosts(NewPostCB? newPostCB);
+
 };
 
