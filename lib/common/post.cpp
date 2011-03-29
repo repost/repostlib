@@ -1,4 +1,6 @@
 #include "rpl.h"
+#include <iostream>
+
 extern "C"
 {
 #ifdef WIN32
@@ -26,4 +28,12 @@ extern "C"
     #endif
         return s;
     }
+}
+
+void Post::upboat(std::string uuid) {
+    std::cout << "upboated! update metric!" << std::endl;
+}
+
+void Post::downboat(std::string uuid) {
+    std::cout << "downboated! delete that shit" << std::endl;
 }
