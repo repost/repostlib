@@ -31,15 +31,15 @@ void slavenet::xml2post(string *spost, Post *post)
     {
         char* name = (char *)n->name;
         xmlNodePtr child = n->children;
-        if(!strncmp(name,"uuid", sizeof("uuid")) && !child )
+        if(!strncmp(name,"uuid", sizeof("uuid")) && child )
         {
             post->set_uuid(string((char *)child->content));
         }
-        else if(!strncmp(name,"content", sizeof("content")) && !child)
+        else if(!strncmp(name,"content", sizeof("content")) && child)
         {
             post->set_content(string((char *)child->content));
         }
-        else if(!strncmp(name,"certs", sizeof("certs")) && !child)
+        else if(!strncmp(name,"certs", sizeof("certs")) && child)
         {
             post->set_certs(string((char *)child->content));
         }
@@ -72,7 +72,8 @@ void slavenet::post2xml(string *spost, Post *post)
     xmlAddChild(r,n);
 
     n = xmlNewNode(NULL, BAD_CAST "content");
-    xmlNodeSetContent(n, BAD_CAST post->content().c_str());
+    /* AddContent used here so we can abuse special chars */
+    xmlNodeAddContent(n, BAD_CAST post->content().c_str());
     xmlAddChild(r,n);
 
     c = xmlNewNode(NULL, BAD_CAST "certs");

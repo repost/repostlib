@@ -33,7 +33,7 @@ std::vector<Link> rpl_network::getLinks()
 {
     Link arr_link[MAXLINKS];
     std::vector<Link> links;
-    int numret = 0, x;
+    int numret = 0, x = 0;
 
     numret = jbp->getlinks(arr_link, MAXLINKS);
     for( x = 0; x<numret; x++)
@@ -57,7 +57,7 @@ std::vector<Account> rpl_network::getAccounts()
 {
     Account arr_acc[MAXACCS];
     std::vector<Account> accts;
-    int numret = 0, x;
+    int numret = 0, x = 0;
 
     numret = jbp->getaccounts(arr_acc, MAXACCS);
     for( x = 0; x<numret; x++)
