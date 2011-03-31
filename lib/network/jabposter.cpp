@@ -173,23 +173,29 @@ void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *me
 void jabposter::received_im_msg(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
- 	if(message != NULL)
-    {	
-        /* find and replace <BR> with <br> */
-        char *pos = strstr(message,"<BR>");
-        while( pos != NULL) {
-            pos[1] = 'b';
-            pos[2] = 'r';
-            pos = strstr(message,"<BR>");
-        }
-        char *unescaped =  purple_unescape_html(message);
-        string content(unescaped);
-        /*need a free here */
+    char* unescaped = NULL;
+    string content;
+
+    /* find and replace <BR> with <br> so we play nicely with the xml parser*/
+    char *pos = strstr(message,"<BR>");
+    while(pos != NULL) {
+        pos[1] = 'b';
+        pos[2] = 'r';
+        pos = strstr(message,"<BR>");
+    }
+    unescaped =  purple_unescape_html(message);
+    if(unescaped)
+    {
+        content.assign(unescaped);
+#ifdef LIBPURPLE_WORKAROUND
+        content.erase(0,sizeof("<body>")-1); /*remove the body tag. -1 for null char size of counts */
+        content.erase(content.length()-sizeof("</body>")+1,sizeof("</body>")-1);
+#endif 
+        g_free(unescaped);
         Post *post = new Post();
         xml2post(&content, post);
         jabint->in_queue->add(post);
-	}
-
+    }
 }
 
 int jabposter::authorization_requested(PurpleAccount *account, const char *user)
@@ -213,19 +219,32 @@ void jabposter::connect_to_signals(void)
 
 void jabposter::sendpost(Post *post)
 {
-    static string strpost;
-    post2xml(&strpost, post);
-    PurpleConversation* conv;
+    string strpost;
+    PurpleConversation* conv = NULL;
     PurpleBlistNode * bnode = purple_blist_get_root();
+    char* nomarkup = NULL;
+
+    if(!post)
+    {
+        /* TODO warn about null post */
+        return;
+    }
+
+    post2xml(&strpost, post);
     while(bnode != NULL){
-        if(bnode->type == PURPLE_BLIST_BUDDY_NODE){
+        if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        {
             conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                     purple_buddy_get_account(PURPLE_BUDDY(bnode)),
                     purple_buddy_get_name(PURPLE_BUDDY(bnode)));
-            char *nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-            purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), nomarkup,PURPLE_MESSAGE_RAW);
-            purple_conversation_destroy(conv);
-            g_free(nomarkup);
+            if(conv)
+            {
+                nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
+                purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
+                        nomarkup,PURPLE_MESSAGE_RAW);
+                purple_conversation_destroy(conv);
+                g_free(nomarkup);
+            }
         }
         bnode = purple_blist_node_next (bnode, false);
     }
@@ -234,18 +253,25 @@ void jabposter::sendpost(Post *post)
 int jabposter::getaccounts(Account* accts, int num)
 {
     int x = 0;
+    const char* user = NULL;
+    const char* type = NULL;
     GList *alist = purple_accounts_get_all();
     alist = g_list_first(alist);
+
     while((alist != NULL) && (x < num))
     {
-        /* we can cast as glist is a carefully nested struct with the data
-         * held infront of the list overhead
-         */
         PurpleAccount* account = (PurpleAccount*) alist->data;
-        const char *proto = purple_account_get_protocol_name(account);
-        accts[x].set_user(purple_account_get_username(account));
-        accts[x].set_type(proto);
-        x++;
+        if(account)
+        {
+            user = purple_account_get_username(account);
+            type = purple_account_get_protocol_name(account);
+            if(user && type)
+            {
+                accts[x].set_user(user);
+                accts[x].set_type(type);
+                x++;
+            }
+        }
         alist = g_list_next(alist);
     }
     return x;
@@ -254,11 +280,14 @@ int jabposter::getaccounts(Account* accts, int num)
 void jabposter::addlink(Link& link, Account& acct)
 {
     GList *l;
-    for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) {
+    
+    for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) 
+    {
         PurpleAccount *account = (PurpleAccount *)l->data;
-        if(purple_account_get_username(account) == acct.user())
+        if(account && (purple_account_get_username(account) == acct.user()))
         {
-            purple_account_add_buddy(account, purple_buddy_new(account,link.name().c_str(),NULL));
+            purple_account_add_buddy(account, 
+                purple_buddy_new(account,link.name().c_str(),NULL));
         }
     }
 }
@@ -267,14 +296,27 @@ void jabposter::addlink(Link& link, Account& acct)
 int jabposter::getlinks(Link* links, int num)
 {
     int x = 0;
+    const char* name = NULL;
+    const char* host = NULL;
     PurpleBlistNode * bnode = purple_blist_get_root();
+
     while((bnode != NULL) && (x < num))
     {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
-            links[x].set_name(purple_buddy_get_name(PURPLE_BUDDY(bnode)));
-            links[x].set_host(purple_buddy_get_account(PURPLE_BUDDY(bnode))->username);
-            x++;
+            name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
+            host = purple_account_get_username(
+                purple_buddy_get_account(PURPLE_BUDDY(bnode)));
+            if(name && host)
+            {
+                links[x].set_name(name);
+                links[x].set_host(host);
+                x++;
+            }
+            else
+            {
+                /* TODO log failure */
+            }
         }
         bnode = purple_blist_node_next (bnode, false);
     }
@@ -368,8 +410,6 @@ jabposter::jabposter(rpqueue* rq)
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
 
-
-
 }
 
 jabposter::~jabposter()
@@ -379,7 +419,7 @@ jabposter::~jabposter()
 
 void jabposter::go(){
     
-    if(running==false)
+    if(running == false)
     {
         running = true;
         pthread_create(&m_thread, 0, (&jabposter::start_thread), this);
@@ -396,6 +436,10 @@ void jabposter::libpurple()
 {
     GMainContext *con = g_main_context_new();
     GMainLoop *loop = g_main_loop_new(con, FALSE);
+    if(loop == NULL)
+    {
+        /* TODO PANIC */
+    }
     g_main_loop_run(loop);
 }
 
