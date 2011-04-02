@@ -59,7 +59,7 @@ AUTOGEN_OUTPUT = env.Nixysa(IDL_SOURCES)
 AUTOGEN_CC_FILES = [f for f in AUTOGEN_OUTPUT if f.suffix == '.cc']
 
 # Targets
-npapi_plug = env.SharedLibrary("rpl", AUTOGEN_CC_FILES + SOURCES +
+npapi_plug = env.LoadableModule("rpl", AUTOGEN_CC_FILES + SOURCES +
                   ['$STATIC_GLUE_DIR/' + f for f in STATIC_GLUE_SOURCES] )
 
 if( env['PLATFORM'] == 'darwin'):
