@@ -18,6 +18,9 @@ env = Environment(
 if int(ARGUMENTS.get('debug', 0)):
     env.Append(CCFLAGS='-g')
 
+if int(ARGUMENTS.get('lp_workaround',0)):
+    env.Append(CCFLAGS='-DLIBPURPLE_WORKAROUND')
+
 if int(ARGUMENTS.get('localpath',0)):
     env.AppendENVPath('PATH',os.environ['PATH'])
 

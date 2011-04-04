@@ -40,6 +40,7 @@ if( env['PLATFORM'] == 'win' ):
                     '$ROOT/third_party/pthreads/$PLATFORM/'])
 else:
     deplibs += 'pthread'
+    env.Append(LIBPATH = [ '$ROOT/third_party/purple/$PLATFORM/']) 
     env.ParseConfig( 'pkg-config --cflags --libs uuid glib-2.0')
 
 env.Append(

@@ -24,6 +24,7 @@ public:
     virtual void go() = 0;
     void stop();
     virtual void sendpost(Post *post) = 0;
+    virtual int getlinks(Link* links, int num) = 0;
     bool stopreq;
     bool running;
     pthread_t m_thread;

@@ -1,7 +1,8 @@
 
 #include "rpl_con.h"
 
-rpl_con::rpl_con(rpl_network *net, rpl_storage *store, void (*cb)(void *rp, Post *p), void *rp)
+rpl_con::rpl_con(rpl_network *net, rpl_storage *store,
+    void (*cb)(void *rp, Post *p, int rank), void *rp)
 {
     this->reposter = rp;
     this->npCB = cb;
@@ -38,7 +39,9 @@ void rpl_con::consume()
     while(running == true)
     {
         Post *p = pnet->getpost();
-        npCB(reposter,p);
-        // add to storage here
+
+        this->pstore->add_post(p);
+
+        npCB(reposter,p,0);
     }
 }
