@@ -34,7 +34,6 @@ if sys.platform == 'win32':
 elif sys.platform == 'darwin':
   env.Append(CODEGEN = 'codegen.sh',
              CPPDEFINES = ['XP_MACOSX', 'OS_MACOSX'],
- #            LIBPATH=['/opt/local/lib/'],
              LINKFLAGS = '-framework CoreFoundation -framework IOKit')
 else:
   env.Append(CODEGEN = 'codegen.sh',
