@@ -3,7 +3,6 @@
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
-#include <string>
 
 #include "rpl.h"
 #include "rpl_storage.h"
@@ -110,7 +109,7 @@ void print_error ( int err )
         case SQLITE_DONE:
             cout << "SQLITE_OK" << endl;
             break;
-     }
+    }
 }
 
 /**
@@ -308,3 +307,54 @@ bool rpl_storage::setup_tables ()
     printf( "< %s\n", __FUNCTION__ );
 }
 
+void rpl_storage::delete_post ( string uuid )
+{
+    int rV;
+    char *errmsg;
+
+    cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
+    stringstream sql_stmt;
+    
+    sql_stmt << "DELETE FROM posts WHERE uuid = \"" << uuid << "\"";
+
+    rV = sqlite3_exec ( this->db, 
+                        sql_stmt.str().c_str(), 
+                        NULL, 
+                        NULL, 
+                        &errmsg );
+
+    if ( rV != SQLITE_OK )
+    {
+        cout << "sqlite error! error number " << rV << endl;
+    }
+    else
+    {
+        cout << "sqlite ok!" << endl;
+    }
+}
+
+void rpl_storage::update_metric ( string uuid )
+{
+    int rV;
+    char *errmsg;
+
+    cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
+    stringstream sql_stmt;
+    
+    sql_stmt << "UPDATE posts SET upvotes = upvotes + 1 WHERE uuid = \"" << uuid << "\"";
+
+    rV = sqlite3_exec ( this->db, 
+                        sql_stmt.str().c_str(), 
+                        NULL, 
+                        NULL, 
+                        &errmsg );
+
+    if ( rV != SQLITE_OK )
+    {
+        cout << "sqlite error! error number " << rV << endl;
+    }
+    else
+    {
+        cout << "sqlite ok!" << endl;
+    }
+}
