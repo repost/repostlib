@@ -1,6 +1,7 @@
 #ifndef RPL_STORAGE_H_
 #define RPL_STORAGE_H_
 
+#include <string>
 #include <sqlite3.h>
 #include "rpl.h"
 #include "link.h"
@@ -13,6 +14,8 @@ class rpl_storage
     void add_post (Post *post);
     void get_link(Link *link);
     int get_post ( Post **post, int len, int count );
+    void delete_post ( std::string uuid );
+    void update_metric ( std::string uuid );
   private:
     rpl_storage();
     ~rpl_storage();
