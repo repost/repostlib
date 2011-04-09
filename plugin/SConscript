@@ -5,6 +5,7 @@
 ###########################################
 import os
 import sys
+from rez import *
 from Bundle import *
 
 Import('env')
@@ -63,7 +64,9 @@ npapi_plug = env.LoadableModule("rpl", AUTOGEN_CC_FILES + SOURCES +
 
 if( env['PLATFORM'] == 'darwin'):
     TOOL_BUNDLE(env)
+    TOOL_REZ(env)
+    rsrc = env.Rez('rpl')
     npapi_plug = env.MakeBundle('rpl.plugin',npapi_plug,'./Info.plist',
-                 typecode='BRPL', creator='????', resources=['English.lproj'])
+                 typecode='BRPL', creator='????', resources=['English.lproj',rsrc])
 
 Return('npapi_plug')

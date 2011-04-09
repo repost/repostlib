@@ -25,7 +25,7 @@ if int(ARGUMENTS.get('localpath',0)):
     env.AppendENVPath('PATH',os.environ['PATH'])
 
 # OS flags
-if platform =='darwin':
+if (platform =='darwin' and  int(ARGUMENTS.get('universal',0))):
     env.Append(CCFLAGS="-DOSX=1 -arch i386 -arch x86_64 -O2", LINKFLAGS = "-arch i386 -arch x86_64")
 elif platform =='win':
     env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
