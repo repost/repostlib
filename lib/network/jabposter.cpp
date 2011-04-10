@@ -292,31 +292,48 @@ void jabposter::addlink(Link& link, Account& acct)
     }
 }
 
+int jabposter::extractlinks(Link* link, PurpleBuddy* bnode)
+{
+    const char* name = NULL;
+    const char* host = NULL;
+    name = purple_buddy_get_name(bnode);
+    host = purple_account_get_username(
+            purple_buddy_get_account(bnode));
+    if(!name && !host)
+    {
+        return -1;
+    }
+     
+    link->set_name(name);
+    link->set_host(host);
+
+    return 0;
+}
 
 int jabposter::getlinks(Link* links, int num)
 {
     int x = 0;
-    const char* name = NULL;
-    const char* host = NULL;
-    PurpleBlistNode * bnode = purple_blist_get_root();
+    PurpleBlistNode *bnode = purple_blist_get_root();
 
     while((bnode != NULL) && (x < num))
     {
-        if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        if(bnode->type == PURPLE_BLIST_CONTACT_NODE)
         {
-            name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
-            host = purple_account_get_username(
-                purple_buddy_get_account(PURPLE_BUDDY(bnode)));
-            if(name && host)
+            /* Need to extract multiple people */
+            PurpleBuddy *subnode = NULL;
+            int nodes = 0;
+            int b = 0;
+            subnode = PURPLE_CONTACT(bnode)->priority;   
+            nodes = PURPLE_CONTACT(bnode)->totalsize;
+            for(b = 0; b < nodes; b++)
             {
-                links[x].set_name(name);
-                links[x].set_host(host);
-                x++;
+                extractlinks(links+x+b, subnode);
             }
-            else
-            {
-                /* TODO log failure */
-            }
+            x += b;
+        }
+        else if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        {
+            extractlinks(links+x, PURPLE_BUDDY(bnode));
         }
         bnode = purple_blist_node_next (bnode, false);
     }
