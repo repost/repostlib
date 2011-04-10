@@ -16,7 +16,7 @@ class rePoster{
 public:
     class NewPostCB{
     public:
-        virtual void Run(const Post&  p)=0;
+        virtual void Run(const Post&  p, const int rank)=0;
     };
 
     rePoster() {};
@@ -27,7 +27,7 @@ public:
     void sendPost(Post p);
 
     void setNewPostCB(NewPostCB *newPostCB){this->newPostCB = newPostCB;}; /* set cb */
-    static void cb_wrap(void *reposter, Post *p);   
+    static void cb_wrap(void *reposter, Post *p, int rank);   
 
     std::vector<Account> getAccounts();
     void addAccount(Account newaccount);
@@ -37,8 +37,9 @@ public:
     void addLink(Link newlink, Account acct);
     void rmLink(Link link);
 
+    void getInitialPosts(NewPostCB *newPostCB);
 private:
-    void cb(Post *p);   
+    void cb(Post *p, int rank);   
     NewPostCB *newPostCB; /* callback made when we get new post */
     rpl_network *pnet;
     rpl_storage *pstore;

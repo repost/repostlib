@@ -23,10 +23,10 @@ void rePoster::init()
 
 void rePoster::startRepost(){
 
-   pnet->go();
+    pnet->go();
 
     /* Create storage class here */
-    pstore = NULL;
+    pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
     pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
@@ -44,15 +44,15 @@ void rePoster::sendPost(Post p)
     pnet->post(p);
 }
 
-void rePoster::cb(Post *p)
+void rePoster::cb(Post *p, int rank)
 {
-    this->newPostCB->Run(*p);
+    this->newPostCB->Run(*p, rank);
 }
 
-void rePoster::cb_wrap(void *reposter, Post *p)
+void rePoster::cb_wrap(void *reposter, Post *p, int rank)
 {    
     rePoster *rp = (rePoster*)reposter;
-    rp->cb(p);
+    rp->cb(p, rank);
 }
 
 std::vector<Account> rePoster::getAccounts()
@@ -64,6 +64,17 @@ void rePoster::addAccount(Account newaccount)
 {
     pnet->addAccount(newaccount);
 }   
+
+void rePoster::getInitialPosts(NewPostCB* newPostCB)
+{
+    int i = 0;
+    Post *post[10];
+    int rowsReturned = this->pstore->get_post( post, 0, 10 );
+    for ( int i = 0; i < rowsReturned; i++ )
+    {
+        newPostCB->Run(*post[i],0);
+    }
+}
 
 void rePoster::rmAccount(Account account)
 {

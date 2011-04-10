@@ -30,6 +30,9 @@ public:
     void set_comments(std::string constr){comments_ = constr;};
     void set_tags(std::string constr){tags_ = constr;};
 
+    void upboat(std::string uuid);
+    void downboat(std::string uuid);
+
 private:
     std::string uuid_;
     std::string content_;

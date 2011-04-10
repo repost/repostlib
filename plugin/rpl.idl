@@ -8,7 +8,7 @@
     void sendPost(Post p);
 
     /* Call back so when new posts come in we call */
-    callback void NewPostCB(Post p);
+    callback void NewPostCB(Post p, int rank);
     void setNewPostCB(NewPostCB? newPostCB);
 
     Account[] getAccounts();
@@ -18,5 +18,8 @@
     Link[] getLinks();
     void addLink(Link newlink, Account acct);
     void rmLink(Link link);
+
+    void getInitialPosts(NewPostCB? newPostCB);
+
 };
 
