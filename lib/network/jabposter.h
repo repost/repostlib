@@ -30,7 +30,6 @@ private:
     PurpleAccount *acct;
     rpqueue *in_queue;
     Account pendaccts[MAXACCTS];
-    int extractlinks(Link* link, PurpleBuddy* bnode);
     void signed_on(PurpleConnection* gc, gpointer jab);
     void connect_to_signals();
     static int authorization_requested(PurpleAccount* account, const char* user);
