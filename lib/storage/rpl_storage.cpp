@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
+#include <time.h>
 
 #include "rpl.h"
 #include "rpl_storage.h"
@@ -10,13 +11,22 @@
 using namespace std;
 
 const char rpl_storage::DATABASE_NAME[] = "repost";
+const char rpl_storage::DROP_POST_TABLE[] = 
+    "DROP TABLE posts;";
 const char rpl_storage::CREATE_POST_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, author TEXT, \
-    uuid TEXT, content TEXT, upvotes INTEGER, downvotes INTEGER);";
+    uuid TEXT, content TEXT, upvotes INTEGER, time INTEGER);";
+const char rpl_storage::CREATE_VERSION_TABLE[] = 
+    "CREATE TABLE IF NOT EXISTS version (version INTEGER);";
 bool initialised = false;
 int iRowsReturned = 0;
 
+const int rpl_storage::CURRENT_VERSION_NUMBER = 3;
+int db_version_number = -1;
+
 rpl_storage *rpl_storage::INSTANCE = new rpl_storage();
+
+void ps ( stringstream &str ) { cout << str.str() << endl; }
 
 void print_error ( int err )
 {
@@ -87,7 +97,7 @@ void print_error ( int err )
             break;
         case SQLITE_MISUSE:
             cout << "SQLITE_OK" << endl;
-            break;
+           break;
         case SQLITE_NOLFS:
             cout << "SQLITE_OK" << endl;
             break;
@@ -132,9 +142,7 @@ rpl_storage::rpl_storage()
         this->setup_tables();
     }
 
-#ifdef CLOSE_CONNECTION
     sqlite3_close( this->db );
-#endif
     printf( "< rpl_storage\n" );
 }
 
@@ -157,10 +165,9 @@ void rpl_storage::add_post (Post *post)
     int rc;
     int rV;
     char *errmsg;
-    string sql_stmt;
+    stringstream sql_stmt;
+    time_t now = time ( NULL );
 
-    printf( "> add_post\n" );
-#ifdef CLOSE_CONNECTION
     rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
     if ( rc )
     {
@@ -168,13 +175,13 @@ void rpl_storage::add_post (Post *post)
             rpl_storage::DATABASE_NAME );
         return;
     }
-#endif
 
-    sql_stmt = "INSERT INTO posts ( uuid, content ) VALUES"
-              "('" + post->uuid() + "', '" + post->content().c_str() + "')";
+    sql_stmt << "INSERT INTO posts ( uuid, content, time ) SELECT "
+              "'" << post->uuid() << "', '" << post->content().c_str() <<
+               "', " << now << " WHERE NOT EXISTS (SELECT * FROM posts " <<
+               "WHERE posts.uuid = \"" << post->uuid() << "\");";
 
-    printf ( "insert sql: %s\n", sql_stmt.c_str());
-    rV = sqlite3_exec ( this->db, sql_stmt.c_str(), NULL, NULL, &errmsg );
+    rV = sqlite3_exec ( this->db, sql_stmt.str().c_str(), NULL, NULL, &errmsg );
 
     if ( errmsg != NULL )
     {
@@ -182,12 +189,7 @@ void rpl_storage::add_post (Post *post)
         sqlite3_free ( errmsg );
     }
 
-#ifdef CLOSE_CONNECTION
     sqlite3_close( this->db );
-#endif
-
-    printf( "< add_post\n" );
-
 }
 
 void rpl_storage::get_link (Link *link)
@@ -244,17 +246,16 @@ int rpl_storage::get_post ( Post **post, int from, int count )
 
     iRowsReturned = 0;
 
-#ifdef CLOSE_CONNECTION
     rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
     if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
             rpl_storage::DATABASE_NAME );
-        return;
+        return 0;
     }
-#endif
 
-    sql_stmt << "SELECT * FROM posts LIMIT " << count << " OFFSET " << from; 
+    sql_stmt << "SELECT * FROM posts LIMIT " << count << " OFFSET " << from 
+        << " ORDER BY time DESCENDING;"; 
 
     rV = sqlite3_exec ( this->db, 
                         sql_stmt.str().c_str(), 
@@ -276,13 +277,107 @@ int rpl_storage::get_post ( Post **post, int from, int count )
         sqlite3_free ( errmsg );
     }
 
-#ifdef CLOSE_CONNECTION
     sqlite3_close( this->db );
-#endif
 
     cout << "< get_post" << endl;
 
     return iRowsReturned;
+}
+
+int rpl_storage::check_version_number (void * id, int columns, char **column_text, char **column_name)
+{
+    int *version = (int *)id;
+    for ( int i = 0; i < columns; i ++ )
+    {
+        if ( strstr ( column_name[i], "version" ) != NULL )
+        {
+            // get version number 
+            *version = atoi(column_text[i]);
+            printf ( "%s = %s\n", column_name[i], column_text[i] );
+        }
+    }
+    return 0;
+}
+
+void rpl_storage::update_table ( )
+{
+    int rV;
+    int version = -1;
+    char *errmsg = NULL;
+
+    cout << "> " << __FUNCTION__ << endl;
+
+    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rV )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+        return;
+    }
+
+    /* drop posts table */
+    /* TODO: migrate users to new table */
+    rV = sqlite3_exec ( this->db, 
+            "PRAGMA user_version;", 
+            &rpl_storage::check_version_number,
+            &version,
+            &errmsg);
+
+    if ( errmsg != NULL )
+    {
+        printf( "error read version table: %s\n", errmsg );
+        sqlite3_free ( errmsg );
+    }
+
+    /* if version is different  */
+    // TODO: setup migration!
+    if ( version != CURRENT_VERSION_NUMBER )
+    {
+        stringstream sql_stmt;
+
+        // create new posts table
+        rV = sqlite3_exec ( this->db, 
+                this->DROP_POST_TABLE, 
+                NULL,
+                NULL,
+                &errmsg);
+
+        if ( errmsg != NULL )
+        {
+            printf( "error drop post table: %s\n", errmsg );
+            sqlite3_free ( errmsg );
+        }
+
+        // create new posts table
+        rV = sqlite3_exec ( this->db, 
+                this->CREATE_POST_TABLE, 
+                NULL,
+                NULL,
+                &errmsg);
+
+        if ( errmsg != NULL )
+        {
+            printf( "error create post table: %s\n", errmsg );
+            sqlite3_free ( errmsg );
+        }
+
+        sql_stmt << "PRAGMA user_version = " << CURRENT_VERSION_NUMBER;
+        // update db with new version number 
+        rV = sqlite3_exec ( this->db, 
+                sql_stmt.str().c_str(), 
+                NULL,
+                NULL,
+                &errmsg);
+
+        if ( errmsg != NULL )
+        {
+            printf( "error update version table: %s\n", errmsg );
+            sqlite3_free ( errmsg );
+        }
+    }
+
+    cout << "< " << __FUNCTION__ << endl;
+    sqlite3_close( this->db );
 }
 
 bool rpl_storage::setup_tables ()
@@ -303,8 +398,13 @@ bool rpl_storage::setup_tables ()
         printf( "error create post table: %s\n", errmsg );
         sqlite3_free ( errmsg );
     }
-    
+
+    // check version numbers and stuff
+    this->update_table( );
+
     printf( "< %s\n", __FUNCTION__ );
+
+    return true;
 }
 
 void rpl_storage::delete_post ( string uuid )
@@ -314,6 +414,14 @@ void rpl_storage::delete_post ( string uuid )
 
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
     stringstream sql_stmt;
+
+    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rV )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+        return;
+    }
     
     sql_stmt << "DELETE FROM posts WHERE uuid = \"" << uuid << "\"";
 
@@ -331,6 +439,7 @@ void rpl_storage::delete_post ( string uuid )
     {
         cout << "sqlite ok!" << endl;
     }
+    sqlite3_close( this->db );
 }
 
 void rpl_storage::update_metric ( string uuid )
@@ -341,6 +450,14 @@ void rpl_storage::update_metric ( string uuid )
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
     stringstream sql_stmt;
     
+    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    if ( rV )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            rpl_storage::DATABASE_NAME );
+        return;
+    }
+
     sql_stmt << "UPDATE posts SET upvotes = upvotes + 1 WHERE uuid = \"" << uuid << "\"";
 
     rV = sqlite3_exec ( this->db, 
@@ -357,4 +474,5 @@ void rpl_storage::update_metric ( string uuid )
     {
         cout << "sqlite ok!" << endl;
     }
+    sqlite3_close( this->db );
 }
