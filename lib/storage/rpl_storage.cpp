@@ -201,8 +201,6 @@ void rpl_storage::get_link (Link *link)
 
 int print_post (void * id, int columns, char **column_text, char **column_name)
 {
-    cout << ">" << __FUNCTION__ << endl;
-
     static Post **post = NULL;
     static int n = 0;
     if ( post != (Post **)id )
@@ -222,12 +220,11 @@ int print_post (void * id, int columns, char **column_text, char **column_name)
         {
             post[n]->set_content ( column_text[i] );
         }
-        printf ( "%s = %s\n", column_name[i], column_text[i] );
+        //printf ( "%s = %s\n", column_name[i], column_text[i] );
         //cout << column_name[i] << " = " << column_text[i] << endl;
     }
     n++;
     iRowsReturned++;
-    cout << "<" << __FUNCTION__ << endl;
     return 0;
 }
 
@@ -254,8 +251,8 @@ int rpl_storage::get_post ( Post **post, int from, int count )
         return 0;
     }
 
-    sql_stmt << "SELECT * FROM posts LIMIT " << count << " OFFSET " << from 
-        << " ORDER BY time DESCENDING;"; 
+    sql_stmt << "SELECT * FROM posts ORDER BY time ASC LIMIT " << count 
+        << " OFFSET " << from << ";"; 
 
     rV = sqlite3_exec ( this->db, 
                         sql_stmt.str().c_str(), 
