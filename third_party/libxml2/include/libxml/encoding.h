@@ -24,6 +24,7 @@
 
 #include <libxml/xmlversion.h>
 
+#undef LIBXML_ICONV_ENABLED
 #ifdef LIBXML_ICONV_ENABLED
 #include <iconv.h>
 #endif

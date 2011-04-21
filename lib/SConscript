@@ -11,8 +11,8 @@ Import('env')
 # Repost Packages
 packages = '''
 common
-network
 storage
+network
 '''
 
 # Library Dependencies
@@ -22,6 +22,8 @@ uuid
 libxml2
 sqlite3
 purple
+libcmt
+Rpcrt4
 '''
 
 # Handle WIN32 libraries
@@ -31,6 +33,7 @@ if( env['PLATFORM'] == 'win' ):
         CPPPATH=['.','$ROOT/lib/include',
                      '$ROOT/third_party/sqlite3/include/',
                      '$ROOT/third_party/pthreads/include/',
+                     '$ROOT/third_party/libxml2/include/',
                      '$ROOT/third_party/purple/include/',
                      '$ROOT/third_party/glib-2.0/include/'],
         LIBPATH = [ '$ROOT/third_party/glib-2.0/$PLATFORM/',

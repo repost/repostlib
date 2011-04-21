@@ -10,7 +10,7 @@ extern "C"
 #include <uuid/uuid.h>
 #endif
 
-    std::string Post::gen_uuid(){
+std::string Post::gen_uuid(){
     #ifdef WIN32
         UUID uuid;
         UuidCreate ( &uuid );

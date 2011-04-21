@@ -2,13 +2,15 @@ import os
 import sys
 
 # Repost Build Environment
+if sys.platform == 'cygwin':
+    platform = 'win'
 if sys.platform == 'win32':
-     platform = 'win'
+    platform = 'win'
 elif sys.platform == 'darwin':
-     platform = 'darwin'
+    platform = 'darwin'
 else:
-     platform = 'linux'
-
+    platform = 'linux'
+platform = 'win'
 env = Environment(
     ROOT = Dir('.').abspath,
     PLATFORM = platform,
@@ -31,8 +33,9 @@ if int(ARGUMENTS.get('useclang',0)):
 if platform =='osx':
     env.Append(CCFLAGS='-DOSX=1')
 elif platform =='win':
-    env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
+    env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc','/Zi'])
 
+print os.environ.get('LIB')
 Export('env')
 
 [libs, deplibs] = env.SConscript('lib/SConscript')
