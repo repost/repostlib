@@ -23,7 +23,8 @@ public:
     void addBonjour(string user);
     void addJabber(string user, string pass);
     void sendpost(Post* post);
-    void addlink(Link& link, Account& acct);
+    void addlink(Link& link);
+    void rmlink(Link& link);
     void go();
     
 private:

@@ -34,7 +34,7 @@ public:
     void rmAccount(Account account);
 
     std::vector<Link> getLinks();
-    void addLink(Link newlink, Account acct);
+    void addLink(Link newlink);
     void rmLink(Link link);
 
     void getInitialPosts(NewPostCB *newPostCB);
