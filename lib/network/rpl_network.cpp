@@ -43,14 +43,14 @@ std::vector<Link> rpl_network::getLinks()
     return links;
 }
 
-void rpl_network::addLink(Link& link, Account& acct)
+void rpl_network::addLink(Link& link)
 {
-    jbp->addlink(link, acct);
+    jbp->addlink(link);
 }
 
 void rpl_network::rmLink(Link& link)
 {
-
+    jbp->rmlink(link);
 }
 
 std::vector<Account> rpl_network::getAccounts()
