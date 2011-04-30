@@ -3,31 +3,43 @@
 <plist version="1.0">
 <dict>
 	<key>WebPluginDescription</key>
-	<string>Finally</string>
-	<key>WebPluginName</key>
-	<string>Repost Plugin</string>
+	<string>HelloWorld Plugin</string>
 	<key>WebPluginMIMETypes</key>
 	<dict>
 		<key>application/reposter</key>
-	</dict>
-	<key>CSResourcesFileMapped</key>
-	<true/>
+		<dict>
+			<key>WebPluginTypeDescription</key>
+			<string>Reposter</string>
+		</dict>
+        </dict>
+	<key>WebPluginName</key>
+		<string>Reposter -in</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>librpl.dylib</string>
+	<string>rpl</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Repost Plugin for the win</string>
+	<key>CFHumanReadableCopyright</key>
+	<string>Copyright (c) 1996-2010 the repost muther</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.yourcompany</string>
+	<string>com.sideramota.repost</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>rpl.plugin</string>
 	<key>CFBundlePackageType</key>
-	<string>WBPL</string>
+	<string>BRPL</string>
 	<key>CFBundleSignature</key>
-	<string>????</string>
+	<string>MOEE</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>1.0.5</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.0.5</string>
+	<key>CSResourcesFileMapped</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.5.0</string>
 </dict>
 </plist>
 
