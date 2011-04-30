@@ -24,6 +24,9 @@ if int(ARGUMENTS.get('lp_workaround',0)):
 if int(ARGUMENTS.get('localpath',0)):
     env.AppendENVPath('PATH',os.environ['PATH'])
 
+if int(ARGUMENTS.get('useclang',0)):
+    env.Replace(CXX='clang')
+
 # OS flags
 if (platform =='darwin'):
     env.Append(CCFLAGS="-DOSX=1 -arch i386  -O2", LINKFLAGS = "-arch i386 ")

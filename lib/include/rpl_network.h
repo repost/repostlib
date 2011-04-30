@@ -26,7 +26,7 @@ public:
     void rmAccount(Account& acct);
 
     std::vector<Link> getLinks();
-    void addLink(Link& link, Account& acct);
+    void addLink(Link& link);
     void rmLink(Link& link);
 
     /**

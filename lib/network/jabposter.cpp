@@ -277,18 +277,43 @@ int jabposter::getaccounts(Account* accts, int num)
     return x;
 }
 
-void jabposter::addlink(Link& link, Account& acct)
+void jabposter::addlink(Link& link)
 {
     GList *l;
     
     for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) 
     {
         PurpleAccount *account = (PurpleAccount *)l->data;
-        if(account && (purple_account_get_username(account) == acct.user()))
+        if(account && (purple_account_get_username(account) == link.host()))
         {
             purple_account_add_buddy(account, 
                 purple_buddy_new(account,link.name().c_str(),NULL));
         }
+    }
+}
+
+void jabposter::rmlink(Link& link)
+{
+    int x = 0;
+    const char* name = NULL;
+    const char* host = NULL;
+    PurpleAccount *account = NULL;
+    PurpleBlistNode * bnode = purple_blist_get_root();
+
+    while(bnode != NULL)
+    {
+        if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        {
+            name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
+            account = purple_buddy_get_account(PURPLE_BUDDY(bnode));
+            host = purple_account_get_username(account);
+            if((name == link.name()) ) /* && (host == link.host())) */
+            {
+                purple_account_remove_buddy(account, PURPLE_BUDDY(bnode), 
+                            purple_buddy_get_group(PURPLE_BUDDY(bnode)));
+            }
+        }
+        bnode = purple_blist_node_next (bnode, false);
     }
 }
 
