@@ -2,6 +2,7 @@ from SCons.Script import *
 from SCons.Script.SConscript import SConsEnvironment
 from SCons.Node import *
 from string import Template
+import glob
 
 class SubstDeps:
    def __call__(self, env, target, **kw):
@@ -64,7 +65,7 @@ def TOOL_BUNDLE(env):
       def MakeBundle(env, bundledir, app,
                     info_plist,
                     typecode='BNDL', creator='????',
-                    resources=[]):
+                    resources=[], libs=[]):
          """Install a bundle into its dir, in the proper format"""
          # Substitute construction vars:
          for a in [bundledir, info_plist, typecode, creator]:
@@ -86,12 +87,16 @@ def TOOL_BUNDLE(env):
          env.Clean(app, bundledir)
 
          env.Install(bundledir+'/Contents/MacOS', app)
+
          env.SubstInFile(bundledir+'/Contents/Info.plist', info_plist,
                          SUBST_DICT={'EXECUTABLE_NAME':app,
                          'PRODUCT_NAME':app})
-
+	 
          if SCons.Util.is_String(resources):
             resources = [resources]
+         for l in libs:
+            t = env.Install(bundledir+'/Contents/libs', env.subst(l))
+            env.Clean(t, t)
          for r in resources:
             t = env.Install(bundledir+'/Contents/Resources', env.subst(r))
             env.Clean(t, t)
