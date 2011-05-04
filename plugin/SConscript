@@ -5,7 +5,10 @@
 ###########################################
 import os
 import sys
+from rez import *
 from Bundle import *
+import subprocess
+import glob
 
 Import('env')
 Import('libs')
@@ -34,7 +37,6 @@ if sys.platform == 'win32':
 elif sys.platform == 'darwin':
   env.Append(CODEGEN = 'codegen.sh',
              CPPDEFINES = ['XP_MACOSX', 'OS_MACOSX'],
- #            LIBPATH=['/opt/local/lib/'],
              LINKFLAGS = '-framework CoreFoundation -framework IOKit')
 else:
   env.Append(CODEGEN = 'codegen.sh',
@@ -80,7 +82,11 @@ npapi_plug = env.SharedLibrary("rpl", AUTOGEN_CC_FILES + SOURCES +
 
 if( env['PLATFORM'] == 'darwin'):
     TOOL_BUNDLE(env)
+    TOOL_REZ(env)
+    rsrc = env.Rez('rpl')
     npapi_plug = env.MakeBundle('rpl.plugin',npapi_plug,'./Info.plist',
-                 typecode='BRPL', creator='????', resources=['English.lproj'])
+                 typecode='BRPL', creator='????', resources=['English.lproj',rsrc],
+                 libs=[glob.glob('../third_party/purple/'+env['PLATFORM']+'/*.dylib')]
+		 )
 
 Return('npapi_plug')

@@ -30,8 +30,9 @@ if int(ARGUMENTS.get('useclang',0)):
     env.Replace(CXX='clang')
 
 # OS flags
-if platform =='osx':
-    env.Append(CCFLAGS='-DOSX=1')
+if (platform =='darwin'):
+    env.Append(CCFLAGS="-DOSX=1 -arch i386  -O2", LINKFLAGS = "-arch i386 ")
+    env.AppendENVPath('PATH',os.environ['PATH'])
 elif platform =='win':
     env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc','/Zi'])
 

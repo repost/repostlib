@@ -86,9 +86,9 @@ std::vector<Link> rePoster::getLinks()
     return pnet->getLinks();
 }
 
-void rePoster::addLink(Link newlink, Account acct)
+void rePoster::addLink(Link newlink)
 {
-    pnet->addLink(newlink,acct);
+    pnet->addLink(newlink);
 }
 
 void rePoster::rmLink(Link link)

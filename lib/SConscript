@@ -41,9 +41,12 @@ if( env['PLATFORM'] == 'win' ):
                     '$ROOT/third_party/libxml2/$PLATFORM/',
                     '$ROOT/third_party/sqlite3/$PLATFORM/',
                     '$ROOT/third_party/pthreads/$PLATFORM/'])
+elif( env['PLATFORM'] == 'darwin' ):
+    env.Append(
+        CPPPATH=['.', '$ROOT/third_party/purple/include/'],
+        LIBPATH = [ '$ROOT/third_party/purple/$PLATFORM/' ])
 else:
     deplibs += 'pthread'
-    env.Append(LIBPATH = [ '$ROOT/third_party/purple/$PLATFORM/']) 
     env.ParseConfig( 'pkg-config --cflags --libs uuid glib-2.0')
 
 env.Append(
