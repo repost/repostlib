@@ -104,8 +104,12 @@ NPError InitializeNPNApi(NPNetscapeFuncs *funcs) {
 
   memset(&g_browser_functions, 0, sizeof(g_browser_functions));
   // Only copy functions we know about, and that the browser has.
-  size_t size = std::min(sizeof(g_browser_functions),
+  size_t size;
+  {
+    using namespace std;
+    size = min(sizeof(g_browser_functions),
                          static_cast<size_t>(funcs->size));
+  }
   memcpy(&g_browser_functions, funcs, size);
 
   // Safari doesn't implement NPN_HasProperty although it claims to support
