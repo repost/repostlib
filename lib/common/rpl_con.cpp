@@ -38,10 +38,11 @@ void rpl_con::consume()
     // want a timed semwait 
     while(running == true)
     {
-        Post *p = pnet->getpost();
-
+      Post *p = pnet->getpost();
+      if(p)
+      {
         this->pstore->add_post(p);
-
         npCB(reposter,p,0);
+      }
     }
 }
