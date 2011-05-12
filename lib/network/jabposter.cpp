@@ -5,6 +5,9 @@
 #else
 #include "win32/win32dep.h"
 #endif
+#ifdef OS_MACOSX
+#include <signal.h>
+#endif
 #include "defines.h"
 #include "jabposter.h"
 #include "rpqueue.h"
@@ -378,17 +381,38 @@ void jabposter::addBonjour(string user)
     purple_savedstatus_activate(status);
 }
 
+#ifdef OS_MACOSX
+static void ZombieKiller_Signal(int i)
+{
+	int status;
+	pid_t child_pid;
+
+	while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
+}
+#endif
+
 jabposter::jabposter(rpqueue* rq)
 {
     jabint = this;
     in_queue = rq;
-#ifndef _WIN32
+#ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
      * blocking lookups without blocking the main process.  It does not
      * handle SIGCHLD itself, so if the UI does not you quickly get an army
      * of zombie subprocesses marching around.
      */
     signal(SIGCHLD, SIG_IGN);
+#elseif OS_MACOSX
+    /* Libpurple's async DNS lookup tends to create zombies. */
+    {
+      struct sigaction act;
+      
+      act.sa_handler = ZombieKiller_Signal;		
+      //Send for terminated but not stopped children
+      act.sa_flags = SA_NOCLDWAIT;
+
+      sigaction(SIGCHLD, &act, NULL);
+    }
 #endif
 
     /* We do not want any debugging for now to keep the noise to a minimum. */
@@ -408,6 +432,10 @@ jabposter::jabposter(rpqueue* rq)
     /* Set the uiops for the eventloop. If your client is glib-based, you can safely
      * copy this verbatim. */
     purple_eventloop_set_ui_ops(&glib_eventloops);
+
+    /* set the users directory to live inside the repost settings dir */
+    // TODO
+    purple_util_set_user_dir("/Users/andrewhankins/.repost/.purple");
 
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
