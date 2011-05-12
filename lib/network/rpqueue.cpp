@@ -3,21 +3,26 @@
 #include "rpqueue.h"
 #include <string.h>
 
-#ifdef __OSX__
+#ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
+#include <time.h>
 #endif
 
 rpqueue::rpqueue()
 {
 #ifdef NAMED_SEMAPHORE
     char name[32];
-    snprintf(name, 32, "/%s-%d", "lock", getpid());
+    long now;
+
+    now = (long) time(0);
+
+    snprintf(name, 32, "/%s-%10d-%10ld", "lock", getpid(), now);
     this->lock = sem_open(name, O_CREAT, 0, 1);
 
-    snprintf(name, 32, "/%s-%d", "usd", getpid());
+    snprintf(name, 32, "/%s-%10d-%10ld", "usd", getpid(), now);
     this->usd = sem_open(name, O_CREAT, 0, 0);
 
-    snprintf(name, 32, "/%s-%d", "empty", getpid());
+    snprintf(name, 32, "/%s-%10d-%10ld", "empty", getpid(), now);
     this->empty = sem_open(name, O_CREAT, 0, QUEUE_SIZE);
 #else
     this->empty =  new sem_t;
