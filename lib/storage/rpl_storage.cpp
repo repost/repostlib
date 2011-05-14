@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <time.h>
+#include <glib.h>
 
 #include "rpl.h"
 #include "rpl_storage.h"
