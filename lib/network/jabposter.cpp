@@ -7,6 +7,7 @@
 #endif
 #ifdef OS_MACOSX
 #include <signal.h>
+#include "osxeventloop.h"
 #endif
 #include "defines.h"
 #include "jabposter.h"
@@ -402,7 +403,7 @@ jabposter::jabposter(rpqueue* rq)
      * of zombie subprocesses marching around.
      */
     signal(SIGCHLD, SIG_IGN);
-#elseif OS_MACOSX
+#elif OS_MACOSX
     /* Libpurple's async DNS lookup tends to create zombies. */
     {
       struct sigaction act;
@@ -431,12 +432,16 @@ jabposter::jabposter(rpqueue* rq)
 
     /* Set the uiops for the eventloop. If your client is glib-based, you can safely
      * copy this verbatim. */
+#ifdef OS_MACOSX
+    purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
+#else
     purple_eventloop_set_ui_ops(&glib_eventloops);
+#endif
 
     /* set the users directory to live inside the repost settings dir */
     // TODO
-    purple_util_set_user_dir("/Users/andrewhankins/.repost/.purple");
-
+    purple_util_set_user_dir("/Users/andrewhankins/.repost/");
+	
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
      * necessary to provide a non-NULL name for the current ui to the core. This name
@@ -490,13 +495,19 @@ void *jabposter::start_thread(void *obj)
 
 void jabposter::libpurple()
 {
+/* 
+ Seems as though g_main_loops don't play nicely so we use the
+ native loops as they do in adium
+ */
+#ifndef OS_MACOSX
     GMainContext *con = g_main_context_new();
     GMainLoop *loop = g_main_loop_new(con, FALSE);
     if(loop == NULL)
     {
-        /* TODO PANIC */
+      printf("GLOOP FAIL WE IN DA SHIT\n");
     }
     g_main_loop_run(loop);
+#endif
 }
 
 

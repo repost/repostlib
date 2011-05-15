@@ -116,23 +116,23 @@ gboolean repost_source_remove(guint tag) {
             //It's done
             if (sourceInfo->timer) { 
                 CFRunLoopTimerInvalidate(sourceInfo->timer);
-                CFRelease(sourceInfo->timer);
+                //CFRelease(sourceInfo->timer);
                 sourceInfo->timer = NULL;
             }
             
             if (sourceInfo->socket) {
-                CFRelease(sourceInfo->socket);
+                //CFRelease(sourceInfo->socket);
                 sourceInfo->socket = NULL;
             }
 
             if (sourceInfo->run_loop_source) {
-                CFRelease(sourceInfo->run_loop_source);
+                //CFRelease(sourceInfo->run_loop_source);
                 sourceInfo->run_loop_source = NULL;
             }
         } else {
             if ((sourceInfo->timer_tag == 0) && (sourceInfo->timer)) {
                 CFRunLoopTimerInvalidate(sourceInfo->timer);
-                CFRelease(sourceInfo->timer);
+                //CFRelease(sourceInfo->timer);
                 sourceInfo->timer = NULL;
             }
             
@@ -157,7 +157,7 @@ gboolean repost_timeout_remove(guint tag) {
 void callTimerFunc(CFRunLoopTimerRef timer, void *info)
 {
     SourceInfo *sourceInfo = (SourceInfo *)info;
-    if (g_hash_table_lookup(sourceInfoHashTable,(gconstpointer *) &sourceInfo->timer_tag))
+    if (!g_hash_table_lookup(sourceInfoHashTable,(gconstpointer *) &sourceInfo->timer_tag))
     {
       //TODO panic
       printf("removed timer already %d\n", sourceInfo->timer_tag);
@@ -186,17 +186,16 @@ guint repost_timeout_add(guint interval, GSourceFunc function, gpointer data)
                                                           callTimerFunc, /* CFRunLoopTimerCallBack callout */
                                                           &runLoopTimerContext /* context */
                                                           );
-    guint *timer_tag = new guint(++sourceId);
     info->timer_function = function;
     info->timer = runLoopTimer;
     info->timer_user_data = data;    
-    info->timer_tag = *timer_tag;
+    info->timer_tag = ++sourceId;
 
-    g_hash_table_insert(sourceInfoHashTable, (gconstpointer *) timer_tag, info);
+    g_hash_table_insert(sourceInfoHashTable, (gconstpointer *) &info->timer_tag, info);
 
     CFRunLoopAddTimer(purpleRunLoop, runLoopTimer, kCFRunLoopCommonModes);
 
-    return *timer_tag;
+    return info->timer_tag;
 }
 
 guint repost_input_add(int fd, PurpleInputCondition condition,
@@ -230,8 +229,8 @@ guint repost_input_add(int fd, PurpleInputCondition condition,
     CFSocketContext actualSocketContext = { 0, NULL, NULL, NULL, NULL };
     CFSocketGetContext(socket, &actualSocketContext);
     if (actualSocketContext.info != info) {
-        CFRelease(socket);
-        CFRetain(actualSocketContext.info);
+ //       CFRelease(socket);
+        //CFRetain(actualSocketContext.info);
     }
 
     info->fd = fd;
