@@ -1,50 +1,19 @@
-/* 
- * Adium is the legal property of its developers, whose names are listed in the copyright file included
- * with this source distribution.
- * 
- * This program is free software; you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation; either version 2 of the License,
- * or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
- * Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License along with this program; if not,
- * write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+#include "osxeventloop.h"
+#include <poll.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <CoreFoundation/CoreFoundation.h>
 
-#import "adiumPurpleEventloop.h"
-#import <AIUtilities/AIApplicationAdditions.h>
-#import <poll.h>
-#import <unistd.h>
-#import <sys/socket.h>
-#import <sys/select.h>
-
-//#define PURPLE_SOCKET_DEBUG
-
-static guint                sourceId = 0;        //The next source key; continuously incrementing
-static CFRunLoopRef            purpleRunLoop = nil;
+static guint sourceId = 0; //The next source key; continuously incrementing
+static CFRunLoopRef purpleRunLoop = NULL;
+static GHashTable *sourceInfoHashTable = NULL;
 
 static void socketCallback(CFSocketRef s,
                            CFSocketCallBackType callbackType,
                            CFDataRef address,
                            const void *data,
                            void *infoVoid);
-/*
- * The sources, keyed by integer key id (wrapped in an NSNumber), holding
- * SourceInfo * objects
- */
-static NSMutableDictionary    *sourceInfoDict = nil;
-
-/*!
- * @class SourceInfo
- * @brief Holder for various source/timer information
- *
- * This serves as the context info for source and timer callbacks.  We use it just as a
- * struct (declaring all the class's ivars to be public) but make it an object so we can use
- * reference counting on it easily.
- */
 typedef struct{
     CFSocketRef socket;
     int fd;
@@ -62,8 +31,7 @@ typedef struct{
     guint write_tag;
     PurpleInputFunction write_ioFunction;
     gpointer write_user_data;    
-}SourceInfo;
-
+} SourceInfo;
 
 static SourceInfo *createSourceInfo(void)
 {
@@ -89,7 +57,6 @@ static SourceInfo *createSourceInfo(void)
     return info;
 }
 
-#pragma mark Remove
 
 /*!
  * @brief Given a SourceInfo struct for a socket which was for reading *and* writing, recreate its socket to be for just one
@@ -127,10 +94,11 @@ void updateSocketForSourceInfo(SourceInfo *sourceInfo)
 }
 
 gboolean repost_source_remove(guint tag) {
-#if 0
-    int *tagNumber = [[NSNumber alloc] initWithUnsignedInt:tag];
-    SourceInfo *sourceInfo = (SourceInfo *)[sourceInfoDict objectForKey:tagNumber];
-    BOOL didRemove;
+  
+    guint *tag_number = new guint(tag);
+    SourceInfo *sourceInfo = (SourceInfo *)g_hash_table_lookup(sourceInfoHashTable, 
+                                  (gconstpointer *)tag_number);
+    bool didRemove = false;
 
     if (sourceInfo) {
         if (sourceInfo->timer_tag == tag) {
@@ -172,20 +140,13 @@ gboolean repost_source_remove(guint tag) {
                 updateSocketForSourceInfo(sourceInfo);
             }
         }
-        
-        [sourceInfoDict removeObjectForKey:tagNumber];
 
-        didRemove = TRUE;
+        didRemove = g_hash_table_remove(sourceInfoHashTable,(gconstpointer *) &tag);
 
     } else {
         didRemove = FALSE;
     }
-
-    [tagNumber release];
-
     return didRemove;
-#endif
-    return true;
 }
 
 //Like g_source_remove, return TRUE if successful, FALSE if not
@@ -195,13 +156,16 @@ gboolean repost_timeout_remove(guint tag) {
 
 void callTimerFunc(CFRunLoopTimerRef timer, void *info)
 {
-    SourceInfo *sourceInfo = info;
-/*
-    if (![sourceInfoDict objectForKey:[NSNumber numberWithUnsignedInt:sourceInfo->timer_tag]])
-        NSLog(@"**** WARNING: %@ has already been removed, but we're calling its timer function!", info);
-*/
+    SourceInfo *sourceInfo = (SourceInfo *)info;
+    if (g_hash_table_lookup(sourceInfoHashTable,(gconstpointer *) &sourceInfo->timer_tag))
+    {
+      //TODO panic
+      printf("removed timer already %d\n", sourceInfo->timer_tag);
+      return;
+    }
     if (!sourceInfo->timer_function ||
-        !sourceInfo->timer_function(sourceInfo->timer_user_data)) {
+        !sourceInfo->timer_function(sourceInfo->timer_user_data)) 
+    {
         repost_source_remove(sourceInfo->timer_tag);
     }
 }
@@ -210,7 +174,7 @@ guint repost_timeout_add(guint interval, GSourceFunc function, gpointer data)
 {
     SourceInfo *info = createSourceInfo();
     
-    NSTimeInterval intervalInSec = (NSTimeInterval)interval/1000;
+    guint intervalInSec = interval/1000;
     
     CFRunLoopTimerContext runLoopTimerContext = { 0, info, CFRetain, CFRelease, /* CFAllocatorCopyDescriptionCallBack */ NULL };
     CFRunLoopTimerRef runLoopTimer = CFRunLoopTimerCreate(
@@ -222,21 +186,17 @@ guint repost_timeout_add(guint interval, GSourceFunc function, gpointer data)
                                                           callTimerFunc, /* CFRunLoopTimerCallBack callout */
                                                           &runLoopTimerContext /* context */
                                                           );
-    guint timer_tag = ++sourceId;
+    guint *timer_tag = new guint(++sourceId);
     info->timer_function = function;
     info->timer = runLoopTimer;
     info->timer_user_data = data;    
-    info->timer_tag = timer_tag;
+    info->timer_tag = *timer_tag;
 
-    NSNumber *tagNumber = [[NSNumber alloc] initWithUnsignedInt:timer_tag];
-    [sourceInfoDict setObject:info
-                       forKey:tagNumber];
-    [tagNumber release];
+    g_hash_table_insert(sourceInfoHashTable, (gconstpointer *) timer_tag, info);
 
     CFRunLoopAddTimer(purpleRunLoop, runLoopTimer, kCFRunLoopCommonModes);
-    [info release];
 
-    return timer_tag;
+    return *timer_tag;
 }
 
 guint repost_input_add(int fd, PurpleInputCondition condition,
@@ -270,9 +230,8 @@ guint repost_input_add(int fd, PurpleInputCondition condition,
     CFSocketContext actualSocketContext = { 0, NULL, NULL, NULL, NULL };
     CFSocketGetContext(socket, &actualSocketContext);
     if (actualSocketContext.info != info) {
-        [info release];
         CFRelease(socket);
-        info = [(SourceInfo *)(actualSocketContext.info) retain];
+        CFRetain(actualSocketContext.info);
     }
 
     info->fd = fd;
@@ -283,20 +242,14 @@ guint repost_input_add(int fd, PurpleInputCondition condition,
         info->read_ioFunction = func;
         info->read_user_data = user_data;
         
-        NSNumber *tagNumber = [[NSNumber alloc] initWithUnsignedInt:info->read_tag];
-        [sourceInfoDict setObject:info
-                           forKey:tagNumber];
-        [tagNumber release];
+        g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->read_tag, info);
         
     } else {
         info->write_tag = ++sourceId;
         info->write_ioFunction = func;
         info->write_user_data = user_data;
         
-        NSNumber *tagNumber = [[NSNumber alloc] initWithUnsignedInt:info->write_tag];
-        [sourceInfoDict setObject:info
-                           forKey:tagNumber];
-        [tagNumber release];
+        g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->write_tag, info);
     }
     
     updateSocketForSourceInfo(info);
@@ -310,13 +263,9 @@ guint repost_input_add(int fd, PurpleInputCondition condition,
    //         AILog(@"*** Unable to create run loop source for %p",socket);
         }        
     }
-
- //   [info release];
-
     return sourceId;
 }
 
-#pragma mark Socket Callback
 static void socketCallback(CFSocketRef s,
                            CFSocketCallBackType callbackType,
                            CFDataRef address,
@@ -349,11 +298,6 @@ static void socketCallback(CFSocketRef s,
   }
 
   if (ioFunction) {
-#ifdef PURPLE_SOCKET_DEBUG
-   // AILog(@"socketCallback(): Calling the ioFunction for %x, callback type %i (%s: tag is %i)",s,callbackType,
-     //   ((callbackType & kCFSocketReadCallBack) ? "reading" : "writing"),
-       // ((callbackType & kCFSocketReadCallBack) ? sourceInfo->read_tag : sourceInfo->write_tag));
-#endif
     ioFunction(user_data, fd, c);
   }
 }
@@ -405,7 +349,7 @@ int repost_input_get_error(int fd, int *error)
   return ret;
 }
 
-static PurpleEventLoopUiOps adiumEventLoopUiOps = {
+static PurpleEventLoopUiOps repostEventLoopUiOps = {
   repost_timeout_add,
   repost_timeout_remove,
   repost_input_add,
@@ -419,10 +363,11 @@ static PurpleEventLoopUiOps adiumEventLoopUiOps = {
 
 PurpleEventLoopUiOps *repost_purple_eventloop_get_ui_ops(void)
 {
-    if (!sourceInfoDict) sourceInfoDict = [[NSMutableDictionary alloc] init];
+    if (!sourceInfoHashTable) sourceInfoHashTable = g_hash_table_new(g_int_hash, g_int_equal);
 
     //Determine our run loop
-    purpleRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+    //purpleRunLoop = [[NSRunLoop currentRunLoop] getCFRunLoop];
+    purpleRunLoop = CFRunLoopGetCurrent();
     CFRetain(purpleRunLoop);
 
     return &repostEventLoopUiOps;
