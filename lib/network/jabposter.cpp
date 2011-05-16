@@ -483,7 +483,7 @@ void jabposter::go(){
     if(running == false)
     {
         running = true;
-        pthread_create(&m_thread, 0, (&jabposter::start_thread), this);
+ //       pthread_create(&m_thread, 0, (&jabposter::start_thread), this);
     }
 }
 

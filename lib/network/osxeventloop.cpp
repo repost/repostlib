@@ -5,15 +5,16 @@
 #include <sys/select.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-static guint sourceId = 0; //The next source key; continuously incrementing
-static CFRunLoopRef purpleRunLoop = NULL;
-static GHashTable *sourceInfoHashTable = NULL;
+static guint sourceId = 0; /* The next source key; continuously incrementing */
+static CFRunLoopRef purpleRunLoop = NULL; /* pointer to our current run loop */
+static GHashTable *sourceInfoHashTable = NULL; /* hash table to keep event source info */
 
 static void socketCallback(CFSocketRef s,
                            CFSocketCallBackType callbackType,
                            CFDataRef address,
                            const void *data,
                            void *infoVoid);
+/* Context info for source and timer and callbacks */
 typedef struct{
     CFSocketRef socket;
     int fd;
@@ -72,19 +73,21 @@ void updateSocketForSourceInfo(SourceInfo *sourceInfo)
     
     if (!socket) return;
 
-    //Reading
+    /* Reading */
     if (sourceInfo->read_tag)
         CFSocketEnableCallBacks(socket, kCFSocketReadCallBack);
     else
         CFSocketDisableCallBacks(socket, kCFSocketReadCallBack);
 
-    //Writing
+    /* Writing */
     if (sourceInfo->write_tag)
         CFSocketEnableCallBacks(socket, kCFSocketWriteCallBack);
     else
         CFSocketDisableCallBacks(socket, kCFSocketWriteCallBack);
     
-    //Re-enable callbacks automatically and, by starting with 0, _don't_ close the socket on invalidate
+    /* Re-enable callbacks automatically and, by starting with 0, 
+       _don't_ close the socket on invalidate
+     */
     CFOptionFlags flags = 0;
     
     if (sourceInfo->read_tag) flags |= kCFSocketAutomaticallyReenableReadCallBack;
@@ -95,9 +98,8 @@ void updateSocketForSourceInfo(SourceInfo *sourceInfo)
 
 gboolean repost_source_remove(guint tag) {
   
-    guint *tag_number = new guint(tag);
     SourceInfo *sourceInfo = (SourceInfo *)g_hash_table_lookup(sourceInfoHashTable, 
-                                  (gconstpointer *)tag_number);
+                                  (gconstpointer *) &tag);
     bool didRemove = false;
 
     if (sourceInfo) {
@@ -112,36 +114,43 @@ gboolean repost_source_remove(guint tag) {
 
         }
         
-        if (sourceInfo->timer_tag == 0 && sourceInfo->read_tag == 0 && sourceInfo->write_tag == 0) {
-            //It's done
-            if (sourceInfo->timer) { 
-                CFRunLoopTimerInvalidate(sourceInfo->timer);
-                //CFRelease(sourceInfo->timer);
-                sourceInfo->timer = NULL;
-            }
-            
-            if (sourceInfo->socket) {
-                //CFRelease(sourceInfo->socket);
-                sourceInfo->socket = NULL;
-            }
+        if (
+            sourceInfo->timer_tag == 0 && 
+            sourceInfo->read_tag == 0 && 
+            sourceInfo->write_tag == 0
+            )
+        {
+          //It's done
+          if (sourceInfo->timer) { 
+            CFRunLoopTimerInvalidate(sourceInfo->timer);
+            CFRelease(sourceInfo->timer);
+            sourceInfo->timer = NULL;
+          }
 
-            if (sourceInfo->run_loop_source) {
-                //CFRelease(sourceInfo->run_loop_source);
-                sourceInfo->run_loop_source = NULL;
-            }
+          if (sourceInfo->socket) {
+            printf("should try and invalid source here like adium %x", &sourceInfo->socket);
+            //CFSocketInvalidate(sourceInfo->socket);
+            CFRelease(sourceInfo->socket);
+            sourceInfo->socket = NULL;
+          }
+
+          if (sourceInfo->run_loop_source) {
+            CFRelease(sourceInfo->run_loop_source);
+            sourceInfo->run_loop_source = NULL;
+          }
         } else {
-            if ((sourceInfo->timer_tag == 0) && (sourceInfo->timer)) {
-                CFRunLoopTimerInvalidate(sourceInfo->timer);
-                //CFRelease(sourceInfo->timer);
-                sourceInfo->timer = NULL;
-            }
-            
-            if (sourceInfo->socket && (sourceInfo->read_tag || sourceInfo->write_tag)) {
-                updateSocketForSourceInfo(sourceInfo);
-            }
+          if((sourceInfo->timer_tag == 0) && (sourceInfo->timer)) {
+            CFRunLoopTimerInvalidate(sourceInfo->timer);
+            CFRelease(sourceInfo->timer);
+            sourceInfo->timer = NULL;
+          }
+
+          if (sourceInfo->socket && (sourceInfo->read_tag || sourceInfo->write_tag)) {
+            updateSocketForSourceInfo(sourceInfo);
+          }
         }
 
-        didRemove = g_hash_table_remove(sourceInfoHashTable,(gconstpointer *) &tag);
+        didRemove = g_hash_table_remove(sourceInfoHashTable, (gconstpointer *) &tag);
 
     } else {
         didRemove = FALSE;
@@ -201,68 +210,70 @@ guint repost_timeout_add(guint interval, GSourceFunc function, gpointer data)
 guint repost_input_add(int fd, PurpleInputCondition condition,
                       PurpleInputFunction func, gpointer user_data)
 {    
-    if (fd < 0) {
-        //NSLog(@"INVALID: fd was %i; returning tag %i",fd,sourceId+1);
-        return ++sourceId;
-    }
+  if (fd < 0) {
+    //NSLog(@"INVALID: fd was %i; returning tag %i",fd,sourceId+1);
+    return ++sourceId;
+  }
 
-    SourceInfo *info = createSourceInfo();
-    
-    // And likewise the entire CFSocket
-    CFSocketContext context = { 0, info, CFRetain, CFRelease, /* CFAllocatorCopyDescriptionCallBack */ NULL };
+  SourceInfo *info = createSourceInfo();
 
-    /*
-     * From CFSocketCreateWithNative:
-     * If a socket already exists on this fd, CFSocketCreateWithNative() will return that existing socket, and the other parameters
-     * will be ignored.
-     */
-    CFSocketRef socket = CFSocketCreateWithNative(NULL,
-                                                  fd,
-                                                  (kCFSocketReadCallBack | kCFSocketWriteCallBack),
-                                                  socketCallback,
-                                                  &context);
+  // And likewise the entire CFSocket
+  CFSocketContext context = { 0, info, CFRetain, CFRelease, /* CFAllocatorCopyDescriptionCallBack */ NULL };
 
-    /* If we did not create a *new* socket, it is because there is already one for this fd in the run loop.
-     * See the CFSocketCreateWithNative() documentation), add it to the run loop.
-     * In that case, the socket's info was not updated.
-     */
-    CFSocketContext actualSocketContext = { 0, NULL, NULL, NULL, NULL };
-    CFSocketGetContext(socket, &actualSocketContext);
-    if (actualSocketContext.info != info) {
- //       CFRelease(socket);
-        //CFRetain(actualSocketContext.info);
-    }
+  /*
+   * From CFSocketCreateWithNative:
+   * If a socket already exists on this fd, CFSocketCreateWithNative() will return that 
+   * existing socket, and the other parameters will be ignored.
+   */
+  CFSocketRef socket = CFSocketCreateWithNative(NULL,
+      fd,
+      (kCFSocketReadCallBack | kCFSocketWriteCallBack),
+      socketCallback,
+      &context);
 
-    info->fd = fd;
-    info->socket = socket;
+  /* If we did not create a *new* socket, it is because there is already one for this fd in the run loop.
+   * See the CFSocketCreateWithNative() documentation), add it to the run loop.
+   * In that case, the socket's info was not updated.
+   */
+  CFSocketContext *actualSocketContext = new CFSocketContext();
+  CFSocketGetContext(socket, actualSocketContext);
+  if (actualSocketContext->info != info) 
+  {
+    delete info;
+    CFRelease(socket);
+    info = (SourceInfo *) actualSocketContext->info;
+  }
 
-    if ((condition & PURPLE_INPUT_READ)) {
-        info->read_tag = ++sourceId;
-        info->read_ioFunction = func;
-        info->read_user_data = user_data;
-        
-        g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->read_tag, info);
-        
+  info->fd = fd;
+  info->socket = socket;
+
+  if ((condition & PURPLE_INPUT_READ)) 
+  {
+    info->read_tag = ++sourceId;
+    info->read_ioFunction = func;
+    info->read_user_data = user_data;
+    g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->read_tag, info);
+  } else 
+  { 
+    info->write_tag = ++sourceId;
+    info->write_ioFunction = func;
+    info->write_user_data = user_data;
+    g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->write_tag, info);
+  }
+
+  updateSocketForSourceInfo(info);
+
+  //Add it to our run loop
+  if (!(info->run_loop_source)) {
+    info->run_loop_source = CFSocketCreateRunLoopSource(NULL, socket, 0);
+    if (info->run_loop_source) {
+      CFRunLoopAddSource(purpleRunLoop, info->run_loop_source, kCFRunLoopCommonModes);
     } else {
-        info->write_tag = ++sourceId;
-        info->write_ioFunction = func;
-        info->write_user_data = user_data;
-        
-        g_hash_table_insert(sourceInfoHashTable, (gconstpointer *)&info->write_tag, info);
-    }
-    
-    updateSocketForSourceInfo(info);
-    
-    //Add it to our run loop
-    if (!(info->run_loop_source)) {
-        info->run_loop_source = CFSocketCreateRunLoopSource(NULL, socket, 0);
-        if (info->run_loop_source) {
-            CFRunLoopAddSource(purpleRunLoop, info->run_loop_source, kCFRunLoopCommonModes);
-        } else {
-   //         AILog(@"*** Unable to create run loop source for %p",socket);
-        }        
-    }
-    return sourceId;
+      //TODO panic
+      printf("failed to create run_loop_source\n");
+    }        
+  }
+  return sourceId;
 }
 
 static void socketCallback(CFSocketRef s,
