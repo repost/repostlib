@@ -1,14 +1,17 @@
 #include <signal.h>
 #include <string.h>
-#ifndef _WIN32
-#include <unistd.h>
-#else
-#include "win32/win32dep.h"
-#endif
 #include "defines.h"
 #include "jabposter.h"
 #include "rpqueue.h"
 #include "rpl.h"
+extern "C"{
+  #include "glib.h"
+}
+#ifndef WIN32
+#include <unistd.h>
+#else
+#include "win32/win32dep.h"
+#endif
 
 /**
  * The following eventloop functions are used in both pidgin and purple-text. If your
@@ -61,7 +64,7 @@ static guint glib_input_add(gint fd, PurpleInputCondition condition, PurpleInput
 	if (condition & PURPLE_INPUT_WRITE)
 		cond |= PURPLE_GLIB_WRITE_COND;
 
-#if defined _WIN32 && !defined WINPIDGIN_USE_GLIB_IO_CHANNEL
+#if defined WIN32 && !defined WINPIDGIN_USE_GLIB_IO_CHANNEL
 	channel = wpurple_g_io_channel_win32_new_socket(fd);
 #else
 	channel = g_io_channel_unix_new(fd);
@@ -80,12 +83,7 @@ static PurpleEventLoopUiOps glib_eventloops =
     glib_input_add,
     g_source_remove,
     NULL,
-#if GLIB_CHECK_VERSION(2,14,0)
     g_timeout_add_seconds,
-#else
-    NULL,
-#endif
-
     /* padding */
     NULL,
     NULL,
@@ -382,7 +380,7 @@ jabposter::jabposter(rpqueue* rq)
 {
     jabint = this;
     in_queue = rq;
-#ifndef _WIN32
+#ifndef WIN32
     /* libpurple's built-in DNS resolution forks processes to perform
      * blocking lookups without blocking the main process.  It does not
      * handle SIGCHLD itself, so if the UI does not you quickly get an army
@@ -392,7 +390,7 @@ jabposter::jabposter(rpqueue* rq)
 #endif
 
     /* We do not want any debugging for now to keep the noise to a minimum. */
-    purple_debug_set_enabled(FALSE);
+    purple_debug_set_enabled(TRUE);
 
     /* Set the core-uiops, which is used to
      * 	- initialize the ui specific preferences.

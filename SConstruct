@@ -42,6 +42,7 @@ Export('env')
 
 [libs, deplibs] = env.SConscript('lib/SConscript')
 plugin = env.SConscript('plugin/SConscript', ['libs','deplibs'])
-test = env.Program("test1","test/testapp.cpp", LIBS=[Split(deplibs)])
+test = env.Program("test1","test/win_dll_test.cpp", LIBS=[Split(deplibs)])
+#test = env.Program("test1","test/testapp.cpp", LIBS=[Split(deplibs)])
 Alias('test',test)
 Default(plugin)

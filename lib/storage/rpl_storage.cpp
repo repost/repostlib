@@ -24,7 +24,7 @@ int iRowsReturned = 0;
 const int rpl_storage::CURRENT_VERSION_NUMBER = 3;
 int db_version_number = -1;
 
-rpl_storage *rpl_storage::INSTANCE = new rpl_storage();
+rpl_storage *rpl_storage::INSTANCE = NULL; //new rpl_storage();
 
 void ps ( stringstream &str ) { cout << str.str() << endl; }
 

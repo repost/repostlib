@@ -32,7 +32,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-#if 0
 #ifdef _MSC_VER
 #define S_IRUSR S_IREAD
 #define S_IWUSR S_IWRITE
@@ -143,7 +142,7 @@ wpurple_rename( oldname, newname )
 /* time.h */
 #define localtime_r( time, resultp ) \
 wpurple_localtime_r( time, resultp )
-#endif
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

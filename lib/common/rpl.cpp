@@ -19,6 +19,7 @@ void rePoster::init()
 #endif
 
     pnet = new rpl_network();
+	rpl_storage::INSTANCE = new rpl_storage();
 }
 
 void rePoster::startRepost(){
