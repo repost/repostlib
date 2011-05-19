@@ -23,21 +23,21 @@ extern "C"{
 jabposter *jabint = NULL;
 
 typedef struct _PurpleGLibIOClosure {
-	PurpleInputFunction function;
-	guint result;
-	gpointer data;
+    PurpleInputFunction function;
+    guint result;
+    gpointer data;
 } PurpleGLibIOClosure;
 
 static void purple_glib_io_destroy(gpointer data)
 {
-	g_free(data);
+    g_free(data);
 }
 
 static gboolean purple_glib_io_invoke(GIOChannel *source, GIOCondition condition, gpointer data)
 {
     PurpleGLibIOClosure *closure = (PurpleGLibIOClosure *) data;
     int purple_cond = 0;
-
+        printf("glib io invoke\n");
     if (condition & PURPLE_GLIB_READ_COND)
         purple_cond |= PURPLE_INPUT_READ;
     if (condition & PURPLE_GLIB_WRITE_COND)
@@ -50,30 +50,32 @@ static gboolean purple_glib_io_invoke(GIOChannel *source, GIOCondition condition
 }
 
 static guint glib_input_add(gint fd, PurpleInputCondition condition, PurpleInputFunction function,
-							   gpointer data)
+                               gpointer data)
 {
-	PurpleGLibIOClosure *closure = g_new0(PurpleGLibIOClosure, 1);
-	GIOChannel *channel;
-	int cond = 0;
+    PurpleGLibIOClosure *closure = g_new0(PurpleGLibIOClosure, 1);
+    GIOChannel *channel;
+    int cond = 0;
 
-	closure->function = function;
-	closure->data = data;
+printf("inputin\n");
+    closure->function = function;
+    closure->data = data;
 
-	if (condition & PURPLE_INPUT_READ)
-		cond |= PURPLE_GLIB_READ_COND;
-	if (condition & PURPLE_INPUT_WRITE)
-		cond |= PURPLE_GLIB_WRITE_COND;
+    if (condition & PURPLE_INPUT_READ)
+        cond |= PURPLE_GLIB_READ_COND;
+    if (condition & PURPLE_INPUT_WRITE)
+        cond |= PURPLE_GLIB_WRITE_COND;
 
 #if defined WIN32 && !defined WINPIDGIN_USE_GLIB_IO_CHANNEL
-	channel = wpurple_g_io_channel_win32_new_socket(fd);
+printf("inputadd\n");
+    channel = wpurple_g_io_channel_win32_new_socket(fd);
 #else
-	channel = g_io_channel_unix_new(fd);
+    channel = g_io_channel_unix_new(fd);
 #endif
-	closure->result = g_io_add_watch_full(channel, G_PRIORITY_DEFAULT, (GIOCondition)cond,
-					      purple_glib_io_invoke, closure, purple_glib_io_destroy);
+    closure->result = g_io_add_watch_full(channel, G_PRIORITY_DEFAULT, (GIOCondition)cond,
+                          purple_glib_io_invoke, closure, purple_glib_io_destroy);
 
-	g_io_channel_unref(channel);
-	return closure->result;
+    g_io_channel_unref(channel);
+    return closure->result;
 }
 
 static PurpleEventLoopUiOps glib_eventloops = 
@@ -93,7 +95,7 @@ static PurpleEventLoopUiOps glib_eventloops =
 
 /*** Conversation uiops ***/
 void jab_write_conv(PurpleConversation *conv, const char *who, const char *alias,
-			const char *message, PurpleMessageFlags flags, time_t mtime)
+            const char *message, PurpleMessageFlags flags, time_t mtime)
 {
     const char *name;
     if (alias && *alias)
@@ -110,48 +112,48 @@ void jab_write_conv(PurpleConversation *conv, const char *who, const char *alias
 
 static PurpleConversationUiOps jab_conv_uiops = 
 {
-	NULL,                      /* create_conversation  */
-	NULL,                      /* destroy_conversation */
-	NULL,                      /* write_chat           */
-	NULL,                      /* write_im             */
-	jab_write_conv,                      /* write_conv           */
-	NULL,                      /* chat_add_users       */
-	NULL,                      /* chat_rename_user     */
-	NULL,                      /* chat_remove_users    */
-	NULL,                      /* chat_update_user     */
-	NULL,                      /* present              */
-	NULL,                      /* has_focus            */
-	NULL,                      /* custom_smiley_add    */
-	NULL,                      /* custom_smiley_write  */
-	NULL,                      /* custom_smiley_close  */
-	NULL,                      /* send_confirm         */
-	NULL,
-	NULL,
-	NULL,
-	NULL
+    NULL,                      /* create_conversation  */
+    NULL,                      /* destroy_conversation */
+    NULL,                      /* write_chat           */
+    NULL,                      /* write_im             */
+    jab_write_conv,                      /* write_conv           */
+    NULL,                      /* chat_add_users       */
+    NULL,                      /* chat_rename_user     */
+    NULL,                      /* chat_remove_users    */
+    NULL,                      /* chat_update_user     */
+    NULL,                      /* present              */
+    NULL,                      /* has_focus            */
+    NULL,                      /* custom_smiley_add    */
+    NULL,                      /* custom_smiley_write  */
+    NULL,                      /* custom_smiley_close  */
+    NULL,                      /* send_confirm         */
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 void jab_ui_init(void)
 {
-	/**
-	 * This should initialize the UI components for all the modules. Here we
-	 * just initialize the UI for conversations.
-	 */
-	purple_conversations_set_ui_ops(&jab_conv_uiops);
+    /**
+     * This should initialize the UI components for all the modules. Here we
+     * just initialize the UI for conversations.
+     */
+    purple_conversations_set_ui_ops(&jab_conv_uiops);
 }
 
 static PurpleCoreUiOps jab_core_uiops = 
 {
-	NULL,
-	NULL,
-	NULL,
-	jab_ui_init,
+    NULL,
+    NULL,
+    NULL,
+    jab_ui_init,
 
-	/* padding */
-	NULL,
-	NULL,
-	NULL,
-	NULL
+    /* padding */
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 void conn_error(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
@@ -163,7 +165,7 @@ void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *me
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     if(message != NULL)
-    {	
+    {    
         jabint->received_im_msg(account, sender, message, conv, flags);
     }
 }
@@ -375,9 +377,21 @@ void jabposter::addBonjour(string user)
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
 }
-
+void p(const gchar * str)
+{
+    printf(str);
+}
 jabposter::jabposter(rpqueue* rq)
 {
+
+    if(AllocConsole()) {
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
+            SetConsoleTitle("Debug Console");
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
+                }
+                g_set_print_handler(p);
+                g_print("fuck\n");
     jabint = this;
     in_queue = rq;
 #ifndef WIN32
@@ -393,10 +407,10 @@ jabposter::jabposter(rpqueue* rq)
     purple_debug_set_enabled(TRUE);
 
     /* Set the core-uiops, which is used to
-     * 	- initialize the ui specific preferences.
-     * 	- initialize the debug ui.
-     * 	- initialize the ui components for all the modules.
-     * 	- uninitialize the ui components for all the modules when the core terminates.
+     *     - initialize the ui specific preferences.
+     *     - initialize the debug ui.
+     *     - initialize the ui components for all the modules.
+     *     - uninitialize the ui components for all the modules when the core terminates.
      */
     purple_core_set_ui_ops(&jab_core_uiops);
 
@@ -410,12 +424,12 @@ jabposter::jabposter(rpqueue* rq)
      * is used by stuff that depends on this ui, for example the ui-specific plugins. */
     if (!purple_core_init(UI_ID)) {
         /* Initializing the core failed. Terminate. */
-        fprintf(stderr,
+        printf(
                 "libpurple initialization failed. Dumping core.\n"
                 "Please report this!\n");
         abort();
     }
-
+        printf("init called\n");
     /* Create and load the buddylist. */
     purple_set_blist(purple_blist_new());
     purple_blist_load();
@@ -432,7 +446,7 @@ jabposter::jabposter(rpqueue* rq)
 
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
-
+    printf("libpurple init fin\n");
 }
 
 jabposter::~jabposter()
@@ -463,6 +477,7 @@ void jabposter::libpurple()
     {
         /* TODO PANIC */
     }
+    printf("sparking loo\n");
     g_main_loop_run(loop);
 }
 
