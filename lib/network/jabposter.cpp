@@ -411,15 +411,17 @@ void jabposter::libpurple()
  Seems as though g_main_loops don't play nicely so we use the
  native loops as they do in adium
  */
-#ifndef OS_MACOSX
+#ifdef OS_MACOSX
+    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+#else
     GMainContext *con = g_main_context_new();
     GMainLoop *loop = g_main_loop_new(con, FALSE);
+#endif
     if(loop == NULL)
     {
       printf("GLOOP FAIL WE IN DA SHIT\n");
     }
     g_main_loop_run(loop);
-#endif
 }
 
 
