@@ -40,7 +40,7 @@ if( env['PLATFORM'] == 'win' ):
                     '$ROOT/third_party/pthreads/$PLATFORM/'])
 elif( env['PLATFORM'] == 'darwin' ):
     env.Append(
-        CPPPATH=['.', '$ROOT/third_party/purple/include/'],
+        CPPPATH=['.', '$ROOT/third_party/purple/darwin/include/'],
         LIBPATH = [ '$ROOT/third_party/purple/$PLATFORM/' ])
 else:
     deplibs += 'pthread'
