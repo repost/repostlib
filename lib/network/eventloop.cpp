@@ -1,7 +1,7 @@
 
 #include "eventloop.h"
 
-#ifdef OS_MACOSX
+#if 0
 
 #include <poll.h>
 #include <unistd.h>
@@ -422,7 +422,7 @@ PurpleEventLoopUiOps *repost_purple_eventloop_get_ui_ops(void)
 
     return &repostEventLoopUiOps;
 }
-#else
+#endif
 
 extern "C" {
 #include "purple.h"
@@ -509,4 +509,7 @@ static PurpleEventLoopUiOps glib_eventloops =
     NULL
 };
 
-#endif
+PurpleEventLoopUiOps *repost_purple_eventloop_get_ui_ops(void)
+{
+    return &glib_eventloops;
+}
