@@ -52,7 +52,7 @@ void rpqueue::add(Post *post)
 {
     sem_wait(empty);
     sem_wait(lock);
-    postq[QUEUE_SIZE - this->semval - 1] = post;
+    postq[this->semval] = post;
     this->semval += 1;
     sem_post(usd);
     sem_post(lock);
@@ -63,9 +63,9 @@ Post * rpqueue::get()
     Post *ret = NULL;
     sem_wait(usd);
     sem_wait(lock);
-    ret = postq[this->semval];
-    postq[this->semval] = NULL;
-    semval -= 1;
+    ret = postq[this->semval-1];
+    postq[this->semval-1] = NULL;
+    this->semval -= 1;
     sem_post(empty);
     sem_post(lock);
     return ret;
