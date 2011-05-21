@@ -12,7 +12,7 @@ using namespace std;
 
 void rePoster::init() 
 {
-#ifndef WIN32
+#ifdef LINUX
     /* We force load libpurple as the chrome plugin loader doesn't 
        do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 

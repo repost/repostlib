@@ -20,6 +20,7 @@ private:
     sem_t* empty;
     sem_t* usd;
     sem_t* lock;
+    int semval;
     Post *postq[QUEUE_SIZE];
 };
 
