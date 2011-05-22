@@ -8,7 +8,7 @@ elif sys.platform == 'darwin':
     platform = 'darwin'
 else:
     platform = 'linux'
-platform = 'win'
+
 env = Environment(
     ROOT = Dir('.').abspath,
     PLATFORM = platform,
@@ -40,7 +40,6 @@ elif platform =='linux':
 elif platform =='win':
     env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
 
-print os.environ.get('LIB')
 Export('env')
 
 [libs, deplibs] = env.SConscript('lib/SConscript')
