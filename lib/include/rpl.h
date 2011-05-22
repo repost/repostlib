@@ -38,6 +38,9 @@ public:
     void rmLink(Link link);
 
     void getInitialPosts(NewPostCB *newPostCB);
+
+    void upboat(std::string uuid);
+    void downboat(std::string uuid);
 private:
     void cb(Post *p, int rank);   
     NewPostCB *newPostCB; /* callback made when we get new post */

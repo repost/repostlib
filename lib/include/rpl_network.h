@@ -5,6 +5,8 @@
 
 #include "rpl.h"
 
+#include <string>
+
 class rpqueue;
 class jabposter;
 
@@ -29,6 +31,7 @@ public:
     void addLink(Link& link);
     void rmLink(Link& link);
 
+    std::string get_userdir();
     /**
      * @brief Blocking call that when released returns a new post
      * from a network. User of function is responsible for deallocation

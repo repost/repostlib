@@ -31,14 +31,3 @@ extern "C"
     }
 }
 
-void Post::upboat(std::string uuid) {
-    std::cout << "upboated! update metric!" << std::endl;
-    rpl_storage *store = rpl_storage::get_instance();
-    store->update_metric(uuid);
-}
-
-void Post::downboat(std::string uuid) {
-    std::cout << "downboated! delete that shit" << std::endl;
-    rpl_storage *store = rpl_storage::get_instance();
-    store->delete_post(uuid);
-}

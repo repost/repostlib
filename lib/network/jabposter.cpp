@@ -137,6 +137,11 @@ void jabposter::connect_to_signals(void)
 
 }
 
+std::string jabposter::get_repostdir()
+{
+  return repostdir;
+}
+
 void jabposter::sendpost(Post *post)
 {
     string strpost;
@@ -351,8 +356,9 @@ jabposter::jabposter(rpqueue* rq)
     purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
 
     /* set the users directory to live inside the repost settings dir */
-    // TODO
-    purple_util_set_user_dir("/Users/andrewhankins/.repost/");
+    repostdir.assign(purple_home_dir());
+    repostdir.append("/.repost");
+    purple_util_set_user_dir(repostdir.c_str());
 	
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's

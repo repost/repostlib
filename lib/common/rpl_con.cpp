@@ -1,6 +1,8 @@
-
+#include <string>
+#include <iostream>
 #include "rpl_con.h"
 
+using namespace std;
 
 rpl_con::rpl_con(rpl_network *net, rpl_storage *store,
     void (*cb)(void *rp, Post *p, int rank), void *rp)
@@ -43,8 +45,14 @@ void rpl_con::consume()
 		Post *p = pnet->getpost();
 		if(p)
 		{
-			this->pstore->add_post(p);
-			npCB(reposter,p,0);
+    if(this->pstore->add_post(p))
+      {
+        npCB(reposter,p,0);
+      }
+      else
+      {
+        cout << "got it"  << endl;
+      }
 		}
 	}
 }
