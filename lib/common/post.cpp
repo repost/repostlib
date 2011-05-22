@@ -11,7 +11,7 @@ extern "C"
 #endif
 
     std::string Post::gen_uuid(){
-    #ifdef WIN32
+#ifdef WIN32
         UUID uuid;
         UuidCreate ( &uuid );
 
@@ -21,12 +21,12 @@ extern "C"
         std::string s( ( char* ) str );
 
         RpcStringFreeA ( &str );
-    #else
+#else
         uuid_t uuid;
         uuid_generate_random ( uuid );
         char s[37];
         uuid_unparse ( uuid, s );
-    #endif
+#endif
         return s;
     }
 }

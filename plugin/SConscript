@@ -61,6 +61,22 @@ AUTOGEN_OUTPUT = env.Nixysa(IDL_SOURCES)
 AUTOGEN_CC_FILES = [f for f in AUTOGEN_OUTPUT if f.suffix == '.cc']
 
 # Targets
+if ( env['PLATFORM'] == 'win'):
+    ld = SCons.Tool.createLoadableModuleBuilder(env)
+    ld.add_src_builder('RES')
+
+    sl = SCons.Tool.createSharedLibBuilder(env)
+    sl.add_src_builder('RES')
+
+    sl = SCons.Tool.createStaticLibBuilder(env)
+    sl.add_src_builder('RES')
+
+    p = SCons.Tool.createProgBuilder(env)
+    p.add_src_builder('RES')
+
+    SOURCES.append('repost.rc')
+    SOURCES.append('repost.def')
+
 npapi_plug = env.LoadableModule("rpl", AUTOGEN_CC_FILES + SOURCES +
                   ['$STATIC_GLUE_DIR/' + f for f in STATIC_GLUE_SOURCES] )
 

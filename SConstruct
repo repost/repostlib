@@ -3,12 +3,12 @@ import sys
 
 # Repost Build Environment
 if sys.platform == 'win32':
-     platform = 'win'
+    platform = 'win'
 elif sys.platform == 'darwin':
-     platform = 'darwin'
+    platform = 'darwin'
 else:
-     platform = 'linux'
-
+    platform = 'linux'
+platform = 'win'
 env = Environment(
     ROOT = Dir('.').abspath,
     PLATFORM = platform,
@@ -17,6 +17,7 @@ env = Environment(
 # optional flags
 if int(ARGUMENTS.get('debug', 0)):
     env.Append(CCFLAGS='-g')
+    env.Append(CCFLAGS='/Zi')
 
 if int(ARGUMENTS.get('lp_debug', 0)):
     env.Append(CCFLAGS='-DLIBPURPLE_DEBUG')
@@ -39,6 +40,7 @@ elif platform =='linux':
 elif platform =='win':
     env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
 
+print os.environ.get('LIB')
 Export('env')
 
 [libs, deplibs] = env.SConscript('lib/SConscript')

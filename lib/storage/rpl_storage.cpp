@@ -445,6 +445,7 @@ bool rpl_storage::setup_tables ()
 {
     int rV;
     char *errmsg = NULL;
+    bool ret = true;
 
     printf( "> %s\n", __FUNCTION__);
 
@@ -458,6 +459,7 @@ bool rpl_storage::setup_tables ()
     {
         printf( "error create post table: %s\n", errmsg );
         sqlite3_free ( errmsg );
+        ret = false;
     }
 
     // check version numbers and stuff
