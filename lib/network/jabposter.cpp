@@ -1,15 +1,17 @@
 #include <signal.h>
 #include <string.h>
-#ifndef _WIN32
-#include <unistd.h>
-#else
-#include "win32/win32dep.h"
-#endif
 #include "eventloop.h"
 #include "defines.h"
 #include "jabposter.h"
 #include "rpqueue.h"
 #include "rpl.h"
+
+#ifndef WIN32 /* Always last include */
+#include <unistd.h>
+#else
+#include "win32/win32dep.h"
+#endif
+
 
 static jabposter *jabint = NULL;
 
@@ -403,12 +405,11 @@ void *jabposter::start_thread(void *obj)
 
 void jabposter::libpurple()
 {
-#ifdef WIN32 || OS_MACOSX
-    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-#else
-    GMainContext *con = g_main_context_new();
-    GMainLoop *loop = g_main_loop_new(con, FALSE);
+    GMainContext *con = NULL;
+#ifdef LINUX
+    con = g_main_context_new();
 #endif
+    GMainLoop *loop = g_main_loop_new(con, FALSE);
     if(loop == NULL)
     {
       printf("GLOOP FAIL WE IN DA SHIT\n");

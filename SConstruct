@@ -39,7 +39,7 @@ if (platform =='darwin'):
 elif platform =='linux':
     env.Append(CCFLAGS="-DLINUX")
 elif platform =='win':
-    env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
+    env.Append(CCFLAGS=['/DWIN32=1','/D_X86_','/EHsc','/Zi']) 
 
 Export('env')
 

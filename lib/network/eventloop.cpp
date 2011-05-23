@@ -6,6 +6,10 @@ extern "C" {
 #include "glib.h"
 }
 
+#ifdef WIN32
+#include "win32/win32dep.h" 
+#endif
+
 /**
  * The following eventloop functions are used in both pidgin and purple-text. If your
  * application uses glib mainloop, you can safely use this verbatim.
