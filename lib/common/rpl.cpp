@@ -9,17 +9,35 @@
 #endif
 
 using namespace std;
+#ifdef DEBUG && WIN32
+#include "glib.h"
+#include "win32/win32dep.h"
+void p(const gchar * str)
+{
+    printf(str);
+}
+#endif
 
 void rePoster::init() 
 {
 #ifndef WIN32
     /* We force load libpurple as the chrome plugin loader doesn't 
-       do it properly */
+         do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
+#endif
+#if DEBUG && WIN32
+    if(AllocConsole()) {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        SetConsoleTitle("Debug Console");
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 
+                FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
+    }
+    g_set_print_handler(p);
 #endif
 
     pnet = new rpl_network();
-	rpl_storage::INSTANCE = new rpl_storage();
+    rpl_storage::INSTANCE = new rpl_storage();
 }
 
 void rePoster::startRepost(){

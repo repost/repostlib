@@ -12,14 +12,14 @@ extern "C"{
 #else
 #include "win32/win32dep.h"
 #endif
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+
 /**
  * The following eventloop functions are used in both pidgin and purple-text. If your
  * application uses glib mainloop, you can safely use this verbatim.
  */
 #define PURPLE_GLIB_READ_COND  (G_IO_IN | G_IO_HUP | G_IO_ERR)
 #define PURPLE_GLIB_WRITE_COND (G_IO_OUT | G_IO_HUP | G_IO_ERR | G_IO_NVAL)
-extern "C" GIOChannel *wpurple_g_io_channel_win32_new_socket(int socket);
+
 jabposter *jabint = NULL;
 
 typedef struct _PurpleGLibIOClosure {
@@ -43,10 +43,10 @@ static gboolean purple_glib_io_invoke(GIOChannel *source, GIOCondition condition
         purple_cond |= PURPLE_INPUT_WRITE;
         printf("glib io invoke %x \n", purple_cond);
 #ifdef WIN32
-	if(! purple_cond) {
+    if(! purple_cond) {
         printf("debug\n");
-		return TRUE;
-	}
+        return TRUE;
+    }
 #endif /* _WIN32 */
 
     closure->function(closure->data, g_io_channel_unix_get_fd(source),
@@ -363,7 +363,7 @@ void jabposter::addJabber(string user, string pass)
     PurpleSavedStatus *status;
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
-    printf(">addjabber %s\n",user);
+    
     /* Get the password for the account */
     purple_account_set_password(jabacct, pass.c_str());
 
@@ -375,7 +375,6 @@ void jabposter::addJabber(string user, string pass)
 
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
-    printf("<addjabber %s\n",user);
 }
 
 void jabposter::addBonjour(string user)
@@ -388,21 +387,9 @@ void jabposter::addBonjour(string user)
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
 }
-void p(const gchar * str)
-{
-    printf(str);
-}
+
 jabposter::jabposter(rpqueue* rq)
 {
-    if(AllocConsole()) {
-            freopen("CONOUT$", "w", stdout);
-            freopen("CONOUT$", "w", stderr);
-            SetConsoleTitle("Debug Console");
-            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
-                }
-                g_set_print_handler(p);
-                g_print("fuck\n");
-purple_network_set_public_ip("192.168.1.4");
     jabint = this;
     in_queue = rq;
 #ifndef WIN32
@@ -424,21 +411,11 @@ purple_network_set_public_ip("192.168.1.4");
      *     - uninitialize the ui components for all the modules when the core terminates.
      */
     purple_core_set_ui_ops(&jab_core_uiops);
-
+    //purple_plugins_add_search_path("r:\\rpworking\\repostapp");
     /* Set the uiops for the eventloop. If your client is glib-based, you can safely
      * copy this verbatim. */
     purple_eventloop_set_ui_ops(&glib_eventloops);
 
-    char bug[500];
-MEMORY_BASIC_INFORMATION mbi; 
-VirtualQuery(bug, &mbi, sizeof(mbi)); 
-GetModuleFileName(
-(HINSTANCE) (mbi.AllocationBase),
-bug,
-  500
-);
-    printf("%s",bug);
-	purple_plugins_add_search_path(".");
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
      * necessary to provide a non-NULL name for the current ui to the core. This name
@@ -450,7 +427,7 @@ bug,
                 "Please report this!\n");
         abort();
     }
-        printf("init called\n");
+
     /* Create and load the buddylist. */
     purple_set_blist(purple_blist_new());
     purple_blist_load();
@@ -467,18 +444,6 @@ bug,
 
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
-    printf("libpurple init fin\n");
-
-	GList *iter;
-	int i, num;
-	iter = purple_plugins_get_protocols();
-	for (i = 0; iter; iter = iter->next) {
-		PurplePlugin *plugin = (PurplePlugin *)iter->data;
-		PurplePluginInfo *info = plugin->info;
-		if (info && info->name) {
-			printf("\t%d: %s\n", i++, info->name);
-		}
-	}
 
 }
 
@@ -504,20 +469,16 @@ void *jabposter::start_thread(void *obj)
 
 void jabposter::libpurple()
 {
- addBonjour("hello");   
 #ifdef WIN32  
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 #else
     GMainContext *con = g_main_context_new();
     GMainLoop *loop = g_main_loop_new(con, FALSE);
-//g_thread_init(NULL);
-  //  g_main_context_wakeup(con); 
 #endif
     if(loop == NULL)
     {
         /* TODO PANIC */
     }
-    printf("sparking loo\n");
     g_main_loop_run(loop);
 }
 

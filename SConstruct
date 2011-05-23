@@ -19,6 +19,7 @@ env = Environment(
 # optional flags
 if int(ARGUMENTS.get('debug', 0)):
     env.Append(CCFLAGS='-g')
+    env.Append(CCFLAGS='-DDEBUG')
     env.Append(CCFLAGS='/Zi')
 
 if int(ARGUMENTS.get('lp_workaround',0)):
