@@ -12,7 +12,6 @@
 #include "win32/win32dep.h"
 #endif
 
-
 static jabposter *jabint = NULL;
 
 /*** Conversation uiops ***/
@@ -304,6 +303,16 @@ void jabposter::addBonjour(string user)
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
 }
+
+#ifdef OS_MACOSX
+static void ZombieKiller_Signal(int i)
+{
+    int status;
+      pid_t child_pid;
+
+        while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
+}
+#endif
 
 jabposter::jabposter(rpqueue* rq)
 {
