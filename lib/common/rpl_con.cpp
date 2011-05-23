@@ -45,14 +45,14 @@ void rpl_con::consume()
 		Post *p = pnet->getpost();
 		if(p)
 		{
-    if(this->pstore->add_post(p))
-      {
-        npCB(reposter,p,0);
-      }
-      else
-      {
-        cout << "got it"  << endl;
-      }
+			if(this->pstore->add_post(p))
+			{
+				npCB(reposter,p,0);
+			}
+			else
+			{
+				cout << "got it"  << endl;
+			}
 		}
 	}
 }
