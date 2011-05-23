@@ -1,7 +1,7 @@
 # import env
 Import('env')
 if env['PLATFORM'] == 'darwin':
-    env.Append(CPPPATH = ['/opt/local/include/libpurple/','/usr/include/libxml2'])
+    env.Append(CPPPATH = ['/usr/include/libxml2'])
 elif env['PLATFORM'] == 'linux':
     env.Append(CPPPATH = ['/usr/include/glib-2.0/','/usr/lib/glib-2.0/include/','/usr/include/libpurple/','/usr/include/','/usr/include/libxml2/'])
  
