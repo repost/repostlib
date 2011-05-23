@@ -16,9 +16,11 @@ env = Environment(
 
 # optional flags
 if int(ARGUMENTS.get('debug', 0)):
-    env.Append(CCFLAGS='-g')
     env.Append(CCFLAGS='-DDEBUG')
-    env.Append(CCFLAGS='/Zi')
+    if (platform =='win'):
+      env.Append(CCFLAGS='/Zi')
+    else:
+      env.Append(CCFLAGS='-g')
 
 if int(ARGUMENTS.get('lp_debug', 0)):
     env.Append(CCFLAGS='-DLIBPURPLE_DEBUG')
