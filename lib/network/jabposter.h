@@ -10,7 +10,6 @@
 
 extern "C" {
 #include "purple.h"
-#include "glib.h"
 }
 
 #define MAXACCTS 10

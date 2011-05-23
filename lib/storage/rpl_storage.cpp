@@ -4,7 +4,6 @@
 #include <sstream>
 #include <cstdlib>
 #include <time.h>
-#include <glib.h>
 
 #include "rpl.h"
 #include "rpl_storage.h"
@@ -307,7 +306,7 @@ int rpl_storage::get_post ( Post **post, int from, int count )
 
     iRowsReturned = 0;
 
-    rc = sqlite3_open( this->db_location(), &this->db );
+    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
     if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
@@ -539,4 +538,3 @@ void rpl_storage::update_metric ( string uuid )
     }
     sqlite3_close( this->db );
 }
-

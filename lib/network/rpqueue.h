@@ -1,10 +1,9 @@
 #ifndef RPQUEUE_H_
 #define RPQUEUE_H_
 
-
-#include "rpl.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include "post.h"
 
 #define QUEUE_SIZE 64
 

@@ -16,8 +16,11 @@ env = Environment(
 
 # optional flags
 if int(ARGUMENTS.get('debug', 0)):
-    env.Append(CCFLAGS='-g')
-    env.Append(CCFLAGS='/Zi')
+    env.Append(CCFLAGS='-DDEBUG')
+    if (platform =='win'):
+      env.Append(CCFLAGS='/Zi')
+    else:
+      env.Append(CCFLAGS='-g')
 
 if int(ARGUMENTS.get('lp_debug', 0)):
     env.Append(CCFLAGS='-DLIBPURPLE_DEBUG')
@@ -38,7 +41,7 @@ if (platform =='darwin'):
 elif platform =='linux':
     env.Append(CCFLAGS="-DLINUX")
 elif platform =='win':
-    env.Append(CCFLAGS=['-DWIN32=1','-D__i386__','/EHsc'])
+    env.Append(CCFLAGS=['/DWIN32=1','/D_X86_','/EHsc','/Zi']) 
 
 Export('env')
 

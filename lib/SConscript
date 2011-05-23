@@ -11,14 +11,14 @@ Import('env')
 # Repost Packages
 packages = '''
 common
-network
 storage
+network
 '''
 
 # Library Dependencies
 deplibs = '''
-glib-2.0
 uuid
+glib-2.0
 libxml2
 sqlite3
 purple
@@ -71,4 +71,5 @@ objs = env.SConscript(Split(buildscripts),'env')
 
 # Build the library
 ret = env.StaticLibrary('rpl_s',objs)
+
 Return('ret','deplibs')

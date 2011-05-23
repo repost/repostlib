@@ -9,6 +9,7 @@
 class rpl_storage
 {
   public:
+    rpl_storage();
     static rpl_storage *get_instance ();
     static void init (std::string dir);
     void add_link(Link &link);
@@ -18,8 +19,8 @@ class rpl_storage
     int get_post ( Post **post, std::string uuid );
     void delete_post ( std::string uuid );
     void update_metric ( std::string uuid );
+    static rpl_storage *INSTANCE;
   private:
-    rpl_storage();
     ~rpl_storage();
     sqlite3 *db;
     static std::string _db_location;
@@ -27,7 +28,6 @@ class rpl_storage
     static const char DROP_POST_TABLE[];
     static const char CREATE_POST_TABLE[];
     static const char CREATE_VERSION_TABLE[];
-    static rpl_storage *INSTANCE;
     const char *db_location(void);
     bool initialised;
     bool setup_tables();

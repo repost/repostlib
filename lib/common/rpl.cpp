@@ -11,19 +11,48 @@
 #endif
 
 using namespace std;
+#ifdef DEBUG
+#ifdef WIN32
+#include "glib.h"
+#include "win32/win32dep.h"
+void p(const gchar * str)
+{
+    printf(str);
+}
+#endif
+#endif
 
 void rePoster::init() 
 {
 #ifdef LINUX
     /* We force load libpurple as the chrome plugin loader doesn't 
-       do it properly */
+         do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
+#endif
+#ifdef DEBUG 
+#ifdef WIN32
+    if(AllocConsole()) {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        SetConsoleTitle("Debug Console");
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 
+                FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
+    }
+    g_set_print_handler(p);
+#endif
 #endif
 
     pnet = new rpl_network();
+    rpl_storage::INSTANCE = new rpl_storage();
 }
 
 void rePoster::startRepost(){
+
+    Account bacct;
+    /* lets create bonjour user here */
+    bacct.set_user("reposter");
+    bacct.set_type("Bonjour");
+    pnet->addAccount(bacct);
 
     pnet->go();
 
@@ -34,6 +63,7 @@ void rePoster::startRepost(){
     /* Create consumer here */
     pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
     pcon->go();
+
 }
 
 void rePoster::stopRepost()

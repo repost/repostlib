@@ -61,6 +61,7 @@ AUTOGEN_OUTPUT = env.Nixysa(IDL_SOURCES)
 AUTOGEN_CC_FILES = [f for f in AUTOGEN_OUTPUT if f.suffix == '.cc']
 
 # Targets
+target = "rpl"
 if ( env['PLATFORM'] == 'win'):
     ld = SCons.Tool.createLoadableModuleBuilder(env)
     ld.add_src_builder('RES')
@@ -76,8 +77,9 @@ if ( env['PLATFORM'] == 'win'):
 
     SOURCES.append('repost.rc')
     SOURCES.append('repost.def')
+    target = "nprpl"
 
-npapi_plug = env.LoadableModule("rpl", AUTOGEN_CC_FILES + SOURCES +
+npapi_plug = env.LoadableModule(target, AUTOGEN_CC_FILES + SOURCES +
                   ['$STATIC_GLUE_DIR/' + f for f in STATIC_GLUE_SOURCES] )
 
 if( env['PLATFORM'] == 'darwin'):
