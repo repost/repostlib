@@ -86,7 +86,8 @@ if( env['PLATFORM'] == 'darwin'):
     rsrc = env.Rez('rpl')
     npapi_plug = env.MakeBundle('rpl.plugin',npapi_plug,'./Info.plist',
                  typecode='BRPL', creator='????', resources=['English.lproj',rsrc],
-                 libs=[glob.glob('../third_party/purple/'+env['PLATFORM']+'/*.dylib')]
+                 libs=[glob.glob('../third_party/purple/'+env['PLATFORM']+'/*.dylib'),
+					   glob.glob('../third_party/uuid/'+env['PLATFORM']+'/*.dylib')]
 		 )
 
 Return('npapi_plug')
