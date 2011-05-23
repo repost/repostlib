@@ -3,6 +3,8 @@
 #include "rpl_network.h"
 #include "rpl_storage.h"
 #include "rpl_con.h"
+#include <string>
+#include <iostream>
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -20,7 +22,7 @@ void p(const gchar * str)
 
 void rePoster::init() 
 {
-#ifndef WIN32
+#ifdef LINUX
     /* We force load libpurple as the chrome plugin loader doesn't 
          do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
@@ -45,6 +47,7 @@ void rePoster::startRepost(){
     pnet->go();
 
     /* Create storage class here */
+    rpl_storage::init(pnet->get_userdir());
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
@@ -61,6 +64,7 @@ void rePoster::stopRepost()
 void rePoster::sendPost(Post p)
 {
     pnet->post(p);
+    pstore->add_post(&p);
 }
 
 void rePoster::cb(Post *p, int rank)
@@ -113,4 +117,22 @@ void rePoster::addLink(Link newlink)
 void rePoster::rmLink(Link link)
 {
     pnet->rmLink(link);
+}
+
+void rePoster::upboat(string u) {
+    Post *uppost = NULL;
+    std::cout << "upboated! update metric!" << std::endl;
+    pstore->update_metric(u);
+    pstore->get_post(&uppost, u);
+    if(uppost)
+    {
+      cout << "uuid " << uppost->uuid() << endl;
+      cout << "content " << uppost->content()<< endl;
+      pnet->post(*uppost);
+    }
+}
+
+void rePoster::downboat(std::string uuid) {
+    std::cout << "downboated! delete that shit" << std::endl;
+    pstore->delete_post(uuid);
 }

@@ -22,13 +22,18 @@ glib-2.0
 libxml2
 sqlite3
 purple
-libcmt
-Rpcrt4
 '''
 
 # Handle WIN32 libraries
 if( env['PLATFORM'] == 'win' ):
+    # windows specific dependencies :)
+    deplibs += '\n'
     deplibs += 'pthreadVC2'
+    deplibs += '\n'
+    deplibs +='libcmt'
+    deplibs += '\n'
+    deplibs += 'Rpcrt4'
+    deplibs += '\n'
     env.Append(
         CPPPATH=['.','$ROOT/lib/include',
                      '$ROOT/third_party/sqlite3/include/',
@@ -44,9 +49,14 @@ if( env['PLATFORM'] == 'win' ):
                     '$ROOT/third_party/pthreads/$PLATFORM/'])
 elif( env['PLATFORM'] == 'darwin' ):
     env.Append(
-        CPPPATH=['.', '$ROOT/third_party/purple/include/'],
-        LIBPATH = [ '$ROOT/third_party/purple/$PLATFORM/' ])
+        CPPPATH=['.', '$ROOT/third_party/purple/darwin/include/', 
+				 '/usr/include',
+				 '$ROOT/third_party/uuid/$PLATFORM/include'],
+        LIBPATH = [ "/usr/lib", 
+		            '$ROOT/third_party/purple/$PLATFORM/',
+					'$ROOT/third_party/uuid/$PLATFORM/' ])
 else:
+    deplibs += '\n'
     deplibs += 'pthread'
     env.ParseConfig( 'pkg-config --cflags --libs uuid glib-2.0')
 
@@ -61,5 +71,5 @@ objs = env.SConscript(Split(buildscripts),'env')
 
 # Build the library
 ret = env.StaticLibrary('rpl_s',objs)
-print deplibs
+
 Return('ret','deplibs')

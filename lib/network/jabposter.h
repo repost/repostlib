@@ -6,6 +6,8 @@
 #include "slavenetwork.h"
 #include "rpqueue.h"
 
+#include <string>
+
 extern "C" {
 #include "purple.h"
 }
@@ -25,11 +27,13 @@ public:
     void addlink(Link& link);
     void rmlink(Link& link);
     void go();
+    std::string get_repostdir();
     
 private:
     PurpleAccount *acct;
     rpqueue *in_queue;
     Account pendaccts[MAXACCTS];
+    std::string repostdir;
     void signed_on(PurpleConnection* gc, gpointer jab);
     void connect_to_signals();
     static int authorization_requested(PurpleAccount* account, const char* user);

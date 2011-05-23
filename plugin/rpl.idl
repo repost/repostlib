@@ -21,5 +21,7 @@
 
     void getInitialPosts(NewPostCB? newPostCB);
 
+    void upboat(std::string u);
+    void downboat(std::string u);
 };
 

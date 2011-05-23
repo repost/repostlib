@@ -79,7 +79,7 @@ if ( env['PLATFORM'] == 'win'):
     SOURCES.append('repost.def')
     target = "nprpl"
 
-npapi_plug = env.SharedLibrary(target, AUTOGEN_CC_FILES + SOURCES +
+npapi_plug = env.LoadableModule(target, AUTOGEN_CC_FILES + SOURCES +
                   ['$STATIC_GLUE_DIR/' + f for f in STATIC_GLUE_SOURCES] )
 
 if( env['PLATFORM'] == 'darwin'):
@@ -88,7 +88,8 @@ if( env['PLATFORM'] == 'darwin'):
     rsrc = env.Rez('rpl')
     npapi_plug = env.MakeBundle('rpl.plugin',npapi_plug,'./Info.plist',
                  typecode='BRPL', creator='????', resources=['English.lproj',rsrc],
-                 libs=[glob.glob('../third_party/purple/'+env['PLATFORM']+'/*.dylib')]
+                 libs=[glob.glob('../third_party/purple/'+env['PLATFORM']+'/*.dylib'),
+					   glob.glob('../third_party/uuid/'+env['PLATFORM']+'/*.dylib')]
 		 )
 
 Return('npapi_plug')

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-const char rpl_storage::DATABASE_NAME[] = "repost";
+const char rpl_storage::DATABASE_NAME[] = "repost.db";
 const char rpl_storage::DROP_POST_TABLE[] = 
     "DROP TABLE posts;";
 const char rpl_storage::CREATE_POST_TABLE[] = 
@@ -24,9 +24,9 @@ int iRowsReturned = 0;
 const int rpl_storage::CURRENT_VERSION_NUMBER = 3;
 int db_version_number = -1;
 
-rpl_storage *rpl_storage::INSTANCE = NULL; //new rpl_storage();
+rpl_storage *rpl_storage::INSTANCE = NULL; 
 
-void ps ( stringstream &str ) { cout << str.str() << endl; }
+std::string rpl_storage::_db_location;
 
 void print_error ( int err )
 {
@@ -130,11 +130,11 @@ rpl_storage::rpl_storage()
     int rc;
 
     printf( "> rpl_storage\n" );
-    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
+            this->db_location() );
     }
     else
     {
@@ -150,9 +150,21 @@ rpl_storage::~rpl_storage()
 {
 }
 
-rpl_storage *rpl_storage::get_instance ()
+void rpl_storage::init(string dir)
+{
+    _db_location = dir.append("/");
+    _db_location = dir.append(rpl_storage::DATABASE_NAME);
+    INSTANCE = new rpl_storage();
+}
+
+rpl_storage *rpl_storage::get_instance(void)
 {
     return INSTANCE;
+}
+
+const char* rpl_storage::db_location(void)
+{
+  return this->_db_location.c_str();
 }
 
 void rpl_storage::add_link (Link &link)
@@ -160,20 +172,21 @@ void rpl_storage::add_link (Link &link)
 
 }
 
-void rpl_storage::add_post (Post *post)
+bool rpl_storage::add_post (Post *post)
 {
     int rc;
     int rV;
+    bool ret = false;
     char *errmsg;
     stringstream sql_stmt;
     time_t now = time ( NULL );
 
-    rc = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
-        return;
+            this->db_location() );
+        return ret;
     }
 
     sql_stmt << "INSERT INTO posts ( uuid, content, time ) SELECT "
@@ -188,8 +201,13 @@ void rpl_storage::add_post (Post *post)
         printf( "error insert: %s\n", errmsg );
         sqlite3_free ( errmsg );
     }
-
+    if( sqlite3_changes(this->db) > 0 )
+    {
+      ret = true;
+    }
     sqlite3_close( this->db );
+
+    return ret;
 }
 
 void rpl_storage::get_link (Link *link)
@@ -220,12 +238,57 @@ int print_post (void * id, int columns, char **column_text, char **column_name)
         {
             post[n]->set_content ( column_text[i] );
         }
-        //printf ( "%s = %s\n", column_name[i], column_text[i] );
-        //cout << column_name[i] << " = " << column_text[i] << endl;
     }
     n++;
     iRowsReturned++;
     return 0;
+}
+
+int rpl_storage::get_post ( Post **post, string uuid )
+{
+    int rc, rV;
+    char *errmsg;
+    stringstream sql_stmt;
+
+    cout << "> get_post single" << endl;
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        fprintf( stderr, "Couldn't open db %s\n", 
+            this->db_location() );
+        return 0;
+    }
+
+    iRowsReturned = 0;
+
+    sql_stmt << "SELECT * FROM posts WHERE posts.uuid = \"" << uuid << "\" ;"; 
+
+    rV = sqlite3_exec ( this->db, 
+                        sql_stmt.str().c_str(), 
+                        print_post, 
+                        (void *)post, 
+                        &errmsg );
+    if ( rV != SQLITE_OK )
+    {
+        cout << "sqlite error! error number " << rV << endl;
+    }
+    else
+    {
+        cout << "sqlite ok!" << endl;
+    }
+
+    if ( errmsg != NULL )
+    {
+        printf( "error get_post: %s\n", errmsg );
+        sqlite3_free ( errmsg );
+    }
+
+    sqlite3_close( this->db );
+
+    cout << "< get_post" << endl;
+
+    return iRowsReturned;
 }
 
 int rpl_storage::get_post ( Post **post, int from, int count )
@@ -247,7 +310,7 @@ int rpl_storage::get_post ( Post **post, int from, int count )
     if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
+            this->db_location() );
         return 0;
     }
 
@@ -304,11 +367,11 @@ void rpl_storage::update_table ( )
 
     cout << "> " << __FUNCTION__ << endl;
 
-    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    rV = sqlite3_open( this->db_location(), &this->db );
     if ( rV )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
+            this->db_location() );
         return;
     }
 
@@ -395,7 +458,7 @@ bool rpl_storage::setup_tables ()
     {
         printf( "error create post table: %s\n", errmsg );
         sqlite3_free ( errmsg );
-	ret = false;
+        ret = false;
     }
 
     // check version numbers and stuff
@@ -414,11 +477,11 @@ void rpl_storage::delete_post ( string uuid )
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
     stringstream sql_stmt;
 
-    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    rV = sqlite3_open( this->db_location(), &this->db );
     if ( rV )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
+            this->db_location() );
         return;
     }
     
@@ -449,11 +512,11 @@ void rpl_storage::update_metric ( string uuid )
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
     stringstream sql_stmt;
     
-    rV = sqlite3_open( rpl_storage::DATABASE_NAME, &this->db );
+    rV = sqlite3_open( this->db_location(), &this->db );
     if ( rV )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
-            rpl_storage::DATABASE_NAME );
+            this->db_location() );
         return;
     }
 

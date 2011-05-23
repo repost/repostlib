@@ -11,20 +11,24 @@ class rpl_storage
   public:
     rpl_storage();
     static rpl_storage *get_instance ();
+    static void init (std::string dir);
     void add_link(Link &link);
-    void add_post (Post *post);
+    bool add_post (Post *post); /* return true if new */
     void get_link(Link *link);
     int get_post ( Post **post, int len, int count );
+    int get_post ( Post **post, std::string uuid );
     void delete_post ( std::string uuid );
     void update_metric ( std::string uuid );
     static rpl_storage *INSTANCE;
   private:
     ~rpl_storage();
     sqlite3 *db;
+    static std::string _db_location;
     static const char DATABASE_NAME[];
     static const char DROP_POST_TABLE[];
     static const char CREATE_POST_TABLE[];
     static const char CREATE_VERSION_TABLE[];
+    const char *db_location(void);
     bool initialised;
     bool setup_tables();
     void update_table( );

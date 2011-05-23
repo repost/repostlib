@@ -1,6 +1,6 @@
 # import env
 Import('env')
-if(env['PLATFORM'] != 'win'):
+if(env['PLATFORM'] == 'linux'):
     env.ParseConfig( 'pkg-config --cflags --libs uuid ')
 objs = env.SharedObject([Glob('*.cpp')])
 Return('objs')

@@ -83,6 +83,12 @@ void rpl_network::rmAccount(Account& acct)
 {
 
 }
+
+std::string rpl_network::get_userdir()
+{
+  return this->jbp->get_repostdir();
+}
+
 void rpl_network::go()
 {
     this->jbp->go();
