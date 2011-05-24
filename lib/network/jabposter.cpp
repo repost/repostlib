@@ -174,29 +174,37 @@ void jabposter::sendpost(Post *post)
     while(bnode != NULL){
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
-            conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
+            conv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM,
+                    purple_buddy_get_name(PURPLE_BUDDY(bnode)),
+                    purple_buddy_get_account(PURPLE_BUDDY(bnode)));
+            if(!conv)
+            {
+                conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                     purple_buddy_get_account(PURPLE_BUDDY(bnode)),
                     purple_buddy_get_name(PURPLE_BUDDY(bnode)));
+            }
             if(conv)
             {	
-							PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW |
-																							PURPLE_MESSAGE_SEND);
-							if(PURPLE_CONV_IM(conv))
-							{
+                PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);// |
+                        //PURPLE_MESSAGE_SEND);
                 nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-                purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
-                        nomarkup,flag);
-							}
-							else if(PURPLE_CONV_CHAT(conv))
-							{
-                purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
-                        nomarkup,flag);
-							}
-							else
-							{
-								printf("Other unexpected convo type\n");
-							}
-                purple_conversation_destroy(conv);
+                if(PURPLE_CONV_IM(conv))
+                {
+                    printf("send im\n");
+                    purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
+                            nomarkup,flag);
+                }
+                else if(PURPLE_CONV_CHAT(conv))
+                {
+                    printf("send chat\n");
+                    purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
+                            nomarkup,flag);
+                }
+                else
+                {
+                    printf("Other unexpected convo type\n");
+                }
+                //purple_conversation_destroy(conv);
                 g_free(nomarkup);
             }
         }
