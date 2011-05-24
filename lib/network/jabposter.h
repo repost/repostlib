@@ -34,6 +34,7 @@ private:
     rpqueue *in_queue;
     Account pendaccts[MAXACCTS];
     std::string repostdir;
+    void libpurpleDiag();
     void signed_on(PurpleConnection* gc, gpointer jab);
     void connect_to_signals();
     static int authorization_requested(PurpleAccount* account, const char* user);

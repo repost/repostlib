@@ -134,8 +134,21 @@ void jabposter::connect_to_signals(void)
             PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
             PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
+}
 
-
+void jabposter::libpurpleDiag()
+{
+    GList *iter;
+    int i;
+    iter = purple_plugins_get_protocols();
+    printf("Supported Protocols\n");
+    for (i = 0; iter; iter = iter->next) {
+      PurplePlugin *plugin = (PurplePlugin *)iter->data;
+      PurplePluginInfo *info = plugin->info;
+      if (info && info->name) {
+        printf("\t%d: %s\n", i++, info->name);
+      }
+    }
 }
 
 std::string jabposter::get_repostdir()
@@ -314,6 +327,7 @@ void jabposter::addBonjour(string user)
     PurpleAccount *bon = purple_account_new(user.c_str(),"prpl-bonjour");
     purple_accounts_add(bon);
     purple_account_set_enabled(bon, UI_ID, TRUE);
+    purple_account_connect(bon);
 
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
@@ -356,7 +370,6 @@ jabposter::jabposter(rpqueue* rq)
     /* We do not want any debugging for now to keep the noise to a minimum. */
 #ifdef LIBPURPLE_DEBUG
     purple_debug_set_enabled(TRUE);
-		printf("debug\n");
 #else
     purple_debug_set_enabled(FALSE);
 #endif
@@ -376,7 +389,7 @@ jabposter::jabposter(rpqueue* rq)
     repostdir.assign(purple_home_dir());
     repostdir.append("/.repost");
     purple_util_set_user_dir(repostdir.c_str());
-	
+
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
      * necessary to provide a non-NULL name for the current ui to the core. This name
@@ -402,7 +415,9 @@ jabposter::jabposter(rpqueue* rq)
 
     /* Load the pounces. */
     purple_pounces_load();
-
+#ifdef DEBUG
+    libpurpleDiag();
+#endif
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
 
