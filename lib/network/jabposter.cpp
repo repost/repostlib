@@ -153,6 +153,7 @@ void jabposter::sendpost(Post *post)
     if(!post)
     {
         /* TODO warn about null post */
+				printf("post is null :'(. All your bases belong to us\n");
         return;
     }
 
@@ -164,10 +165,24 @@ void jabposter::sendpost(Post *post)
                     purple_buddy_get_account(PURPLE_BUDDY(bnode)),
                     purple_buddy_get_name(PURPLE_BUDDY(bnode)));
             if(conv)
-            {
+            {	
+							PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW |
+																							PURPLE_MESSAGE_SEND);
+							if(PURPLE_CONV_IM(conv))
+							{
                 nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
                 purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
-                        nomarkup,PURPLE_MESSAGE_RAW);
+                        nomarkup,flag);
+							}
+							else if(PURPLE_CONV_CHAT(conv))
+							{
+                purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
+                        nomarkup,flag);
+							}
+							else
+							{
+								printf("Other unexpected convo type\n");
+							}
                 purple_conversation_destroy(conv);
                 g_free(nomarkup);
             }
@@ -341,6 +356,7 @@ jabposter::jabposter(rpqueue* rq)
     /* We do not want any debugging for now to keep the noise to a minimum. */
 #ifdef LIBPURPLE_DEBUG
     purple_debug_set_enabled(TRUE);
+		printf("debug\n");
 #else
     purple_debug_set_enabled(FALSE);
 #endif
