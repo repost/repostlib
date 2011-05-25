@@ -185,8 +185,7 @@ void jabposter::sendpost(Post *post)
             }
             if(conv)
             {	
-                PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);// |
-                        //PURPLE_MESSAGE_SEND);
+                PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
                 nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
                 if(PURPLE_CONV_IM(conv))
                 {
@@ -204,7 +203,6 @@ void jabposter::sendpost(Post *post)
                 {
                     printf("Other unexpected convo type\n");
                 }
-                //purple_conversation_destroy(conv);
                 g_free(nomarkup);
             }
         }
@@ -345,9 +343,9 @@ void jabposter::addBonjour(string user)
 static void ZombieKiller_Signal(int i)
 {
     int status;
-      pid_t child_pid;
+    pid_t child_pid;
 
-        while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
+    while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
 }
 #endif
 
