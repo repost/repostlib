@@ -134,8 +134,21 @@ void jabposter::connect_to_signals(void)
             PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
             PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
+}
 
-
+void jabposter::libpurpleDiag()
+{
+    GList *iter;
+    int i;
+    iter = purple_plugins_get_protocols();
+    printf("Supported Protocols\n");
+    for (i = 0; iter; iter = iter->next) {
+      PurplePlugin *plugin = (PurplePlugin *)iter->data;
+      PurplePluginInfo *info = plugin->info;
+      if (info && info->name) {
+        printf("\t%d: %s\n", i++, info->name);
+      }
+    }
 }
 
 std::string jabposter::get_repostdir()
@@ -153,6 +166,7 @@ void jabposter::sendpost(Post *post)
     if(!post)
     {
         /* TODO warn about null post */
+				printf("post is null :'(. All your bases belong to us\n");
         return;
     }
 
@@ -160,15 +174,35 @@ void jabposter::sendpost(Post *post)
     while(bnode != NULL){
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
-            conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
+            conv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM,
+                    purple_buddy_get_name(PURPLE_BUDDY(bnode)),
+                    purple_buddy_get_account(PURPLE_BUDDY(bnode)));
+            if(!conv)
+            {
+                conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                     purple_buddy_get_account(PURPLE_BUDDY(bnode)),
                     purple_buddy_get_name(PURPLE_BUDDY(bnode)));
+            }
             if(conv)
-            {
+            {	
+                PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
                 nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-                purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
-                        nomarkup,PURPLE_MESSAGE_RAW);
-                purple_conversation_destroy(conv);
+                if(PURPLE_CONV_IM(conv))
+                {
+                    printf("send im\n");
+                    purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
+                            nomarkup,flag);
+                }
+                else if(PURPLE_CONV_CHAT(conv))
+                {
+                    printf("send chat\n");
+                    purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
+                            nomarkup,flag);
+                }
+                else
+                {
+                    printf("Other unexpected convo type\n");
+                }
                 g_free(nomarkup);
             }
         }
@@ -299,6 +333,7 @@ void jabposter::addBonjour(string user)
     PurpleAccount *bon = purple_account_new(user.c_str(),"prpl-bonjour");
     purple_accounts_add(bon);
     purple_account_set_enabled(bon, UI_ID, TRUE);
+    purple_account_connect(bon);
 
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
@@ -308,9 +343,9 @@ void jabposter::addBonjour(string user)
 static void ZombieKiller_Signal(int i)
 {
     int status;
-      pid_t child_pid;
+    pid_t child_pid;
 
-        while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
+    while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0);
 }
 #endif
 
@@ -360,7 +395,7 @@ jabposter::jabposter(rpqueue* rq)
     repostdir.assign(purple_home_dir());
     repostdir.append("/.repost");
     purple_util_set_user_dir(repostdir.c_str());
-	
+
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
      * necessary to provide a non-NULL name for the current ui to the core. This name
@@ -386,7 +421,9 @@ jabposter::jabposter(rpqueue* rq)
 
     /* Load the pounces. */
     purple_pounces_load();
-
+#ifdef DEBUG
+    libpurpleDiag();
+#endif
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
 
