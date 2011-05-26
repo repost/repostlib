@@ -360,6 +360,9 @@ jabposter::jabposter(rpqueue* rq)
      * of zombie subprocesses marching around.
      */
     signal(SIGCHLD, SIG_IGN);
+#elif WIN32
+    const char *plugindir = wpurple_install_dir();
+    SetDllDirectory(plugindir);
 #elif OS_MACOSX
     /* Libpurple's async DNS lookup tends to create zombies. */
     {
