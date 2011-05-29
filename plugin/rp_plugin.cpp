@@ -16,7 +16,7 @@
 
 extern "C" {
   const char *NP_GetMIMEDescription(void) {
-    return "application/reposter";
+    return "application/reposter::suck my balls";
   }
 
   NPError NP_GetValue(NPP instance, NPPVariable variable, void *value) {
