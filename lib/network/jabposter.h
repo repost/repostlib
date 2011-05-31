@@ -43,6 +43,7 @@ private:
     void received_im_msg(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);
     void libpurple();
+    bool isReposter(PurpleBlistNode* pb);
     static void *start_thread(void* obj);
 };
 
