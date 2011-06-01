@@ -156,6 +156,132 @@ std::string jabposter::get_repostdir()
   return repostdir;
 }
 
+/**
+ * These two structures have been included from the libpurple jabber plugin.
+ * They are private structures used by the plugin to look after jabber buddies.
+ * We have included them so we can access the known resources of a xmpp buddy
+ * easily. Libpurple currently has a method to get this information using an
+ * async request for buddy information which returns alot of information and 
+ * takes quite a while to formulate as it has to request information off each
+ * of the buddys resources. 
+ * Including these structures will allow us to quickly gather the required info
+ * with out the need to formulate our own libpurple build.
+ * They have been placed specifically here so we can eventually move away from
+ * accessing private members without a code hunt/we don't want weird libpurple
+ * deps spread throughout the code.
+ * -hank
+ */
+typedef struct {
+    /**
+     * A sorted list of resources in priority descending order.
+     * This means that the first resource in the list is the
+     * "most available" (see resource_compare_cb in buddy.c for
+     * details).  Don't play with this yourself, let
+     * jabber_buddy_track_resource and jabber_buddy_remove_resource do it.
+     */
+    GList *resources;
+    char *error_msg;
+    enum {
+        JABBER_INVISIBLE_NONE   = 0,
+        JABBER_INVISIBLE_SERVER = 1 << 1,
+        JABBER_INVIS_BUDDY      = 1 << 2
+    } invisible;
+    enum {
+        JABBER_SUB_NONE    = 0,
+        JABBER_SUB_PENDING = 1 << 1,
+        JABBER_SUB_TO      = 1 << 2,
+        JABBER_SUB_FROM    = 1 << 3,
+        JABBER_SUB_BOTH    = (JABBER_SUB_TO | JABBER_SUB_FROM),
+        JABBER_SUB_REMOVE  = 1 << 4
+    } subscription;
+} JabberBuddy;
+
+typedef struct {
+    JabberBuddy *jb;
+    char *name;
+    int priority;
+    JabberBuddyState state;
+    char *status;
+    time_t idle;
+    JabberCapabilities capabilities;
+    char *thread_id;
+    enum {
+        JABBER_CHAT_STATES_UNKNOWN,
+        JABBER_CHAT_STATES_UNSUPPORTED,
+        JABBER_CHAT_STATES_SUPPORTED
+    } chat_states;
+    struct {
+        char *version;
+        char *name;
+        char *os;
+    } client;
+    /* tz_off == PURPLE_NO_TZ_OFF when unset */
+    long tz_off;
+    struct {
+        JabberCapsClientInfo *info;
+        GList *exts;
+    } caps;
+    GList *commands;
+    gboolean commands_fetched;
+} JabberBuddyResource;
+
+JabberBuddy *getJabberBuddy(PurpleBuddy* b);
+{   
+    JabberBuddy *jb;
+    PurpleAccount *account;
+    PurpleConnection *gc;
+
+    //g_return_if_fail(b != NULL);
+
+    account = purple_buddy_get_account(b);
+    //g_return_if_fail(account != NULL);
+
+    gc = purple_account_get_connection(account);
+    //g_return_if_fail(gc != NULL);
+    //g_return_if_fail(gc->proto_data != NULL);
+
+    if (gc->proto_data->buddies == NULL)
+        return NULL;
+
+    /*if(!(realname = jabber_get_bare_jid(name)))
+        return NULL;
+    */
+    jb = g_hash_table_lookup(gc->proto_data->buddies, purple_buddy_get_name(b));
+
+    return jb;
+ }           
+
+/**
+ * Some accounts are just for reposting! Ouuuttrraageoouss!
+ * So we need to get the special repost name of such accounts.
+ * For xmpp we have resources so we return the reposter resources.
+ * 
+ * Other account types I got no idea. Probably check status to 
+ * see if they reposting etc... That is a TODO
+ */
+GList* reposterName(PurpleBlistNode* node)
+{
+    GList* reposters = new GList;
+    PurpleBuddy* b = PURPLE_BUDDY(node);
+    PurpleAccount* acc = purple_buddy_get_account(b);
+    const char* proto_id = purple_account_get_protocol_id(acc);
+    
+    if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
+    {
+        JabberBuddy* jb = getJabberBuddy(b);
+        GList* res = g_list_first(jb->resources);
+        for(;res; res = g_list_next(res))
+        {
+            if(!strstr(res->name,"reposter"))
+            {
+                g_list_append(reposters, res->name);
+            }
+        }
+    }
+
+    return reposters;
+}
+
 void jabposter::sendpost(Post *post)
 {
     string strpost;
@@ -277,7 +403,6 @@ void jabposter::rmlink(Link& link)
     }
 }
 
-
 int jabposter::getlinks(Link* links, int num)
 {
     int x = 0;
@@ -306,118 +431,6 @@ int jabposter::getlinks(Link* links, int num)
         bnode = purple_blist_node_next (bnode, false);
     }
     return x;
-}
-/**
- * These two structures have been included from the libpurple jabber plugin.
- * They are private structures used by the plugin to look after jabber buddies.
- * We have included them so we can access the known resources of a xmpp buddy
- * easily. Libpurple currently has a method to get this information using an
- * async request for buddy information which returns alot of information and 
- * takes quite a while to formulate as it has to request information off each
- * of the buddys resources. 
- * Including these structures will allow us to quickly gather the required info
- * with out the need to formulate our own libpurple build.
- * They have been placed specifically here so we can eventually move away from
- * accessing private members without a code hunt/we don't want weird libpurple
- * deps spread throughout the code.
- * -hank
- */
-typedef struct {
-    /**
-     * A sorted list of resources in priority descending order.
-     * This means that the first resource in the list is the
-     * "most available" (see resource_compare_cb in buddy.c for
-     * details).  Don't play with this yourself, let
-     * jabber_buddy_track_resource and jabber_buddy_remove_resource do it.
-     */
-    GList *resources;
-    char *error_msg;
-    enum {
-        JABBER_INVISIBLE_NONE   = 0,
-        JABBER_INVISIBLE_SERVER = 1 << 1,
-        JABBER_INVIS_BUDDY      = 1 << 2
-    } invisible;
-    enum {
-        JABBER_SUB_NONE    = 0,
-        JABBER_SUB_PENDING = 1 << 1,
-        JABBER_SUB_TO      = 1 << 2,
-        JABBER_SUB_FROM    = 1 << 3,
-        JABBER_SUB_BOTH    = (JABBER_SUB_TO | JABBER_SUB_FROM),
-        JABBER_SUB_REMOVE  = 1 << 4
-    } subscription;
-} JabberBuddy;
-
-typedef struct {
-    JabberBuddy *jb;
-    char *name;
-    int priority;
-    JabberBuddyState state;
-    char *status;
-    time_t idle;
-    JabberCapabilities capabilities;
-    char *thread_id;
-    enum {
-        JABBER_CHAT_STATES_UNKNOWN,
-        JABBER_CHAT_STATES_UNSUPPORTED,
-        JABBER_CHAT_STATES_SUPPORTED
-    } chat_states;
-    struct {
-        char *version;
-        char *name;
-        char *os;
-    } client;
-    /* tz_off == PURPLE_NO_TZ_OFF when unset */
-    long tz_off;
-    struct {
-        JabberCapsClientInfo *info;
-        GList *exts;
-    } caps;
-    GList *commands;
-    gboolean commands_fetched;
-} JabberBuddyResource;
-
-JabberBuddy *getJabberBuddy(PurpleBuddy* b, const char *name)
-{   
-    JabberBuddy *jb;
-    PurpleAccount *account;
-    PurpleConnection *gc;
-
-    //g_return_if_fail(b != NULL);
-
-    account = purple_buddy_get_account(b);
-    //g_return_if_fail(account != NULL);
-
-    gc = purple_account_get_connection(account);
-    //g_return_if_fail(gc != NULL);
-    //g_return_if_fail(gc->proto_data != NULL);
-
-    if (gc->proto_data->buddies == NULL)
-        return NULL;
-
-    /*if(!(realname = jabber_get_bare_jid(name)))
-        return NULL;
-    */
-    jb = g_hash_table_lookup(gc->proto_data->buddies, name);
-
-    return jb;
- }           
-
-
-
-bool isReposter(PurpleBlistNode* pb)
-{
-#if 0
-    const char* name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
-    PurpleConnection* conn = purple_account_get_connection(
-                        purple_buddy_get_account(PURPLE_BUDDY(pb)));
-    PurpleNotifyUserInfo *info = purple_notify_user_info_new();
-    gpointer uihandle;
-    //purple_notify_user_info_add_pair(info, _("Information"), _("Retrieving..."));
-    uihandle = purple_notify_userinfo(conn, name, info, NULL, NULL);
-    purple_notify_user_info_destroy(info);
-    #endif
-    serv_get_info(conn, name);
-    return true;
 }
 
 void jabposter::addJabber(string user, string pass)
