@@ -196,57 +196,91 @@ typedef struct {
     } subscription;
 } JabberBuddy;
 
+/**
+ * WARNING THIS IS NOT THE COMPLETE STRUCTURE!!!
+ * The complete structure is contained in jabber/buddy.h
+ * here however we have just enough to get the name value out.
+ * Including the entire structure would force us to declare 
+ * 5 other structures. Since this is just a hack to get something
+ * we want lets not do that. Just becareful referencing resources
+ * in arrays!
+ */
 typedef struct {
     JabberBuddy *jb;
     char *name;
     int priority;
-    JabberBuddyState state;
-    char *status;
-    time_t idle;
-    JabberCapabilities capabilities;
-    char *thread_id;
-    enum {
-        JABBER_CHAT_STATES_UNKNOWN,
-        JABBER_CHAT_STATES_UNSUPPORTED,
-        JABBER_CHAT_STATES_SUPPORTED
-    } chat_states;
-    struct {
-        char *version;
-        char *name;
-        char *os;
-    } client;
-    /* tz_off == PURPLE_NO_TZ_OFF when unset */
-    long tz_off;
-    struct {
-        JabberCapsClientInfo *info;
-        GList *exts;
-    } caps;
-    GList *commands;
-    gboolean commands_fetched;
 } JabberBuddyResource;
+ typedef enum {
+     JABBER_STREAM_OFFLINE,
+     JABBER_STREAM_CONNECTING,
+     JABBER_STREAM_INITIALIZING,
+     JABBER_STREAM_INITIALIZING_ENCRYPTION,
+     JABBER_STREAM_AUTHENTICATING,
+     JABBER_STREAM_POST_AUTH,
+     JABBER_STREAM_CONNECTED
+} JabberStreamState;
 
-JabberBuddy *getJabberBuddy(PurpleBuddy* b);
+/**
+ * ALSO NOT A COMPLETE STRUCTURE !!! 
+ */
+typedef struct {
+
+    int fd;
+
+    void *srv_query_data; /* PurpleSrvQueryData */
+
+    void *context;/* xmlParserCtxt */
+    void *current;/* xmlnode */
+
+    struct {
+        guint8 major;
+        guint8 minor;
+    } protocol_version;
+
+    void *auth_mech; /* JabberSaslMech */
+    gpointer auth_mech_data;
+
+    /**
+     * The header from the opening <stream/> tag.  This being NULL is treated
+     * as a special condition in the parsing code (signifying the next
+     * stanza started is an opening stream tag), and its being missing on
+     * the stream header is treated as a fatal error.
+     */
+    char *stream_id;
+    JabberStreamState state;
+
+    GHashTable *buddies;
+} JabberStream;
+
+JabberBuddy *getJabberBuddy(PurpleBuddy* b)
 {   
-    JabberBuddy *jb;
-    PurpleAccount *account;
-    PurpleConnection *gc;
+    JabberBuddy* jb = NULL;
+    PurpleAccount* account = NULL;
+    PurpleConnection* gc = NULL;
+    JabberStream* proto_data = NULL;
 
-    //g_return_if_fail(b != NULL);
+    if( !b )
+        return NULL;
 
     account = purple_buddy_get_account(b);
-    //g_return_if_fail(account != NULL);
+    if( !account )
+        return NULL;
 
     gc = purple_account_get_connection(account);
-    //g_return_if_fail(gc != NULL);
-    //g_return_if_fail(gc->proto_data != NULL);
+    if( !gc )
+        return NULL;
 
-    if (gc->proto_data->buddies == NULL)
+    proto_data = (JabberStream *) purple_connection_get_protocol_data(gc);
+    if( !proto_data )
+        return NULL;
+
+    if (proto_data->buddies == NULL)
         return NULL;
 
     /*if(!(realname = jabber_get_bare_jid(name)))
         return NULL;
     */
-    jb = g_hash_table_lookup(gc->proto_data->buddies, purple_buddy_get_name(b));
+    jb = (JabberBuddy*)g_hash_table_lookup(proto_data->buddies, purple_buddy_get_name(b));
 
     return jb;
  }           
@@ -259,24 +293,33 @@ JabberBuddy *getJabberBuddy(PurpleBuddy* b);
  * Other account types I got no idea. Probably check status to 
  * see if they reposting etc... That is a TODO
  */
-GList* reposterName(PurpleBlistNode* node)
+GList* reposterName(PurpleBuddy* pb)
 {
-    GList* reposters = new GList;
-    PurpleBuddy* b = PURPLE_BUDDY(node);
-    PurpleAccount* acc = purple_buddy_get_account(b);
+    GList* reposters = NULL;
+    PurpleAccount* acc = purple_buddy_get_account(pb);
     const char* proto_id = purple_account_get_protocol_id(acc);
     
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-        JabberBuddy* jb = getJabberBuddy(b);
+        JabberBuddy* jb = getJabberBuddy(pb);
         GList* res = g_list_first(jb->resources);
         for(;res; res = g_list_next(res))
         {
-            if(!strstr(res->name,"reposter"))
+            const char* name = ((JabberBuddyResource*)res)->name;
+            if(!strstr(name,"reposter"))
             {
-                g_list_append(reposters, res->name);
+                /* we should copy incase purple pulls the rug out from under us */
+                char* resname = (char*) g_malloc(strlen(name)+1);
+                strncpy(resname, name, strlen(name));
+                reposters = g_list_prepend(reposters, resname);
             }
         }
+    }
+    else /* TODO time being lets just assume that all other are reposters */
+    {
+        char* bname = (char*) g_malloc(strlen(purple_buddy_get_name(pb))+1);
+        strncpy(bname, purple_buddy_get_name(pb), strlen(purple_buddy_get_name(pb)));
+        reposters = g_list_prepend(reposters, bname);
     }
 
     return reposters;
@@ -286,50 +329,61 @@ void jabposter::sendpost(Post *post)
 {
     string strpost;
     PurpleConversation* conv = NULL;
-    PurpleBlistNode * bnode = purple_blist_get_root();
+    PurpleBuddy* pb = NULL;
     char* nomarkup = NULL;
+    GList* reposters = NULL;
+    PurpleBlistNode * bnode = purple_blist_get_root();
 
     if(!post)
     {
-        /* TODO warn about null post */
-				printf("post is null :'(. All your bases belong to us\n");
+        printf("post is null :'(. All your bases belong to us\n");
         return;
     }
 
     post2xml(&strpost, post);
-    while(bnode != NULL){
+    while(bnode != NULL)
+    {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
-            conv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM,
-                    purple_buddy_get_name(PURPLE_BUDDY(bnode)),
-                    purple_buddy_get_account(PURPLE_BUDDY(bnode)));
-            if(!conv)
+            pb = PURPLE_BUDDY(bnode);
+            /* Ok we have a buddy now lets find the reposter */
+            reposters = reposterName(pb);
+            if(reposters)
             {
-                conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
-                    purple_buddy_get_account(PURPLE_BUDDY(bnode)),
-                    purple_buddy_get_name(PURPLE_BUDDY(bnode)));
-            }
-            if(conv)
-            {	
-                PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
-                nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-                if(PURPLE_CONV_IM(conv))
+                GList* rnames = NULL;
+                for(rnames = reposters; rnames; rnames = g_list_next(rnames))
                 {
-                    printf("send im\n");
-                    purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
-                            nomarkup,flag);
+                    conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
+                            purple_buddy_get_account(pb),
+                            (const char*) rnames);
+                    if(conv)
+                    {	
+                        PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
+                        nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
+                        if(PURPLE_CONV_IM(conv))
+                        {
+                            printf("send im\n");
+                            purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
+                                    nomarkup,flag);
+                        }
+                        else if(PURPLE_CONV_CHAT(conv))
+                        {
+                            printf("send chat\n");
+                            purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
+                                    nomarkup,flag);
+                        }
+                        else
+                        {
+                            printf("Other unexpected convo type\n");
+                        }
+                        g_free(nomarkup);
+                    }
                 }
-                else if(PURPLE_CONV_CHAT(conv))
-                {
-                    printf("send chat\n");
-                    purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
-                            nomarkup,flag);
-                }
-                else
-                {
-                    printf("Other unexpected convo type\n");
-                }
-                g_free(nomarkup);
+                /* ok its our job to clean up the glist */
+                /* g_list_free_full(reposters, g_free); */
+                for(rnames = reposters; rnames; rnames = g_list_next(rnames))
+                    g_free(rnames);
+                g_list_free(reposters);
             }
         }
         bnode = purple_blist_node_next (bnode, false);
