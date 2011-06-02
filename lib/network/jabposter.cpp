@@ -157,135 +157,6 @@ std::string jabposter::get_repostdir()
 }
 
 /**
- * These two structures have been included from the libpurple jabber plugin.
- * They are private structures used by the plugin to look after jabber buddies.
- * We have included them so we can access the known resources of a xmpp buddy
- * easily. Libpurple currently has a method to get this information using an
- * async request for buddy information which returns alot of information and 
- * takes quite a while to formulate as it has to request information off each
- * of the buddys resources. 
- * Including these structures will allow us to quickly gather the required info
- * with out the need to formulate our own libpurple build.
- * They have been placed specifically here so we can eventually move away from
- * accessing private members without a code hunt/we don't want weird libpurple
- * deps spread throughout the code.
- * -hank
- */
-typedef struct {
-    /**
-     * A sorted list of resources in priority descending order.
-     * This means that the first resource in the list is the
-     * "most available" (see resource_compare_cb in buddy.c for
-     * details).  Don't play with this yourself, let
-     * jabber_buddy_track_resource and jabber_buddy_remove_resource do it.
-     */
-    GList *resources;
-    char *error_msg;
-    enum {
-        JABBER_INVISIBLE_NONE   = 0,
-        JABBER_INVISIBLE_SERVER = 1 << 1,
-        JABBER_INVIS_BUDDY      = 1 << 2
-    } invisible;
-    enum {
-        JABBER_SUB_NONE    = 0,
-        JABBER_SUB_PENDING = 1 << 1,
-        JABBER_SUB_TO      = 1 << 2,
-        JABBER_SUB_FROM    = 1 << 3,
-        JABBER_SUB_BOTH    = (JABBER_SUB_TO | JABBER_SUB_FROM),
-        JABBER_SUB_REMOVE  = 1 << 4
-    } subscription;
-} JabberBuddy;
-
-/**
- * WARNING THIS IS NOT THE COMPLETE STRUCTURE!!!
- * The complete structure is contained in jabber/buddy.h
- * here however we have just enough to get the name value out.
- * Including the entire structure would force us to declare 
- * 5 other structures. Since this is just a hack to get something
- * we want lets not do that. Just becareful referencing resources
- * in arrays!
- */
-typedef struct {
-    JabberBuddy *jb;
-    char *name;
-    int priority;
-} JabberBuddyResource;
- typedef enum {
-     JABBER_STREAM_OFFLINE,
-     JABBER_STREAM_CONNECTING,
-     JABBER_STREAM_INITIALIZING,
-     JABBER_STREAM_INITIALIZING_ENCRYPTION,
-     JABBER_STREAM_AUTHENTICATING,
-     JABBER_STREAM_POST_AUTH,
-     JABBER_STREAM_CONNECTED
-} JabberStreamState;
-
-/**
- * ALSO NOT A COMPLETE STRUCTURE !!! 
- */
-typedef struct {
-
-    int fd;
-
-    void *srv_query_data; /* PurpleSrvQueryData */
-
-    void *context;/* xmlParserCtxt */
-    void *current;/* xmlnode */
-
-    struct {
-        guint8 major;
-        guint8 minor;
-    } protocol_version;
-
-    void *auth_mech; /* JabberSaslMech */
-    gpointer auth_mech_data;
-
-    /**
-     * The header from the opening <stream/> tag.  This being NULL is treated
-     * as a special condition in the parsing code (signifying the next
-     * stanza started is an opening stream tag), and its being missing on
-     * the stream header is treated as a fatal error.
-     */
-    char *stream_id;
-    JabberStreamState state;
-
-    GHashTable *buddies;
-} JabberStream;
-
-JabberBuddy *getJabberBuddy(PurpleBuddy* b)
-{   
-    JabberBuddy* jb = NULL;
-    PurpleAccount* account = NULL;
-    PurpleConnection* gc = NULL;
-    JabberStream* proto_data = NULL;
-
-    if( !b )
-        return NULL;
-
-    account = purple_buddy_get_account(b);
-    if( !account )
-        return NULL;
-
-    gc = purple_account_get_connection(account);
-    if( !gc )
-        return NULL;
-
-    proto_data = (JabberStream *) purple_connection_get_protocol_data(gc);
-    if( !proto_data )
-        return NULL;
-
-    if (proto_data->buddies == NULL)
-        return NULL;
-
-    /*if(!(realname = jabber_get_bare_jid(name)))
-        return NULL;
-    */
-    jb = (JabberBuddy*)g_hash_table_lookup(proto_data->buddies, purple_buddy_get_name(b));
-
-    return jb;
- }           
-
-/**
  * Some accounts are just for reposting! Ouuuttrraageoouss!
  * So we need to get the special repost name of such accounts.
  * For xmpp we have resources so we return the reposter resources.
@@ -293,7 +164,7 @@ JabberBuddy *getJabberBuddy(PurpleBuddy* b)
  * Other account types I got no idea. Probably check status to 
  * see if they reposting etc... That is a TODO
  */
-GList* reposterName(PurpleBuddy* pb)
+GList* jabposter::reposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
     PurpleAccount* acc = purple_buddy_get_account(pb);
@@ -301,11 +172,15 @@ GList* reposterName(PurpleBuddy* pb)
     
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-        JabberBuddy* jb = getJabberBuddy(pb);
-        GList* res = g_list_first(jb->resources);
+       //JabberBuddy* jb = getJabberBuddy(pb);
+        if(!jb)
+        {
+            return reposters;
+        }
+        GList* res = NULL; //g_list_first(jb->resources);
         for(;res; res = g_list_next(res))
         {
-            const char* name = ((JabberBuddyResource*)res)->name;
+            const char* name = "reposter"; //((JabberBuddyResource*)res)->name;
             if(!strstr(name,"reposter"))
             {
                 /* we should copy incase purple pulls the rug out from under us */
