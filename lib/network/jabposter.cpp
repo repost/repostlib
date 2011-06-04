@@ -14,30 +14,31 @@
 
 static jabposter *jabint = NULL;
 
-/*** Conversation uiops ***/
-void jab_write_conv(PurpleConversation *conv, const char *who, const char *alias,
-            const char *message, PurpleMessageFlags flags, time_t mtime)
+static void* jabposter_notify_userinfo(PurpleConnection *gc, const char *who,PurpleNotifyUserInfo *user_info);
+static PurpleNotifyUiOps jabposterNotifyUiOps =
 {
-    const char *name;
-    if (alias && *alias)
-        name = alias;
-    else if (who && *who)
-        name = who;
-    else
-        name = NULL;
+    NULL, /* pidgin_notify_message, */
+    NULL, /* pidgin_notify_email, */
+    NULL, /* pidgin_notify_emails, */
+    NULL, /* pidgin_notify_formatted, */
+    NULL, /* pidgin_notify_searchresults, */
+    NULL, /* pidgin_notify_searchresults_new_rows, */
+    jabposter_notify_userinfo, /* pidgin_notify_userinfo, */
+    NULL, /* pidgin_notify_uri, */
+    NULL, /* pidgin_close_notify, */
+    NULL,
+    NULL,
+    NULL,
+    NULL 
+};
 
-    printf("(%s) %s %s: %s\n", purple_conversation_get_name(conv),
-            purple_utf8_strftime("(%H:%M:%S)", localtime(&mtime)),
-            name, message);
-}
-
-static PurpleConversationUiOps jab_conv_uiops = 
+static PurpleConversationUiOps jabposterConvUiOps = 
 {
     NULL,                      /* create_conversation  */
     NULL,                      /* destroy_conversation */
     NULL,                      /* write_chat           */
     NULL,                      /* write_im             */
-    jab_write_conv,                      /* write_conv           */
+    NULL,                      /* write_conv           */
     NULL,                      /* chat_add_users       */
     NULL,                      /* chat_rename_user     */
     NULL,                      /* chat_remove_users    */
@@ -54,28 +55,71 @@ static PurpleConversationUiOps jab_conv_uiops =
     NULL
 };
 
-void jab_ui_init(void)
-{
-    /**
-     * This should initialize the UI components for all the modules. Here we
-     * just initialize the UI for conversations.
-     */
-    purple_conversations_set_ui_ops(&jab_conv_uiops);
-}
-
-static PurpleCoreUiOps jab_core_uiops = 
+void jabposterUiInit(void);
+static PurpleCoreUiOps jabposterCoreUiOps = 
 {
     NULL,
     NULL,
     NULL,
-    jab_ui_init,
-
+    jabposterUiInit,
     /* padding */
     NULL,
     NULL,
     NULL,
     NULL
 };
+
+void jabposterUiInit(void)
+{
+}
+
+
+static void *
+jabposter_notify_userinfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info)
+{
+    PurpleAccount* ac = purple_connection_get_account(gc);
+    PurpleBuddy* pb = purple_find_buddy(ac, who);
+    PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
+    
+    GList* resources = (GList*) purple_blist_node_get_string(pbln, "resources");
+    
+    /* Lets remove old resource list */
+    if(resources)
+    {
+        GList* res = resources;
+        for(;res; res = g_list_next(res))
+        {
+            g_free(res);
+        }
+        g_list_free(resources);
+    }
+    
+    /* Collect new resources */
+    GList *l;
+    GList *info = purple_notify_user_info_get_entries(user_info);
+    for (l = info; l != NULL; l = l->next) 
+    {
+        PurpleNotifyUserInfoEntry *user_info_entry = (PurpleNotifyUserInfoEntry *)l->data;
+        PurpleNotifyUserInfoEntryType type = purple_notify_user_info_entry_get_type(user_info_entry);
+        const char *label = purple_notify_user_info_entry_get_label(user_info_entry);
+        const char *value = purple_notify_user_info_entry_get_value(user_info_entry);
+        if (label && value)
+        {
+            if(!strncmp(label,"Resource",sizeof("Resource")))
+            {
+                char *resname = (char *) g_malloc(strlen(value));
+                strncpy(resname, value, strlen(value));
+                resources = g_list_prepend(resources, resname);
+            }
+        }
+    }
+    
+    purple_blist_node_set_string(pbln, "resources", (char *) resources);
+
+    g_free(info);
+    return NULL;
+}
 
 void conn_error(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
 {
@@ -125,9 +169,47 @@ int jabposter::authorization_requested(PurpleAccount *account, const char *user)
     return 1;
 } 
 
+void retrieveUserInfo(PurpleConnection *conn, const char *name)                        
+ {                                                                                                  
+     PurpleNotifyUserInfo *info = purple_notify_user_info_new();                                    
+     purple_notify_userinfo(conn, name, info, NULL, NULL);                               
+     purple_notify_user_info_destroy(info);                                                         
+     serv_get_info(conn, name);                                                                     
+ }                         
+
+static void
+buddy_status_changed_cb(PurpleBuddy *buddy, PurpleStatus *old_status,
+                        PurpleStatus *status, void *data)
+{
+    retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
+}
+
+static void
+buddy_idle_changed_cb(PurpleBuddy *buddy, gboolean old_idle, gboolean idle,
+                      void *data)
+{
+    retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
+}
+
+static void
+buddy_signed_on_cb(PurpleBuddy *buddy, void *data)
+{
+    //retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
+}
+
 void jabposter::connect_to_signals(void)
 {
     static int handle;
+    void *blist_handle = purple_blist_get_handle();
+
+    purple_signal_connect(blist_handle, "buddy-status-changed",
+            &handle, PURPLE_CALLBACK(buddy_status_changed_cb), NULL);
+    purple_signal_connect(blist_handle, "buddy-idle-changed",
+            &handle, PURPLE_CALLBACK(buddy_idle_changed_cb), NULL);
+    purple_signal_connect(blist_handle, "buddy-signed-on",
+            &handle, PURPLE_CALLBACK(buddy_signed_on_cb), NULL);
+    purple_signal_connect(blist_handle, "buddy-signed-off",
+            &handle, PURPLE_CALLBACK(buddy_signed_on_cb), NULL);
     purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
             PURPLE_CALLBACK(conn_error), NULL);
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
@@ -167,17 +249,12 @@ std::string jabposter::get_repostdir()
 GList* jabposter::reposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
+    PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
     PurpleAccount* acc = purple_buddy_get_account(pb);
-    const char* proto_id = purple_account_get_protocol_id(acc);
-    
+    const char* proto_id = purple_account_get_protocol_id(acc); 
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-       //JabberBuddy* jb = getJabberBuddy(pb);
-        if(!jb)
-        {
-            return reposters;
-        }
-        GList* res = NULL; //g_list_first(jb->resources);
+        GList* res = (GList*) purple_blist_node_get_string(pbln, "resources");
         for(;res; res = g_list_next(res))
         {
             const char* name = "reposter"; //((JabberBuddyResource*)res)->name;
@@ -196,7 +273,6 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
         strncpy(bname, purple_buddy_get_name(pb), strlen(purple_buddy_get_name(pb)));
         reposters = g_list_prepend(reposters, bname);
     }
-
     return reposters;
 }
 
@@ -222,7 +298,7 @@ void jabposter::sendpost(Post *post)
         {
             pb = PURPLE_BUDDY(bnode);
             /* Ok we have a buddy now lets find the reposter */
-            reposters = reposterName(pb);
+            reposters = reposterName(pb); 
             if(reposters)
             {
                 GList* rnames = NULL;
@@ -255,7 +331,6 @@ void jabposter::sendpost(Post *post)
                     }
                 }
                 /* ok its our job to clean up the glist */
-                /* g_list_free_full(reposters, g_free); */
                 for(rnames = reposters; rnames; rnames = g_list_next(rnames))
                     g_free(rnames);
                 g_list_free(reposters);
@@ -442,7 +517,7 @@ jabposter::jabposter(rpqueue* rq)
      *     - initialize the ui components for all the modules.
      *     - uninitialize the ui components for all the modules when the core terminates.
      */
-    purple_core_set_ui_ops(&jab_core_uiops);
+    purple_core_set_ui_ops(&jabposterCoreUiOps);
 
     /* Set the uiops for the eventloop. If your client is glib-based, you can safely
      * copy this verbatim. */
@@ -484,6 +559,7 @@ jabposter::jabposter(rpqueue* rq)
     /* Now, to connect the account(s), create a status and activate it. */
     connect_to_signals();
 
+    purple_notify_set_ui_ops(&jabposterNotifyUiOps);
 }
 
 jabposter::~jabposter()
