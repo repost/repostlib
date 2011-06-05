@@ -77,11 +77,6 @@ static PurpleCoreUiOps jab_core_uiops =
     NULL
 };
 
-void conn_error(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
-{
-    printf("error: %s",desc);
-}
-
 void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
@@ -128,8 +123,10 @@ int jabposter::authorization_requested(PurpleAccount *account, const char *user)
 void jabposter::connect_to_signals(void)
 {
     static int handle;
-    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
-            PURPLE_CALLBACK(conn_error), NULL);
+    /* purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
+            PURPLE_CALLBACK(conn_error), NULL); */
+    purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
+            PURPLE_CALLBACK(&jabposter::w_accountSignedOff), NULL);
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
             PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
@@ -306,6 +303,21 @@ int jabposter::getlinks(Link* links, int num)
         bnode = purple_blist_node_next (bnode, false);
     }
     return x;
+}
+
+void jabposter::w_accountSignedOff(PurpleConnection *gc, void *data)
+{
+    if( jabint == NULL )
+    {
+        jabint->accountSignedOff(gc,data);
+    }
+}
+
+void jabposter::accountSignedOff(PurpleConnection *gc, void *data)
+{
+    printf("Signing back on cause we are gonnnneee\n");
+    PurpleAccount* acct = purple_connection_get_account(gc);
+    purple_account_connect(acct);
 }
 
 void jabposter::addJabber(string user, string pass)
