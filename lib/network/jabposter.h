@@ -38,6 +38,7 @@ private:
     void connect_to_signals();
     static int authorization_requested(PurpleAccount* account, const char* user);
     static void w_accountSignedOff(PurpleConnection *gc, void *data);
+    static void w_connError(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc);
     void accountSignedOff(PurpleConnection *gc, void *data);
     static void w_received_im_msg(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);

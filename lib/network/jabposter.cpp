@@ -53,6 +53,63 @@ static PurpleConversationUiOps jab_conv_uiops =
     NULL,
     NULL
 };
+static gboolean do_signon(gpointer data)
+{
+  PurpleAccount *account = (PurpleAccount*) data;
+  PurpleStatus *status;
+
+  if(!account)
+  {
+    return false;
+  }
+  status = purple_account_get_active_status(account);
+  purple_account_connect(account);
+  return false;
+}
+#define INITIAL_RECON_DELAY_MIN  8000
+#define INITIAL_RECON_DELAY_MAX 60000
+
+static void
+jabposterStartReconn (PurpleConnection *gc,PurpleConnectionError reason,const char *text)
+{
+  PurpleAccount *account = NULL;
+  gint delay;
+
+  account = purple_connection_get_account(gc);
+  if (!purple_connection_error_is_fatal (reason)) 
+  {
+    delay = g_random_int_range(INITIAL_RECON_DELAY_MIN, INITIAL_RECON_DELAY_MAX);
+    g_timeout_add(delay, do_signon, account);
+  } 
+}
+
+static void jabposterNetworkConnected (void)
+{
+  GList *list, *l;
+  l = list = purple_accounts_get_all_active();
+  while (l) {
+    PurpleAccount *account = (PurpleAccount*)l->data;
+    if (purple_account_is_disconnected(account))
+      do_signon(account);
+    l = l->next;
+  }
+  g_list_free(list);
+}
+
+static PurpleConnectionUiOps jab_conn_ui_ops =
+{
+  NULL, /* pidgin_connection_connect_progress, */
+  NULL, /* pidgin_connection_connected, */
+  NULL, /* pidgin_connection_disconnected, */
+  NULL, /* pidgin_connection_notice, */
+  NULL, /* report_disconnect */
+  jabposterNetworkConnected,
+  NULL, /* pidgin_connection_network_disconnected, */
+  jabposterStartReconn,
+  NULL,
+  NULL,
+  NULL
+};
 
 void jab_ui_init(void)
 {
@@ -61,6 +118,7 @@ void jab_ui_init(void)
      * just initialize the UI for conversations.
      */
     purple_conversations_set_ui_ops(&jab_conv_uiops);
+    purple_connections_set_ui_ops(&jab_conn_ui_ops);
 }
 
 static PurpleCoreUiOps jab_core_uiops = 
@@ -123,8 +181,8 @@ int jabposter::authorization_requested(PurpleAccount *account, const char *user)
 void jabposter::connect_to_signals(void)
 {
     static int handle;
-    /* purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
-            PURPLE_CALLBACK(conn_error), NULL); */
+    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
+            PURPLE_CALLBACK(w_connError), NULL); 
     purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
             PURPLE_CALLBACK(&jabposter::w_accountSignedOff), NULL);
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
@@ -303,6 +361,14 @@ int jabposter::getlinks(Link* links, int num)
         bnode = purple_blist_node_next (bnode, false);
     }
     return x;
+}
+
+void jabposter::w_connError(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
+{
+  if( jabint == NULL )
+    {
+        jabint->accountSignedOff(gc,NULL);
+    }
 }
 
 void jabposter::w_accountSignedOff(PurpleConnection *gc, void *data)
