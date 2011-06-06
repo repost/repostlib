@@ -174,12 +174,14 @@ void rpl_storage::add_link (Link &link)
 
 bool rpl_storage::add_post (Post *post)
 {
-    int rc;
-    int rV;
+    int rc = 0;
+    int rV = 0;
     bool ret = false;
-    char *errmsg;
-    stringstream sql_stmt;
+    char *errmsg = NULL;
+		sqlite3_stmt *sql_stmt = NULL;
     time_t now = time ( NULL );
+		const char * post_insert = "INSERT INTO posts ( uuid, content, time ) SELECT "
+              "?, ?, ? WHERE NOT EXISTS (SELECT * FROM posts WHERE posts.uuid = ?);";
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
@@ -188,19 +190,32 @@ bool rpl_storage::add_post (Post *post)
             this->db_location() );
         return ret;
     }
-
-    sql_stmt << "INSERT INTO posts ( uuid, content, time ) SELECT "
-              "'" << post->uuid() << "', '" << post->content().c_str() <<
-               "', " << now << " WHERE NOT EXISTS (SELECT * FROM posts " <<
-               "WHERE posts.uuid = \"" << post->uuid() << "\");";
-
-    rV = sqlite3_exec ( this->db, sql_stmt.str().c_str(), NULL, NULL, &errmsg );
-
-    if ( errmsg != NULL )
+		
+		rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+		if ( rc )
     {
-        printf( "error insert: %s\n", errmsg );
-        sqlite3_free ( errmsg );
+        fprintf( stderr, "Couldn't prepare insert statement err = %d, db = 0x%x'%s'\n", 
+																																rc, this->db, post_insert);
+        return ret;
     }
+		
+		rc += sqlite3_bind_text(sql_stmt, 1, post->content().c_str(), post->uuid().length(), SQLITE_TRANSIENT);
+		rc += sqlite3_bind_text(sql_stmt, 2, post->uuid().c_str(), post->content().length(), SQLITE_TRANSIENT);
+		rc += sqlite3_bind_int(sql_stmt, 3, now); 
+		rc += sqlite3_bind_text(sql_stmt, 4, post->uuid.c_str(), post->uuid().length(), SQLITE_TRANSIENT);
+		if ( rc )
+    {
+        fprintf( stderr, "Couldn't bind text and int accumlative err = %d", rc);
+        return ret;
+    }
+	
+    rV = sqlite3_step( sql_stmt );
+    rV += sqlite3_finalize( sql_stmt );
+    if ( rV != SQLITE_OK )
+    {
+        printf( "error insert: %d\n", rV );
+    }
+
     if( sqlite3_changes(this->db) > 0 )
     {
       ret = true;
