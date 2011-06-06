@@ -38,17 +38,14 @@ private:
     Account pendaccts[MAXACCTS];
     std::string repostdir;
 
-    void libpurpleDiag();
     void connectToSignals();
-    static int authorization_requested(PurpleAccount* account, const char* user);
+    void initUI();
     void libpurple();
+    void libpurpleDiag();
     static void *start_thread(void* obj);
 
     /* C Style callbacks and wrappers */
-    void initUI();
-    static void w_accountSignedOff(PurpleConnection *gc, void *data);
-    void accountSignedOff(PurpleConnection *gc, void *data);
-    static void w_connError(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc);
+    static int authorization_requested(PurpleAccount* account, const char* user);
     static void w_receivedIm(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);
     void receivedIm(PurpleAccount* account, char* sender, char* message,

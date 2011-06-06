@@ -15,29 +15,6 @@
 
 static jabposter *jabint = NULL;
 
-static PurpleConversationUiOps jab_conv_uiops = 
-{
-    NULL,                      /* create_conversation  */
-    NULL,                      /* destroy_conversation */
-    NULL,                      /* write_chat           */
-    NULL,                      /* write_im             */
-    NULL,                      /* write_conv           */
-    NULL,                      /* chat_add_users       */
-    NULL,                      /* chat_rename_user     */
-    NULL,                      /* chat_remove_users    */
-    NULL,                      /* chat_update_user     */
-    NULL,                      /* present              */
-    NULL,                      /* has_focus            */
-    NULL,                      /* custom_smiley_add    */
-    NULL,                      /* custom_smiley_write  */
-    NULL,                      /* custom_smiley_close  */
-    NULL,                      /* send_confirm         */
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
 static PurpleCoreUiOps jab_core_uiops = 
 {
     NULL,
@@ -61,7 +38,6 @@ void jabposter::w_initUI(void)
 
 void jabposter::initUI(void)
 { 
-    purple_conversations_set_ui_ops(&jab_conv_uiops);
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
 }
@@ -69,25 +45,22 @@ void jabposter::initUI(void)
 void jabposter::connectToSignals(void)
 {
     static int handle;
-    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
-            PURPLE_CALLBACK(w_connError), NULL); 
-    purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
-            PURPLE_CALLBACK(&jabposter::w_accountSignedOff), NULL);
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
-            PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
+            PURPLE_CALLBACK(&jabposter::w_receivedIm), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
             PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
 }
-void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *message,
+
+void jabposter::w_receivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     if(message != NULL)
     {    
-        jabint->received_im_msg(account, sender, message, conv, flags);
+        jabint->receivedIm(account, sender, message, conv, flags);
     }
 }
 
-void jabposter::received_im_msg(PurpleAccount *account, char *sender, char *message,
+void jabposter::receivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     char* unescaped = NULL;
@@ -263,7 +236,6 @@ void jabposter::rmlink(Link& link)
     }
 }
 
-
 int jabposter::getlinks(Link* links, int num)
 {
     int x = 0;
@@ -292,29 +264,6 @@ int jabposter::getlinks(Link* links, int num)
         bnode = purple_blist_node_next (bnode, false);
     }
     return x;
-}
-
-void jabposter::w_connError(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
-{
-  if( jabint == NULL )
-    {
-        jabint->accountSignedOff(gc,NULL);
-    }
-}
-
-void jabposter::w_accountSignedOff(PurpleConnection *gc, void *data)
-{
-    if( jabint == NULL )
-    {
-        jabint->accountSignedOff(gc,data);
-    }
-}
-
-void jabposter::accountSignedOff(PurpleConnection *gc, void *data)
-{
-    printf("Signing back on cause we are gonnnneee\n");
-    PurpleAccount* acct = purple_connection_get_account(gc);
-    purple_account_connect(acct);
 }
 
 void jabposter::addJabber(string user, string pass)
@@ -378,29 +327,20 @@ jabposter::jabposter(rpqueue* rq)
       struct sigaction act;
       
       act.sa_handler = ZombieKiller_Signal;		
-      //Send for terminated but not stopped children
+      /* Send for terminated but not stopped children */
       act.sa_flags = SA_NOCLDWAIT;
 
       sigaction(SIGCHLD, &act, NULL);
     }
 #endif
 
-    /* We do not want any debugging for now to keep the noise to a minimum. */
 #ifdef LIBPURPLE_DEBUG
     purple_debug_set_enabled(TRUE);
 #else
     purple_debug_set_enabled(FALSE);
 #endif
-    /* Set the core-uiops, which is used to
-     *     - initialize the ui specific preferences.
-     *     - initialize the debug ui.
-     *     - initialize the ui components for all the modules.
-     *     - uninitialize the ui components for all the modules when the core terminates.
-     */
-    purple_core_set_ui_ops(&jab_core_uiops);
 
-    /* Set the uiops for the eventloop. If your client is glib-based, you can safely
-     * copy this verbatim. */
+    purple_core_set_ui_ops(&jab_core_uiops);
     purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
 
     /* set the users directory to live inside the repost settings dir */
@@ -420,23 +360,16 @@ jabposter::jabposter(rpqueue* rq)
         abort();
     }
 
-    /* Create and load the buddylist. */
     purple_set_blist(purple_blist_new());
     purple_blist_load();
-
-    /* Load the preferences. */
     purple_prefs_load();
-
-    /* Load the desired plugins. The client should save the list of loaded plugins in
-     * the preferences using purple_plugins_save_loaded(PLUGIN_SAVE_PREF) */
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
-
-    /* Load the pounces. */
     purple_pounces_load();
+
 #ifdef DEBUG
     libpurpleDiag();
 #endif
-    /* Now, to connect the account(s), create a status and activate it. */
+    
     this->connectToSignals();
 }
 
