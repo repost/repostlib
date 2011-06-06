@@ -3,6 +3,7 @@
 #include "eventloop.h"
 #include "defines.h"
 #include "jabposter.h"
+#include "jabconnections.h"
 #include "rpqueue.h"
 #include "rpl.h"
 
@@ -14,30 +15,13 @@
 
 static jabposter *jabint = NULL;
 
-/*** Conversation uiops ***/
-void jab_write_conv(PurpleConversation *conv, const char *who, const char *alias,
-            const char *message, PurpleMessageFlags flags, time_t mtime)
-{
-    const char *name;
-    if (alias && *alias)
-        name = alias;
-    else if (who && *who)
-        name = who;
-    else
-        name = NULL;
-
-    printf("(%s) %s %s: %s\n", purple_conversation_get_name(conv),
-            purple_utf8_strftime("(%H:%M:%S)", localtime(&mtime)),
-            name, message);
-}
-
 static PurpleConversationUiOps jab_conv_uiops = 
 {
     NULL,                      /* create_conversation  */
     NULL,                      /* destroy_conversation */
     NULL,                      /* write_chat           */
     NULL,                      /* write_im             */
-    jab_write_conv,                      /* write_conv           */
+    NULL,                      /* write_conv           */
     NULL,                      /* chat_add_users       */
     NULL,                      /* chat_rename_user     */
     NULL,                      /* chat_remove_users    */
@@ -53,81 +37,13 @@ static PurpleConversationUiOps jab_conv_uiops =
     NULL,
     NULL
 };
-static gboolean do_signon(gpointer data)
-{
-  PurpleAccount *account = (PurpleAccount*) data;
-  PurpleStatus *status;
-
-  if(!account)
-  {
-    return false;
-  }
-  status = purple_account_get_active_status(account);
-  purple_account_connect(account);
-  return false;
-}
-#define INITIAL_RECON_DELAY_MIN  8000
-#define INITIAL_RECON_DELAY_MAX 60000
-
-static void
-jabposterStartReconn (PurpleConnection *gc,PurpleConnectionError reason,const char *text)
-{
-  PurpleAccount *account = NULL;
-  gint delay;
-
-  account = purple_connection_get_account(gc);
-  if (!purple_connection_error_is_fatal (reason)) 
-  {
-    delay = g_random_int_range(INITIAL_RECON_DELAY_MIN, INITIAL_RECON_DELAY_MAX);
-    g_timeout_add(delay, do_signon, account);
-  } 
-}
-
-static void jabposterNetworkConnected (void)
-{
-  GList *list, *l;
-  l = list = purple_accounts_get_all_active();
-  while (l) {
-    PurpleAccount *account = (PurpleAccount*)l->data;
-    if (purple_account_is_disconnected(account))
-      do_signon(account);
-    l = l->next;
-  }
-  g_list_free(list);
-}
-
-static PurpleConnectionUiOps jab_conn_ui_ops =
-{
-  NULL, /* pidgin_connection_connect_progress, */
-  NULL, /* pidgin_connection_connected, */
-  NULL, /* pidgin_connection_disconnected, */
-  NULL, /* pidgin_connection_notice, */
-  NULL, /* report_disconnect */
-  jabposterNetworkConnected,
-  NULL, /* pidgin_connection_network_disconnected, */
-  jabposterStartReconn,
-  NULL,
-  NULL,
-  NULL
-};
-
-void jab_ui_init(void)
-{
-    /**
-     * This should initialize the UI components for all the modules. Here we
-     * just initialize the UI for conversations.
-     */
-    purple_conversations_set_ui_ops(&jab_conv_uiops);
-    purple_connections_set_ui_ops(&jab_conn_ui_ops);
-}
 
 static PurpleCoreUiOps jab_core_uiops = 
 {
     NULL,
     NULL,
     NULL,
-    jab_ui_init,
-
+    &jabposter::w_initUI,
     /* padding */
     NULL,
     NULL,
@@ -135,6 +51,33 @@ static PurpleCoreUiOps jab_core_uiops =
     NULL
 };
 
+void jabposter::w_initUI(void)
+{
+  if( jabint )
+  {
+    jabint->initUI();   
+  }
+}
+
+void jabposter::initUI(void)
+{ 
+    purple_conversations_set_ui_ops(&jab_conv_uiops);
+    this->jabconn = new jabconnections();
+    purple_connections_set_ui_ops(this->jabconn->getUiOps());
+}
+
+void jabposter::connectToSignals(void)
+{
+    static int handle;
+    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
+            PURPLE_CALLBACK(w_connError), NULL); 
+    purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
+            PURPLE_CALLBACK(&jabposter::w_accountSignedOff), NULL);
+    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
+            PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
+    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
+            PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
+}
 void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
@@ -178,18 +121,6 @@ int jabposter::authorization_requested(PurpleAccount *account, const char *user)
     return 1;
 } 
 
-void jabposter::connect_to_signals(void)
-{
-    static int handle;
-    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
-            PURPLE_CALLBACK(w_connError), NULL); 
-    purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
-            PURPLE_CALLBACK(&jabposter::w_accountSignedOff), NULL);
-    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
-            PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
-    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
-            PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
-}
 
 void jabposter::libpurpleDiag()
 {
@@ -506,8 +437,7 @@ jabposter::jabposter(rpqueue* rq)
     libpurpleDiag();
 #endif
     /* Now, to connect the account(s), create a status and activate it. */
-    connect_to_signals();
-
+    this->connectToSignals();
 }
 
 jabposter::~jabposter()
