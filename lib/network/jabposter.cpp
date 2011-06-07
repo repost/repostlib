@@ -3,6 +3,7 @@
 #include "eventloop.h"
 #include "defines.h"
 #include "jabposter.h"
+#include "jabconnections.h"
 #include "rpqueue.h"
 #include "rpl.h"
 
@@ -13,6 +14,19 @@
 #endif
 
 static jabposter *jabint = NULL;
+
+static PurpleCoreUiOps jab_core_uiops = 
+{
+    NULL,
+    NULL,
+    NULL,
+    &jabposter::w_initUI,
+    /* padding */
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 static void* jabposter_notify_userinfo(PurpleConnection *gc, const char *who,PurpleNotifyUserInfo *user_info);
 static PurpleNotifyUiOps jabposterNotifyUiOps =
@@ -31,111 +45,40 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL,
     NULL 
 };
-
-static PurpleConversationUiOps jabposterConvUiOps = 
+void jabposter::w_initUI(void)
 {
-    NULL,                      /* create_conversation  */
-    NULL,                      /* destroy_conversation */
-    NULL,                      /* write_chat           */
-    NULL,                      /* write_im             */
-    NULL,                      /* write_conv           */
-    NULL,                      /* chat_add_users       */
-    NULL,                      /* chat_rename_user     */
-    NULL,                      /* chat_remove_users    */
-    NULL,                      /* chat_update_user     */
-    NULL,                      /* present              */
-    NULL,                      /* has_focus            */
-    NULL,                      /* custom_smiley_add    */
-    NULL,                      /* custom_smiley_write  */
-    NULL,                      /* custom_smiley_close  */
-    NULL,                      /* send_confirm         */
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-void jabposterUiInit(void);
-static PurpleCoreUiOps jabposterCoreUiOps = 
-{
-    NULL,
-    NULL,
-    NULL,
-    jabposterUiInit,
-    /* padding */
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-void jabposterUiInit(void)
-{
+  if( jabint )
+  {
+    jabint->initUI();   
+  }
 }
 
-
-static void *
-jabposter_notify_userinfo(PurpleConnection *gc, const char *who,
-                         PurpleNotifyUserInfo *user_info)
-{
-    PurpleAccount* ac = purple_connection_get_account(gc);
-    PurpleBuddy* pb = purple_find_buddy(ac, who);
-    PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
-    
-    GList* resources = (GList*) purple_blist_node_get_string(pbln, "resources");
-    
-    /* Lets remove old resource list */
-    if(resources)
-    {
-        GList* res = resources;
-        for(;res; res = g_list_next(res))
-        {
-            g_free(res);
-        }
-        g_list_free(resources);
-    }
-    
-    /* Collect new resources */
-    GList *l;
-    GList *info = purple_notify_user_info_get_entries(user_info);
-    for (l = info; l != NULL; l = l->next) 
-    {
-        PurpleNotifyUserInfoEntry *user_info_entry = (PurpleNotifyUserInfoEntry *)l->data;
-        PurpleNotifyUserInfoEntryType type = purple_notify_user_info_entry_get_type(user_info_entry);
-        const char *label = purple_notify_user_info_entry_get_label(user_info_entry);
-        const char *value = purple_notify_user_info_entry_get_value(user_info_entry);
-        if (label && value)
-        {
-            if(!strncmp(label,"Resource",sizeof("Resource")))
-            {
-                char *resname = (char *) g_malloc(strlen(value));
-                strncpy(resname, value, strlen(value));
-                resources = g_list_prepend(resources, resname);
-            }
-        }
-    }
-    
-    purple_blist_node_set_string(pbln, "resources", (char *) resources);
-
-    g_free(info);
-    return NULL;
+void jabposter::initUI(void)
+{ 
+    printf("initialise UI\n");
+    this->jabconn = new jabconnections();
+    purple_connections_set_ui_ops(this->jabconn->getUiOps());
 }
 
-void conn_error(PurpleConnection *gc, PurpleConnectionError err, const gchar *desc)
+void jabposter::connectToSignals(void)
 {
-    printf("error: %s",desc);
+    static int handle;
+    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
+            PURPLE_CALLBACK(&jabposter::w_receivedIm), NULL);
+    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
+            PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
 }
 
-void jabposter::w_received_im_msg(PurpleAccount *account, char *sender, char *message,
+void jabposter::w_receivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     if(message != NULL)
     {    
-        jabint->received_im_msg(account, sender, message, conv, flags);
+        jabint->receivedIm(account, sender, message, conv, flags);
     }
 }
 
-void jabposter::received_im_msg(PurpleAccount *account, char *sender, char *message,
+void jabposter::receivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     char* unescaped = NULL;
@@ -169,54 +112,6 @@ int jabposter::authorization_requested(PurpleAccount *account, const char *user)
     return 1;
 } 
 
-void retrieveUserInfo(PurpleConnection *conn, const char *name)                        
- {                                                                                                  
-     PurpleNotifyUserInfo *info = purple_notify_user_info_new();                                    
-     purple_notify_userinfo(conn, name, info, NULL, NULL);                               
-     purple_notify_user_info_destroy(info);                                                         
-     serv_get_info(conn, name);                                                                     
- }                         
-
-static void
-buddy_status_changed_cb(PurpleBuddy *buddy, PurpleStatus *old_status,
-                        PurpleStatus *status, void *data)
-{
-    retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
-}
-
-static void
-buddy_idle_changed_cb(PurpleBuddy *buddy, gboolean old_idle, gboolean idle,
-                      void *data)
-{
-    retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
-}
-
-static void
-buddy_signed_on_cb(PurpleBuddy *buddy, void *data)
-{
-    //retrieveUserInfo(purple_account_get_connection(purple_buddy_get_account(buddy)), purple_buddy_get_name(buddy));
-}
-
-void jabposter::connect_to_signals(void)
-{
-    static int handle;
-    void *blist_handle = purple_blist_get_handle();
-
-    purple_signal_connect(blist_handle, "buddy-status-changed",
-            &handle, PURPLE_CALLBACK(buddy_status_changed_cb), NULL);
-    purple_signal_connect(blist_handle, "buddy-idle-changed",
-            &handle, PURPLE_CALLBACK(buddy_idle_changed_cb), NULL);
-    purple_signal_connect(blist_handle, "buddy-signed-on",
-            &handle, PURPLE_CALLBACK(buddy_signed_on_cb), NULL);
-    purple_signal_connect(blist_handle, "buddy-signed-off",
-            &handle, PURPLE_CALLBACK(buddy_signed_on_cb), NULL);
-    purple_signal_connect(purple_connections_get_handle(), "connection-error", &handle,
-            PURPLE_CALLBACK(conn_error), NULL);
-    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
-            PURPLE_CALLBACK(&jabposter::w_received_im_msg), NULL);
-    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
-            PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
-}
 
 void jabposter::libpurpleDiag()
 {
@@ -237,6 +132,15 @@ std::string jabposter::get_repostdir()
 {
   return repostdir;
 }
+
+void retrieveUserInfo(PurpleConnection *conn, const char *name)                        
+ {                                                                                                  
+     PurpleNotifyUserInfo *info = purple_notify_user_info_new();                                    
+     purple_notify_userinfo(conn, name, info, NULL, NULL);                               
+     purple_notify_user_info_destroy(info);                                                         
+     serv_get_info(conn, name);                                                                     
+ }                         
+
 
 /**
  * Some accounts are just for reposting! Ouuuttrraageoouss!
@@ -498,29 +402,20 @@ jabposter::jabposter(rpqueue* rq)
       struct sigaction act;
       
       act.sa_handler = ZombieKiller_Signal;		
-      //Send for terminated but not stopped children
+      /* Send for terminated but not stopped children */
       act.sa_flags = SA_NOCLDWAIT;
 
       sigaction(SIGCHLD, &act, NULL);
     }
 #endif
 
-    /* We do not want any debugging for now to keep the noise to a minimum. */
 #ifdef LIBPURPLE_DEBUG
     purple_debug_set_enabled(TRUE);
 #else
     purple_debug_set_enabled(FALSE);
 #endif
-    /* Set the core-uiops, which is used to
-     *     - initialize the ui specific preferences.
-     *     - initialize the debug ui.
-     *     - initialize the ui components for all the modules.
-     *     - uninitialize the ui components for all the modules when the core terminates.
-     */
-    purple_core_set_ui_ops(&jabposterCoreUiOps);
 
-    /* Set the uiops for the eventloop. If your client is glib-based, you can safely
-     * copy this verbatim. */
+    purple_core_set_ui_ops(&jab_core_uiops);
     purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
 
     /* set the users directory to live inside the repost settings dir */
@@ -540,25 +435,16 @@ jabposter::jabposter(rpqueue* rq)
         abort();
     }
 
-    /* Create and load the buddylist. */
     purple_set_blist(purple_blist_new());
     purple_blist_load();
-
-    /* Load the preferences. */
     purple_prefs_load();
-
-    /* Load the desired plugins. The client should save the list of loaded plugins in
-     * the preferences using purple_plugins_save_loaded(PLUGIN_SAVE_PREF) */
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
-
-    /* Load the pounces. */
     purple_pounces_load();
 #ifdef DEBUG
     libpurpleDiag();
 #endif
-    /* Now, to connect the account(s), create a status and activate it. */
-    connect_to_signals();
-
+    this->initUI();
+    this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
 }
 

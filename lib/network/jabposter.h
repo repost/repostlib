@@ -5,6 +5,7 @@
 #include "link.h"
 #include "slavenetwork.h"
 #include "rpqueue.h"
+#include "jabconnections.h"
 
 #include <string>
 
@@ -28,23 +29,28 @@ public:
     void rmlink(Link& link);
     void go();
     std::string get_repostdir();
+    static void w_initUI();
     
 private:
     PurpleAccount *acct;
+    jabconnections *jabconn;
     rpqueue *in_queue;
     Account pendaccts[MAXACCTS];
     std::string repostdir;
-    void libpurpleDiag();
-    void signed_on(PurpleConnection* gc, gpointer jab);
-    void connect_to_signals();
-    static int authorization_requested(PurpleAccount* account, const char* user);
-    static void w_received_im_msg(PurpleAccount* account, char* sender, char* message,
-                              PurpleConversation* conv, PurpleMessageFlags flags);
-    void received_im_msg(PurpleAccount* account, char* sender, char* message,
-                              PurpleConversation* conv, PurpleMessageFlags flags);
+
+    void connectToSignals();
+    void initUI();
     void libpurple();
-    GList* reposterName(PurpleBuddy* pb);
+    void libpurpleDiag();
     static void *start_thread(void* obj);
+
+    /* C Style callbacks and wrappers */
+    static int authorization_requested(PurpleAccount* account, const char* user);
+    static void w_receivedIm(PurpleAccount* account, char* sender, char* message,
+                              PurpleConversation* conv, PurpleMessageFlags flags);
+    void receivedIm(PurpleAccount* account, char* sender, char* message,
+                              PurpleConversation* conv, PurpleMessageFlags flags);
+    GList* reposterName(PurpleBuddy* pb);
 };
 
 #endif
