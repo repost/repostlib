@@ -38,6 +38,7 @@ void jabposter::w_initUI(void)
 
 void jabposter::initUI(void)
 { 
+    printf("initialise UI\n");
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
 }
@@ -369,7 +370,7 @@ jabposter::jabposter(rpqueue* rq)
 #ifdef DEBUG
     libpurpleDiag();
 #endif
-    
+    this->initUI();
     this->connectToSignals();
 }
 
