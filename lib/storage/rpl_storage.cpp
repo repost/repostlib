@@ -127,7 +127,7 @@ void print_error ( int err )
  */
 rpl_storage::rpl_storage()
 {
-    int rc;
+    int rc = 0;
 
     printf( "> rpl_storage\n" );
     rc = sqlite3_open( this->db_location(), &this->db );
@@ -175,13 +175,12 @@ void rpl_storage::add_link (Link &link)
 bool rpl_storage::add_post (Post *post)
 {
     int rc = 0;
-    int rV = 0;
     bool ret = false;
-    char *errmsg = NULL;
 		sqlite3_stmt *sql_stmt = NULL;
     time_t now = time ( NULL );
-		const char * post_insert = "INSERT INTO posts ( uuid, content, time ) SELECT "
-              "?, ?, ? WHERE NOT EXISTS (SELECT * FROM posts WHERE posts.uuid = ?);";
+		const char * post_insert = "INSERT INTO posts ( uuid, content, time, "
+				"upvotes) SELECT ?, ?, ?, 0 WHERE NOT EXISTS (SELECT * FROM posts "
+				"WHERE posts.uuid = ?);";
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
@@ -194,8 +193,8 @@ bool rpl_storage::add_post (Post *post)
 		rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
 		if ( rc )
     {
-        fprintf( stderr, "Couldn't prepare insert statement err = %d, db = 0x%x'%s'\n", 
-																																rc, this->db, post_insert);
+        fprintf( stderr, "Couldn't prepare insert statement err = %d, "
+								"db = 0x%x'%s'\n", rc, this->db, post_insert);
         return ret;
     }
 		
@@ -205,21 +204,22 @@ bool rpl_storage::add_post (Post *post)
 		rc += sqlite3_bind_text(sql_stmt, 4, post->uuid().c_str(), post->uuid().length(), SQLITE_TRANSIENT);
 		if ( rc )
     {
-        fprintf( stderr, "Couldn't bind text and int accumlative err = %d", rc);
+        fprintf( stderr, "Couldn't bind text and int accumlative err = %d",
+								rc);
         return ret;
     }
 	
 		// TODO Tidy up expressions here
-    rV = sqlite3_step( sql_stmt );
-    if ( rV != SQLITE_DONE )
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
     {
-        printf( "error insert: %d\n", rV );
+        printf( "error insert: %d\n", rc );
     }
 
-    rV = sqlite3_finalize( sql_stmt );
-		if ( rV != SQLITE_OK )
+    rc = sqlite3_finalize( sql_stmt );
+		if ( rc != SQLITE_OK )
     {
-        printf( "error insert: %d\n", rV );
+        printf( "error insert: %d\n", rc );
     }
 
     if( sqlite3_changes(this->db) > 0 )
@@ -264,9 +264,8 @@ int rpl_storage::postSelectArray(sqlite3_stmt* sql_stmt, Post** post)
 
 int rpl_storage::get_post ( Post **post, string uuid )
 {
-    int rc, rV;
+    int rc = 0;
     int rowsReturned = 0;
-    char *errmsg;
 		sqlite3_stmt *sql_stmt = NULL;
 		const char* get_post = "SELECT * FROM posts WHERE posts.uuid = ?;";
 
@@ -299,10 +298,10 @@ int rpl_storage::get_post ( Post **post, string uuid )
 		
 		rowsReturned = this->postSelectArray(sql_stmt, post);
    
-    rV = sqlite3_finalize( sql_stmt );
-    if ( rV != SQLITE_OK )
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
     {
-        printf( "error get_post: %d\n", rV );
+        printf( "error get_post: %d\n", rc );
     }
     else
     {
@@ -318,11 +317,11 @@ int rpl_storage::get_post ( Post **post, string uuid )
 
 int rpl_storage::get_post ( Post **post, int from, int count )
 {
-		int rc, rV;
+		int rc = 0 ;
     int rowsReturned = 0;
-    char *errmsg;
 		sqlite3_stmt *sql_stmt = NULL;
-		const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? OFFSET ?;" ;
+		const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? "
+														"OFFSET ?;" ;
 
     cout << "> get_post " << endl;
 
@@ -353,10 +352,10 @@ int rpl_storage::get_post ( Post **post, int from, int count )
 		
 		rowsReturned = this->postSelectArray(sql_stmt, post);
    
-    rV = sqlite3_finalize( sql_stmt );
-    if ( rV != SQLITE_OK )
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
     {
-        printf( "error get_post: %d\n", rV );
+        printf( "error get_post: %d\n", rc );
     }
     else
     {
@@ -387,14 +386,14 @@ int rpl_storage::check_version_number (void * id, int columns, char **column_tex
 
 void rpl_storage::update_table ( )
 {
-    int rV;
+    int rc;
     int version = -1;
     char *errmsg = NULL;
 
     cout << "> " << __FUNCTION__ << endl;
 
-    rV = sqlite3_open( this->db_location(), &this->db );
-    if ( rV )
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
             this->db_location() );
@@ -403,7 +402,7 @@ void rpl_storage::update_table ( )
 
     /* drop posts table */
     /* TODO: migrate users to new table */
-    rV = sqlite3_exec ( this->db, 
+    rc = sqlite3_exec ( this->db, 
             "PRAGMA user_version;", 
             &rpl_storage::check_version_number,
             &version,
@@ -422,7 +421,7 @@ void rpl_storage::update_table ( )
         stringstream sql_stmt;
 
         // create new posts table
-        rV = sqlite3_exec ( this->db, 
+        rc = sqlite3_exec ( this->db, 
                 this->DROP_POST_TABLE, 
                 NULL,
                 NULL,
@@ -435,7 +434,7 @@ void rpl_storage::update_table ( )
         }
 
         // create new posts table
-        rV = sqlite3_exec ( this->db, 
+        rc = sqlite3_exec ( this->db, 
                 this->CREATE_POST_TABLE, 
                 NULL,
                 NULL,
@@ -449,7 +448,7 @@ void rpl_storage::update_table ( )
 
         sql_stmt << "PRAGMA user_version = " << CURRENT_VERSION_NUMBER;
         // update db with new version number 
-        rV = sqlite3_exec ( this->db, 
+        rc = sqlite3_exec ( this->db, 
                 sql_stmt.str().c_str(), 
                 NULL,
                 NULL,
@@ -468,13 +467,13 @@ void rpl_storage::update_table ( )
 
 bool rpl_storage::setup_tables ()
 {
-    int rV;
+    int rc;
     char *errmsg = NULL;
     bool ret = true;
 
     printf( "> %s\n", __FUNCTION__);
 
-    rV = sqlite3_exec ( this->db, 
+    rc = sqlite3_exec ( this->db, 
             CREATE_POST_TABLE, 
             NULL,
             NULL,
@@ -497,14 +496,14 @@ bool rpl_storage::setup_tables ()
 
 void rpl_storage::delete_post ( string uuid )
 {
-    int rV;
+    int rc;
     char *errmsg;
 
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
     stringstream sql_stmt;
 
-    rV = sqlite3_open( this->db_location(), &this->db );
-    if ( rV )
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
             this->db_location() );
@@ -513,15 +512,15 @@ void rpl_storage::delete_post ( string uuid )
     
     sql_stmt << "DELETE FROM posts WHERE uuid = \"" << uuid << "\"";
 
-    rV = sqlite3_exec ( this->db, 
+    rc = sqlite3_exec ( this->db, 
                         sql_stmt.str().c_str(), 
                         NULL, 
                         NULL, 
                         &errmsg );
 
-    if ( rV != SQLITE_OK )
+    if ( rc != SQLITE_OK )
     {
-        cout << "sqlite error! error number " << rV << endl;
+        cout << "sqlite error! error number " << rc << endl;
     }
     else
     {
@@ -532,14 +531,13 @@ void rpl_storage::delete_post ( string uuid )
 
 void rpl_storage::update_metric ( string uuid )
 {
-    int rV;
+    int rc;
     char *errmsg;
+    stringstream sql_stmt;
 
     cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
-    stringstream sql_stmt;
-    
-    rV = sqlite3_open( this->db_location(), &this->db );
-    if ( rV )
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
     {
         fprintf( stderr, "Couldn't open db %s\n", 
             this->db_location() );
@@ -548,15 +546,15 @@ void rpl_storage::update_metric ( string uuid )
 
     sql_stmt << "UPDATE posts SET upvotes = upvotes + 1 WHERE uuid = \"" << uuid << "\"";
 
-    rV = sqlite3_exec ( this->db, 
+    rc = sqlite3_exec ( this->db, 
                         sql_stmt.str().c_str(), 
                         NULL, 
                         NULL, 
                         &errmsg );
 
-    if ( rV != SQLITE_OK )
+    if ( rc != SQLITE_OK )
     {
-        cout << "sqlite error! error number " << rV << endl;
+        cout << "sqlite error! error number " << rc << endl;
     }
     else
     {
