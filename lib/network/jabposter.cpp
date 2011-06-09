@@ -28,7 +28,6 @@ static PurpleCoreUiOps jab_core_uiops =
     NULL
 };
 
-static void* jabposter_notify_userinfo(PurpleConnection *gc, const char *who,PurpleNotifyUserInfo *user_info);
 static PurpleNotifyUiOps jabposterNotifyUiOps =
 {
     NULL, /* pidgin_notify_message, */
@@ -37,7 +36,7 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL, /* pidgin_notify_formatted, */
     NULL, /* pidgin_notify_searchresults, */
     NULL, /* pidgin_notify_searchresults_new_rows, */
-    jabposter_notify_userinfo, /* pidgin_notify_userinfo, */
+    &jabposter::w_notifyUserInfo, /* pidgin_notify_userinfo, */
     NULL, /* pidgin_notify_uri, */
     NULL, /* pidgin_close_notify, */
     NULL,
@@ -45,6 +44,7 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL,
     NULL 
 };
+
 void jabposter::w_initUI(void)
 {
   if( jabint )
@@ -58,6 +58,7 @@ void jabposter::initUI(void)
     printf("initialise UI\n");
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
+    purple_notify_set_ui_ops(&jabposterNotifyUiOps);
 }
 
 void jabposter::connectToSignals(void)
@@ -133,14 +134,6 @@ std::string jabposter::get_repostdir()
   return repostdir;
 }
 
-void retrieveUserInfo(PurpleConnection *conn, const char *name)                        
- {                                                                                                  
-     PurpleNotifyUserInfo *info = purple_notify_user_info_new();                                    
-     purple_notify_userinfo(conn, name, info, NULL, NULL);                               
-     purple_notify_user_info_destroy(info);                                                         
-     serv_get_info(conn, name);                                                                     
- }                         
-
 
 /**
  * Some accounts are just for reposting! Ouuuttrraageoouss!
@@ -150,18 +143,112 @@ void retrieveUserInfo(PurpleConnection *conn, const char *name)
  * Other account types I got no idea. Probably check status to 
  * see if they reposting etc... That is a TODO
  */
+
+void jabposter::w_resFree(gpointer data)
+{
+    if( jabint )
+    {
+        jabint->resFree(data);
+    }
+}
+
+void jabposter::resFree(gpointer data)
+{
+    GList* resources = (GList*) data;
+    for(;resources;resources = g_list_next(resources))
+    {
+        g_free(resources);
+    }
+    g_list_free(resources);
+}
+
+gboolean jabposter::w_retrieveUserInfo(gpointer data)
+{                                                                                                
+    if( jabint )
+    {
+        return jabint->retrieveUserInfo(data);
+    }
+    return false;
+}
+
+gboolean jabposter::retrieveUserInfo(gpointer data)
+{                                      
+    PurpleBlistNode * bnode = purple_blist_get_root();
+    while(bnode != NULL)
+    {
+        if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        {
+            PurpleBuddy* pb = PURPLE_BUDDY(bnode);
+            const char* name = purple_buddy_get_name(pb);
+            PurpleConnection* conn = purple_account_get_connection(purple_buddy_get_account(pb));
+
+            PurpleNotifyUserInfo *info = purple_notify_user_info_new(); 
+            purple_notify_userinfo(conn, name, info, NULL, NULL);                               
+            purple_notify_user_info_destroy(info); 
+            serv_get_info(conn, name); 
+        }
+        bnode = purple_blist_node_next (bnode, false);
+    }
+    return true;
+}                         
+
+void* jabposter::w_notifyUserInfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info)
+{
+    if( jabint )
+    {
+        return jabint->notifyUserInfo(gc, who, user_info);
+    }
+    return NULL;
+}
+
+void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info)
+{
+    PurpleAccount* ac = purple_connection_get_account(gc);
+    PurpleBuddy* pb = purple_find_buddy(ac, who);
+    PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
+    
+    /* Collect new resources */
+    GList *resources;
+    GList *l, *info = purple_notify_user_info_get_entries(user_info);
+    for (l = info; l != NULL; l = l->next) 
+    {
+        PurpleNotifyUserInfoEntry* user_info_entry = (PurpleNotifyUserInfoEntry *)l->data;
+        const char *label = purple_notify_user_info_entry_get_label(user_info_entry);
+        const char *value = purple_notify_user_info_entry_get_value(user_info_entry);
+        if (label && value)
+        {
+            if(!strncmp(label,"Resource",sizeof("Resource")))
+            {
+                char *resname = (char *) g_malloc(strlen(value));
+                strncpy(resname, value, strlen(value));
+                resources = g_list_prepend(resources, resname);
+            }
+        }
+    }
+        
+    /* Replace current resources for user. GHashTable takes care of cleanup */
+    g_hash_table_replace(resMap, (void *)who, resources);
+
+    g_free(info);
+    return NULL;
+}
+
 GList* jabposter::reposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
     PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
     PurpleAccount* acc = purple_buddy_get_account(pb);
     const char* proto_id = purple_account_get_protocol_id(acc); 
+    const char* bname = purple_buddy_get_name(pb);
+
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-        GList* res = (GList*) purple_blist_node_get_string(pbln, "resources");
-        for(;res; res = g_list_next(res))
+        GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
+        for(;resources; resources = g_list_next(resources))
         {
-            const char* name = "reposter"; //((JabberBuddyResource*)res)->name;
+            const char* name = (const char*) resources;
             if(!strstr(name,"reposter"))
             {
                 /* we should copy incase purple pulls the rug out from under us */
@@ -385,7 +472,9 @@ static void ZombieKiller_Signal(int i)
 jabposter::jabposter(rpqueue* rq)
 {
     jabint = this;
-    in_queue = rq;
+    this->in_queue = rq;
+    this->resMap = g_hash_table_new_full(g_str_hash, NULL, NULL, &jabposter::w_resFree);
+
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
      * blocking lookups without blocking the main process.  It does not
@@ -446,11 +535,15 @@ jabposter::jabposter(rpqueue* rq)
     this->initUI();
     this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
+
+    g_timeout_add(2000, &jabposter::w_retrieveUserInfo, NULL);
 }
 
 jabposter::~jabposter()
 {
     uninit_xml();
+    purple_core_quit();
+    g_hash_table_destroy(this->resMap);
 }
 
 void jabposter::go(){

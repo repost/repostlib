@@ -31,12 +31,15 @@ public:
     std::string get_repostdir();
     static void w_initUI();
     
+    static void* w_notifyUserInfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info);
 private:
     PurpleAccount *acct;
     jabconnections *jabconn;
     rpqueue *in_queue;
     Account pendaccts[MAXACCTS];
     std::string repostdir;
+    GHashTable* resMap;
 
     void connectToSignals();
     void initUI();
@@ -50,6 +53,13 @@ private:
                               PurpleConversation* conv, PurpleMessageFlags flags);
     void receivedIm(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);
+    /* Resource handlers */
+    static void w_resFree(gpointer data);
+    void resFree(gpointer data);
+    static gboolean w_retrieveUserInfo(gpointer data);
+    gboolean retrieveUserInfo(gpointer data);
+    void* notifyUserInfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info);
     GList* reposterName(PurpleBuddy* pb);
 };
 
