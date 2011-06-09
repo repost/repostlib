@@ -59,6 +59,7 @@ void jabposter::initUI(void)
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
+    this->retrieveUserInfo(NULL);
 }
 
 void jabposter::connectToSignals(void)
@@ -154,9 +155,11 @@ void jabposter::w_resFree(gpointer data)
 
 void jabposter::resFree(gpointer data)
 {
+    return;
     GList* resources = (GList*) data;
     for(;resources;resources = g_list_next(resources))
     {
+        printf("freeing %p\n",resources);
         g_free(resources);
     }
     g_list_free(resources);
@@ -210,9 +213,9 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
     
     /* Collect new resources */
-    GList *resources;
+    GList *resources = NULL;
     GList *l, *info = purple_notify_user_info_get_entries(user_info);
-    for (l = info; l != NULL; l = l->next) 
+    for (l = info; l; l = l->next) 
     {
         PurpleNotifyUserInfoEntry* user_info_entry = (PurpleNotifyUserInfoEntry *)l->data;
         const char *label = purple_notify_user_info_entry_get_label(user_info_entry);
@@ -221,20 +224,28 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
         {
             if(!strncmp(label,"Resource",sizeof("Resource")))
             {
-                char *resname = (char *) g_malloc(strlen(value));
-                strncpy(resname, value, strlen(value));
+                printf("buddy = %s res = %s\n",who, value);
+                string* resname = new string(who);
+                resname->append("/");
+                resname->append(value);
+                printf("resname ptr %p\n",resname);
                 resources = g_list_prepend(resources, resname);
             }
         }
     }
         
     /* Replace current resources for user. GHashTable takes care of cleanup */
-    g_hash_table_replace(resMap, (void *)who, resources);
+    char *buddy = (char *) g_malloc(strlen(who));
+    strncpy(buddy, who, strlen(who));
+    printf("res ptr %p\n",resources);
+    g_hash_table_replace(resMap, (void *)buddy, resources);
 
-    g_free(info);
     return NULL;
 }
-
+void printthatshit(gpointer key, gpointer value, gpointer data)
+{
+    printf("%s %s\n", key, value);
+}
 GList* jabposter::reposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
@@ -245,16 +256,20 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
 
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
+        printf("lookup %s\n", bname);
         GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
-        for(;resources; resources = g_list_next(resources))
+ //       g_hash_table_foreach(this->resMap, printthatshit,NULL);
+        for(resources = g_list_last(resources);resources; resources = g_list_next(resources))
         {
-            const char* name = (const char*) resources;
-            if(!strstr(name,"reposter"))
+            printf("res ptr %p\n",resources);
+            std::string* resname = (std::string*) resources->data;
+            printf("reposterName = %s\n", resname->c_str());
+            if(resname->find("reposter",0)!=std::string::npos)
             {
+                printf("adding reposter\n");
                 /* we should copy incase purple pulls the rug out from under us */
-                char* resname = (char*) g_malloc(strlen(name)+1);
-                strncpy(resname, name, strlen(name));
-                reposters = g_list_prepend(reposters, resname);
+                std::string *resname_cpy = new std::string(*resname);
+                reposters = g_list_prepend(reposters, (void*)resname_cpy->c_str());
             }
         }
     }
@@ -295,6 +310,7 @@ void jabposter::sendpost(Post *post)
                 GList* rnames = NULL;
                 for(rnames = reposters; rnames; rnames = g_list_next(rnames))
                 {
+                    printf("sending to %s\n",(const char*)rnames);
                     conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                             purple_buddy_get_account(pb),
                             (const char*) rnames);
@@ -473,7 +489,7 @@ jabposter::jabposter(rpqueue* rq)
 {
     jabint = this;
     this->in_queue = rq;
-    this->resMap = g_hash_table_new_full(g_str_hash, NULL, NULL, &jabposter::w_resFree);
+    this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &jabposter::w_resFree);
 
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
@@ -536,7 +552,7 @@ jabposter::jabposter(rpqueue* rq)
     this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
 
-    g_timeout_add(2000, &jabposter::w_retrieveUserInfo, NULL);
+    g_timeout_add(60000, &jabposter::w_retrieveUserInfo, NULL);
 }
 
 jabposter::~jabposter()
