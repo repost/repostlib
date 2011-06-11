@@ -159,8 +159,7 @@ void jabposter::resFree(gpointer data)
     GList* resources = (GList*) data;
     for(;resources;resources = g_list_next(resources))
     {
-        printf("freeing %p\n",resources);
-        g_free(resources);
+        g_free(resources->data);
     }
     g_list_free(resources);
 }
@@ -224,11 +223,10 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
         {
             if(!strncmp(label,"Resource",sizeof("Resource")))
             {
-                printf("buddy = %s res = %s\n",who, value);
+                printf("Info from buddy %s res %s\n",who, value);
                 string* resname = new string(who);
                 resname->append("/");
                 resname->append(value);
-                printf("resname ptr %p\n",resname);
                 resources = g_list_prepend(resources, resname);
             }
         }
@@ -237,15 +235,11 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     /* Replace current resources for user. GHashTable takes care of cleanup */
     char *buddy = (char *) g_malloc(strlen(who));
     strncpy(buddy, who, strlen(who));
-    printf("res ptr %p\n",resources);
     g_hash_table_replace(resMap, (void *)buddy, resources);
 
     return NULL;
 }
-void printthatshit(gpointer key, gpointer value, gpointer data)
-{
-    printf("%s %s\n", key, value);
-}
+
 GList* jabposter::reposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
@@ -256,17 +250,13 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
 
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-        printf("lookup %s\n", bname);
         GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
- //       g_hash_table_foreach(this->resMap, printthatshit,NULL);
-        for(resources = g_list_last(resources);resources; resources = g_list_next(resources))
+        for(resources = g_list_first(resources);resources; resources = g_list_next(resources))
         {
-            printf("res ptr %p\n",resources);
             std::string* resname = (std::string*) resources->data;
-            printf("reposterName = %s\n", resname->c_str());
             if(resname->find("reposter",0)!=std::string::npos)
             {
-                printf("adding reposter\n");
+                printf("reposterName = %s\n", resname->c_str());
                 /* we should copy incase purple pulls the rug out from under us */
                 std::string *resname_cpy = new std::string(*resname);
                 reposters = g_list_prepend(reposters, (void*)resname_cpy->c_str());
@@ -310,10 +300,10 @@ void jabposter::sendpost(Post *post)
                 GList* rnames = NULL;
                 for(rnames = reposters; rnames; rnames = g_list_next(rnames))
                 {
-                    printf("sending to %s\n",(const char*)rnames);
+                    printf("sending to %s\n",(const char*)rnames->data);
                     conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                             purple_buddy_get_account(pb),
-                            (const char*) rnames);
+                            (const char*) rnames->data);
                     if(conv)
                     {	
                         PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
@@ -339,7 +329,9 @@ void jabposter::sendpost(Post *post)
                 }
                 /* ok its our job to clean up the glist */
                 for(rnames = reposters; rnames; rnames = g_list_next(rnames))
-                    g_free(rnames);
+                {
+                    g_free(rnames->data);
+                }
                 g_list_free(reposters);
             }
         }
@@ -447,6 +439,9 @@ int jabposter::getlinks(Link* links, int num)
 void jabposter::addJabber(string user, string pass)
 {
     PurpleSavedStatus *status;
+
+    /* We need to ad reposter postfix so we can find each other */
+
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
@@ -466,6 +461,8 @@ void jabposter::addJabber(string user, string pass)
 void jabposter::addBonjour(string user)
 {
     PurpleSavedStatus *status;
+    /* We need to ad reposter postfix so we can find each other */
+
     PurpleAccount *bon = purple_account_new(user.c_str(),"prpl-bonjour");
     purple_accounts_add(bon);
     purple_account_set_enabled(bon, UI_ID, TRUE);

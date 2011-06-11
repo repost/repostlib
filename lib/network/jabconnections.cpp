@@ -1,4 +1,5 @@
 
+
 #include "jabconnections.h"
 
 #define RECON_DELAY_MIN  8000
@@ -101,7 +102,6 @@ jabconnections::jabconnections()
 {
   jabconn = this;
 }
-
 
 jabconnections::~jabconnections(void)
 {
