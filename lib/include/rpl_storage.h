@@ -34,6 +34,7 @@ class rpl_storage
     void update_table( );
     static const int CURRENT_VERSION_NUMBER;
     static int check_version_number (void * id, int columns, char **column_text, char **column_name);
+		int postSelectArray(sqlite3_stmt* sql_stmt, Post** post);
 };
 
 #endif
