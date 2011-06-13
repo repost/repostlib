@@ -72,8 +72,8 @@ void jabposter::connectToSignals(void)
             PURPLE_CALLBACK(&jabposter::w_receivedIm), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
             PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
-    purple_signal_connect(purple_conversations_get_handle(), "buddy-signed-on", &handle,
-            PURPLE_CALLBACK(&jabposter::w_signonRetrieveUserInfo), NULL);
+ //   purple_signal_connect(purple_conversations_get_handle(), "account-signed-on", &handle,
+   //         PURPLE_CALLBACK(&jabposter::w_signonRetrieveUserInfo), NULL);
 }
 
 void jabposter::w_receivedIm(PurpleAccount *account, char *sender, char *message,
@@ -126,10 +126,12 @@ void jabposter::libpurpleDiag()
     int i;
     iter = purple_plugins_get_protocols();
     printf("Supported Protocols\n");
-    for (i = 0; iter; iter = iter->next) {
+    for (i = 0; iter; iter = iter->next) 
+    {
       PurplePlugin *plugin = (PurplePlugin *)iter->data;
       PurplePluginInfo *info = plugin->info;
-      if (info && info->name) {
+      if (info && info->name) 
+      {
         printf("\t%d: %s\n", i++, info->name);
       }
     }
@@ -149,7 +151,6 @@ std::string jabposter::get_repostdir()
  * Other account types I got no idea. Probably check status to 
  * see if they reposting etc... That is a TODO
  */
-
 void jabposter::w_resFree(gpointer data)
 {
     if( jabint )
@@ -168,7 +169,7 @@ void jabposter::resFree(gpointer data)
     g_list_free(resources);
 }
 
-void jabposter::w_signonRetrieveUserInfo(PurpleBuddy *account)
+void jabposter::w_signonRetrieveUserInfo(PurpleAccount *account)
 {
      if( jabint )
     {
@@ -193,13 +194,21 @@ gboolean jabposter::retrieveUserInfo(gpointer data)
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
             PurpleBuddy* pb = PURPLE_BUDDY(bnode);
+            PurplePresence* pres = purple_buddy_get_presence(pb);
             const char* name = purple_buddy_get_name(pb);
-            PurpleConnection* conn = purple_account_get_connection(purple_buddy_get_account(pb));
-
-            PurpleNotifyUserInfo *info = purple_notify_user_info_new(); 
-            purple_notify_userinfo(conn, name, info, NULL, NULL);                               
-            purple_notify_user_info_destroy(info); 
-            serv_get_info(conn, name); 
+            if(purple_presence_is_online(pres))
+            {
+                printf("requesting buddy %s\n",name);
+                PurpleConnection* conn = purple_account_get_connection(purple_buddy_get_account(pb));
+                PurpleNotifyUserInfo *info = purple_notify_user_info_new(); 
+                purple_notify_userinfo(conn, name, info, NULL, NULL);
+                purple_notify_user_info_destroy(info); 
+                serv_get_info(conn, name); 
+            }
+            else /* signed off remove resources */
+            {
+                g_hash_table_remove(resMap, name); 
+            }
         }
         bnode = purple_blist_node_next (bnode, false);
     }
@@ -223,7 +232,6 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     PurpleBuddy* pb = purple_find_buddy(ac, who);
     PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
 
-    
     /* Collect new resources */
     GList *resources = NULL;
     GList *l, *info = purple_notify_user_info_get_entries(user_info);
@@ -247,10 +255,13 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     }
         
     /* Replace current resources for user. GHashTable takes care of cleanup */
-    char *who_cpy = (char *) g_malloc(strlen(who));
-    strncpy(who_cpy, who, strlen(who));
-    g_hash_table_replace(resMap, (void *)who_cpy, resources);
-
+    if(resources)
+    {
+        printf("replacing for %s\n", who);
+        char *who_cpy = (char *) g_malloc(strlen(who));
+        strncpy(who_cpy, who, strlen(who));
+        g_hash_table_replace(resMap, (void *)who_cpy, resources);
+    }
     return NULL;
 }
 
@@ -265,9 +276,11 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
         GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
+        printf("looking up %s\n",bname);
         for(resources = g_list_first(resources);resources; resources = g_list_next(resources))
         {
             char* resname = (char*) resources->data;
+            printf("res %s %u\n",resname,strstr(resname, IDENTIFY_STRING));
             if(strstr(resname, IDENTIFY_STRING))
             {
                 printf("reposterName = %s\n", resname);
@@ -469,7 +482,7 @@ void jabposter::addJabber(string user, string pass)
     time_t now = time( NULL );
     std::stringstream unique_reposter;
     unique_reposter << "/" IDENTIFY_STRING;
-    unique_reposter << now%10000;
+    unique_reposter << now%100000;
 
     /* We need to add reposter postfix so we can find each other */
     size_t slash = user.rfind("/");
@@ -588,7 +601,6 @@ jabposter::jabposter(rpqueue* rq)
     this->initUI();
     this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
-
     g_timeout_add(60000, &jabposter::w_retrieveUserInfo, NULL);
 }
 
