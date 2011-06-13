@@ -1,5 +1,4 @@
 
-
 #include "jabconnections.h"
 
 #define RECON_DELAY_MIN  8000

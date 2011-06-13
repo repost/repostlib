@@ -57,6 +57,7 @@ private:
     static void w_resFree(gpointer data);
     void resFree(gpointer data);
     static gboolean w_retrieveUserInfo(gpointer data);
+    static void w_signonRetrieveUserInfo(PurpleBuddy *account);
     gboolean retrieveUserInfo(gpointer data);
     void* notifyUserInfo(PurpleConnection *gc, const char *who,
                          PurpleNotifyUserInfo *user_info);
