@@ -198,7 +198,7 @@ gboolean jabposter::retrieveUserInfo(gpointer data)
             const char* name = purple_buddy_get_name(pb);
             if(purple_presence_is_online(pres))
             {
-                printf("requesting buddy %s\n",name);
+                printf("requesting info for buddy %s\n",name);
                 PurpleConnection* conn = purple_account_get_connection(purple_buddy_get_account(pb));
                 PurpleNotifyUserInfo *info = purple_notify_user_info_new(); 
                 purple_notify_userinfo(conn, name, info, NULL, NULL);
@@ -257,7 +257,6 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     /* Replace current resources for user. GHashTable takes care of cleanup */
     if(resources)
     {
-        printf("replacing for %s\n", who);
         char *who_cpy = (char *) g_malloc(strlen(who));
         strncpy(who_cpy, who, strlen(who));
         g_hash_table_replace(resMap, (void *)who_cpy, resources);
@@ -276,14 +275,13 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
         GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
-        printf("looking up %s\n",bname);
+        printf("prpl-jabber looking up %s\n",bname);
         for(resources = g_list_first(resources);resources; resources = g_list_next(resources))
         {
             char* resname = (char*) resources->data;
-            printf("res %s %u\n",resname,strstr(resname, IDENTIFY_STRING));
+            printf("resource %s\n",resname);
             if(strstr(resname, IDENTIFY_STRING))
             {
-                printf("reposterName = %s\n", resname);
                 char* resname_cpy = (char*) g_malloc(strlen(resname)+1);
                 strncpy(resname_cpy, resname, strlen(resname)+1);
                 reposters = g_list_prepend(reposters, resname_cpy);
@@ -292,7 +290,7 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
     }
     else if(!strncmp(proto_id, "prpl-bonjour", sizeof("prpl-bonjour")))
     {
-        printf("get bonny\n");
+        printf("prpl-bonjour looking up %s\n",bname);
         if(strstr(purple_buddy_get_name(pb), IDENTIFY_STRING))
         {
             printf("get bonny\n",purple_buddy_get_name(pb));
@@ -501,7 +499,17 @@ void jabposter::addJabber(string user, string pass)
     /* Get the password for the account */
     purple_account_set_password(jabacct, pass.c_str());
 
-    purple_account_set_bool(jabacct,"require_tls",FALSE);
+    /* Check for gtalk account as we have special settings */
+    if( user.find("gmail") != std::string::npos )
+    {
+        purple_account_set_bool(jabacct,"old_ssl", TRUE);
+        purple_account_set_int(jabacct,"port", 443);
+        purple_account_set_string(jabacct,"connect_server", "talk.google.com");
+    }
+    else
+    {
+        purple_account_set_bool(jabacct,"require_tls",FALSE);
+    }
 
     /* It's necessary to enable the account first. */
     purple_accounts_add(jabacct);
