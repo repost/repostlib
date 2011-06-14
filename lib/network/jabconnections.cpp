@@ -102,7 +102,6 @@ jabconnections::jabconnections()
   jabconn = this;
 }
 
-
 jabconnections::~jabconnections(void)
 {
 }
