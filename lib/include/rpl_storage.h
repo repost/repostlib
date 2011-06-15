@@ -10,7 +10,6 @@ class rpl_storage
 {
   public:
     rpl_storage();
-    ~rpl_storage();
     static rpl_storage *get_instance ();
     static void init (std::string dir);
     void add_link(Link &link);
@@ -22,6 +21,7 @@ class rpl_storage
     void update_metric ( std::string uuid );
     static rpl_storage *INSTANCE;
   private:
+    ~rpl_storage();
     sqlite3 *db;
     static std::string _db_location;
     static const char DATABASE_NAME[];

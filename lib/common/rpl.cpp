@@ -46,8 +46,8 @@ void rePoster::init()
     rpl_storage::INSTANCE = new rpl_storage();
 }
 
-void rePoster::startRepost()
-{
+void rePoster::startRepost(){
+
     Account bacct;
     /* lets create bonjour user here */
     bacct.set_user("reposter");
@@ -146,17 +146,4 @@ void rePoster::upboat(string u) {
 void rePoster::downboat(std::string uuid) {
     std::cout << "downboated! delete that shit" << std::endl;
     pstore->delete_post(uuid);
-}
-
-rePoster::~rePoster()
-{
-	printf("SHUTTING DOWN %p\n\n\n",this);
-//	pnet->stop();
-//	pcon->stop();
-	if( pnet )
-		delete(pnet);
-	if( pcon )
-		delete(pcon);
-	if( pstore )
-		delete(pstore);
 }
