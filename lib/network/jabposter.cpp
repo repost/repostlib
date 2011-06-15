@@ -207,6 +207,7 @@ gboolean jabposter::retrieveUserInfo(gpointer data)
             }
             else /* signed off remove resources */
             {
+                printf("buddy is offline %s\n", name);
                 g_hash_table_remove(resMap, name); 
             }
         }
@@ -492,10 +493,11 @@ void jabposter::addGtalk(string user, string pass)
     size_t slash = user.rfind("/");
     if (slash!=string::npos)
     {
-        user.replace(slash, user.length(), uniqueid);
+        user.replace(slash + 1, user.length(), uniqueid);
     }
     else
     {
+        user.append("/");
         user.append(uniqueid);
     }
     
@@ -541,13 +543,14 @@ void jabposter::addJabber(string user, string pass)
     /* Get the password for the account */
     purple_account_set_password(jabacct, pass.c_str());
 
-		purple_account_set_bool(jabacct,"opportunistic_tls",TRUE);
+    purple_account_set_bool(jabacct,"opportunistic_tls", TRUE);
+    purple_account_set_bool(jabacct,"require_tls", FALSE);
 
     /* It's necessary to enable the account first. */
     purple_accounts_add(jabacct);
     purple_account_set_enabled(jabacct, UI_ID, TRUE);
-
-    status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
+    /* Unavailable so we have low priority */
+    status = purple_savedstatus_new(NULL, PURPLE_STATUS_UNAVAILABLE);
     purple_savedstatus_activate(status);
 }
 
