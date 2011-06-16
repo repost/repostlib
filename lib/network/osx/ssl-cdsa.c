@@ -16,12 +16,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <libpurple/internal.h>
-#include <libpurple/debug.h>
-#include <libpurple/plugin.h>
-#include <libpurple/sslconn.h>
-#include <libpurple/version.h>
-#include <libpurple/signals.h>
+#include <internal.h>
+#include <debug.h>
+#include <plugin.h>
+#include <sslconn.h>
+#include <version.h>
+#include <signals.h>
 
 #define SSL_CDSA_PLUGIN_ID "ssl-cdsa"
 
@@ -30,6 +30,7 @@
 //#define CDSA_DEBUG
 
 #include <Security/Security.h>
+#include <CoreServices/CarbonCore/Debugging.h>
 #include <unistd.h>
 
 typedef struct
@@ -89,29 +90,26 @@ struct query_cert_userdata {
 
 static void ssl_cdsa_close(PurpleSslConnection *gsc);
 
-static void query_cert_result(gboolean trusted, void *userdata) {
-	struct query_cert_userdata *ud = (struct query_cert_userdata*)userdata;
-	PurpleSslConnection *gsc = (PurpleSslConnection *)ud->gsc;
-	
-	CFRelease(ud->certs);
-	free(ud->hostname);
+static void query_cert_result(gboolean trusted, void *userdata) 
+{
+  struct query_cert_userdata *ud = (struct query_cert_userdata*)userdata;
+  PurpleSslConnection *gsc = (PurpleSslConnection *)ud->gsc;
 
-	if (PURPLE_SSL_CONNECTION_IS_VALID(gsc)) {
-		if (!trusted) {
-			if (gsc->error_cb != NULL)
-				gsc->error_cb(gsc, PURPLE_SSL_CERTIFICATE_INVALID,
-							  gsc->connect_cb_data);
-			
-			purple_ssl_close(ud->gsc);
-		} else {
-			purple_debug_info("cdsa", "SSL_connect complete\n");
-			
-			/* SSL connected now */
-			ud->gsc->connect_cb(ud->gsc->connect_cb_data, ud->gsc, ud->cond);
-		}
-	}
+  free(ud->hostname);
 
-	free(ud);
+  if (PURPLE_SSL_CONNECTION_IS_VALID(gsc)) {
+    if (!trusted) {
+      if (gsc->error_cb != NULL)
+        gsc->error_cb(gsc, PURPLE_SSL_CERTIFICATE_INVALID,
+            gsc->connect_cb_data);
+      purple_ssl_close(ud->gsc);
+    } else {
+      purple_debug_info("cdsa", "SSL_connect complete\n");
+      /* SSL connected now */
+      ud->gsc->connect_cb(ud->gsc->connect_cb_data, ud->gsc, ud->cond);
+    }
+  }
+  free(ud);
 }
 
 /*!
@@ -119,169 +117,165 @@ static void query_cert_result(gboolean trusted, void *userdata) {
  *
  * @result The string
  */
-static const char *
-ssl_cdsa_stringForSecErrorCode(OSStatus err)
+static const char *ssl_cdsa_stringForSecErrorCode(OSStatus err)
 {    
-    NSString *errString = [NSString stringWithFormat:@"%d", err];
-    return [[[NSBundle bundleWithIdentifier: @"com.apple.security"] localizedStringForKey:errString
-																					value:errString
-																					table:@"SecErrorMessages"] UTF8String];
+    return GetMacOSStatusErrorString(err); 
 }
 
 /*
  * ssl_cdsa_handshake_cb
  */
-static void
-ssl_cdsa_handshake_cb(gpointer data, gint source, PurpleInputCondition cond)
+static void ssl_cdsa_handshake_cb(gpointer data, gint source, PurpleInputCondition cond)
 {
-	PurpleSslConnection *gsc = (PurpleSslConnection *)data;
-	PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
-    OSStatus err;
-	
-	purple_debug_info("cdsa", "Connecting\n");
-	
-	/*
-	 * do the negotiation that sets up the SSL connection between
-	 * here and there.
-	 */
-	err = SSLHandshake(cdsa_data->ssl_ctx);
-	if(err != noErr) {
-		if(err == errSSLWouldBlock)
-			return;
-		const char *errString = ssl_cdsa_stringForSecErrorCode(err);
-		fprintf(stderr,"cdsa: SSLHandshake failed with error %d (%s)\n",(int)err, errString);
-		purple_debug_error("cdsa", "SSLHandshake failed with error %d (%s)\n",(int)err, errString);
-		if (gsc->error_cb != NULL)
-			gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-						  gsc->connect_cb_data);
-		
-		purple_ssl_close(gsc);
-		return;
-	}
-		
-	purple_input_remove(cdsa_data->handshake_handler);
-	cdsa_data->handshake_handler = 0;
-	
-	purple_debug_info("cdsa", "SSL_connect: verifying certificate\n");
-	
-	if(certificate_ui_cb) { // does the application want to verify the certificate?
-		struct query_cert_userdata *userdata = (struct query_cert_userdata*)malloc(sizeof(struct query_cert_userdata));
-		size_t hostnamelen = 0;
-		
-		SSLGetPeerDomainNameLength(cdsa_data->ssl_ctx, &hostnamelen);
-		userdata->hostname = (char*)malloc(hostnamelen+1);
-		SSLGetPeerDomainName(cdsa_data->ssl_ctx, userdata->hostname, &hostnamelen);
-		userdata->hostname[hostnamelen] = '\0'; // just make sure it's zero-terminated
-		userdata->cond = cond;
-		userdata->gsc = gsc;
-		SSLCopyPeerCertificates(cdsa_data->ssl_ctx, &userdata->certs);
-		
-		certificate_ui_cb(gsc, userdata->hostname, userdata->certs, query_cert_result, userdata);
-	} else {
-		purple_debug_info("cdsa", "SSL_connect complete (did not verify certificate)\n");
-		
-		/* SSL connected now */
-		gsc->connect_cb(gsc->connect_cb_data, gsc, cond);
-	}
+  PurpleSslConnection *gsc = (PurpleSslConnection *)data;
+  PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
+  OSStatus err;
+
+  purple_debug_info("cdsa", "Connecting\n");
+
+  /*
+   * do the negotiation that sets up the SSL connection between
+   * here and there.
+   */
+  err = SSLHandshake(cdsa_data->ssl_ctx);
+  if(err != noErr) 
+  {
+    if(err == errSSLWouldBlock)
+    {
+      return;
+    }
+    const char *errString = ssl_cdsa_stringForSecErrorCode(err);
+    fprintf(stderr,"cdsa: SSLHandshake failed with error %d (%s)\n",(int)err, errString);
+    purple_debug_error("cdsa", "SSLHandshake failed with error %d (%s)\n",(int)err, errString);
+    if (gsc->error_cb != NULL)
+    {
+      gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED, gsc->connect_cb_data);
+    }
+    purple_ssl_close(gsc);
+    return;
+  }
+
+  purple_input_remove(cdsa_data->handshake_handler);
+  cdsa_data->handshake_handler = 0;
+
+  purple_debug_info("cdsa", "SSL_connect: verifying certificate\n");
+
+  if(certificate_ui_cb) // does the application want to verify the certificate?
+  { 
+    struct query_cert_userdata *userdata = (struct query_cert_userdata*)malloc(sizeof(struct query_cert_userdata));
+    size_t hostnamelen = 0;
+
+    SSLGetPeerDomainNameLength(cdsa_data->ssl_ctx, &hostnamelen);
+    userdata->hostname = (char*)malloc(hostnamelen+1);
+    SSLGetPeerDomainName(cdsa_data->ssl_ctx, userdata->hostname, &hostnamelen);
+    userdata->hostname[hostnamelen] = '\0'; // just make sure it's zero-terminated
+    userdata->cond = cond;
+    userdata->gsc = gsc;
+    SSLCopyPeerCertificates(cdsa_data->ssl_ctx, &userdata->certs);
+
+    certificate_ui_cb(gsc, userdata->hostname, userdata->certs, query_cert_result, userdata);
+  } else {
+    purple_debug_info("cdsa", "SSL_connect complete (did not verify certificate)\n");
+
+    /* SSL connected now */
+    gsc->connect_cb(gsc->connect_cb_data, gsc, cond);
+  }
 }
 
 /*
  * R/W. Called out from SSL.
  */
-static OSStatus SocketRead(
-                    SSLConnectionRef   connection,
-                    void         *data,       /* owned by 
-                                               * caller, data
-                                               * RETURNED */
-                    size_t         *dataLength)  /* IN/OUT */ 
-                    {
-    UInt32      bytesToGo = *dataLength;
-    UInt32       initLen = bytesToGo;
-    UInt8      *currData = (UInt8 *)data;
-    int        sock = (int)connection;
-    OSStatus    rtn = noErr;
-    UInt32      bytesRead;
-    int        rrtn;
-    
-    *dataLength = 0;
-    
-    for(;;) {
-        bytesRead = 0;
-        rrtn = read(sock, currData, bytesToGo);
-        if (rrtn <= 0) {
-            /* this is guesswork... */
-            int theErr = errno;
-            switch(theErr) {
-                case ENOENT:
-                    /* connection closed */
-                    rtn = errSSLClosedGraceful; 
-                    break;
-                case ECONNRESET:
-                    rtn = errSSLClosedAbort;
-                    break;
-                case EAGAIN:
-                    rtn = errSSLWouldBlock;
-                    break;
-                default:
-                    fprintf(stderr,"SocketRead: read(%d) error %d\n", 
-                             (int)bytesToGo, theErr);
-                    rtn = errSSLFatalAlert;
-                    break;
-            }
-            break;
-        }
-        else {
-            bytesRead = rrtn;
-        }
-        bytesToGo -= bytesRead;
-        currData  += bytesRead;
-        
-        if(bytesToGo == 0) {
-            /* filled buffer with incoming data, done */
-            break;
-        }
-    }
-    *dataLength = initLen - bytesToGo;
-    if(rtn != noErr && rtn != errSSLWouldBlock)
-        fprintf(stderr,"SocketRead err = %d\n", (int)rtn);
-    
-    return rtn;
-}
+static OSStatus SocketRead(SSLConnectionRef connection,
+                            void *data, size_t *dataLength)  /* IN/OUT */ 
+{
+  UInt32 bytesToGo = *dataLength;
+  UInt32 initLen = bytesToGo;
+  UInt8 *currData = (UInt8 *)data;
+  int sock = (int)connection;
+  OSStatus rtn = noErr;
+  UInt32 bytesRead;
+  int rrtn;
 
-static OSStatus SocketWrite(
-                     SSLConnectionRef   connection,
-                     const void       *data, 
-                     size_t         *dataLength)  /* IN/OUT */ 
-                     {
-    UInt32    bytesSent = 0;
-    int      sock = (int)connection;
-    int     length;
-    UInt32    dataLen = *dataLength;
-    const UInt8 *dataPtr = (UInt8 *)data;
-    OSStatus  ortn;
+  *dataLength = 0;
 
-    *dataLength = 0;
-    
-    do {
-        length = write(sock, 
-                       (char*)dataPtr + bytesSent, 
-                       dataLen - bytesSent);
-    } while ((length > 0) && 
-             ( (bytesSent += length) < dataLen) );
-    
-    if(length <= 0) {
-        if(errno == EAGAIN) {
-            ortn = errSSLWouldBlock;
-        }
-        else {
-            ortn = errSSLFatalAlert;
-        }
+  for(;;) 
+  {
+    bytesRead = 0;
+    rrtn = read(sock, currData, bytesToGo);
+    if (rrtn <= 0) {
+      /* this is guesswork... */
+      int theErr = errno;
+      switch(theErr) {
+        case ENOENT:
+          /* connection closed */
+          rtn = errSSLClosedGraceful; 
+          break;
+        case ECONNRESET:
+          rtn = errSSLClosedAbort;
+          break;
+        case EAGAIN:
+          rtn = errSSLWouldBlock;
+          break;
+        default:
+          fprintf(stderr,"SocketRead: read(%d) error %d\n", 
+              (int)bytesToGo, theErr);
+          rtn = errSSLFatalAlert;
+          break;
+      }
+      break;
     }
     else {
-        ortn = noErr;
+      bytesRead = rrtn;
     }
-    *dataLength = bytesSent;
-    return ortn;
+    bytesToGo -= bytesRead;
+    currData  += bytesRead;
+
+    if(bytesToGo == 0) 
+    {
+      break;/* filled buffer with incoming data, done */
+    }
+  }
+  *dataLength = initLen - bytesToGo;
+  if(rtn != noErr && rtn != errSSLWouldBlock)
+  {
+    fprintf(stderr,"SocketRead err = %d\n", (int)rtn);
+  }
+  return rtn;
+}
+
+static OSStatus SocketWrite( SSLConnectionRef   connection,
+                     const void *data, 
+                     size_t *dataLength)  /* IN/OUT */ 
+{
+  UInt32 bytesSent = 0;
+  int sock = (int)connection;
+  int length;
+  UInt32 dataLen = *dataLength;
+  const UInt8 *dataPtr = (UInt8 *)data;
+  OSStatus ortn;
+
+  *dataLength = 0;
+
+  do {
+    length = write(sock, 
+        (char*)dataPtr + bytesSent, 
+        dataLen - bytesSent);
+  } while ((length > 0) && 
+      ( (bytesSent += length) < dataLen) );
+
+  if(length <= 0) {
+    if(errno == EAGAIN) {
+      ortn = errSSLWouldBlock;
+    }
+    else {
+      ortn = errSSLFatalAlert;
+    }
+  }
+  else {
+    ortn = noErr;
+  }
+  *dataLength = bytesSent;
+  return ortn;
 }
 
 /*
@@ -289,144 +283,155 @@ static OSStatus SocketWrite(
  *
  * given a socket, put an cdsa connection around it.
  */
-static void
-ssl_cdsa_connect(PurpleSslConnection *gsc) {
-	PurpleSslCDSAData *cdsa_data;
-    OSStatus err;
+static void ssl_cdsa_connect(PurpleSslConnection *gsc) 
+{
+  PurpleSslCDSAData *cdsa_data;
+  OSStatus err;
 
-	/*
-	 * allocate some memory to store variables for the cdsa connection.
-	 * the memory comes zero'd from g_new0 so we don't need to null the
-	 * pointers held in this struct.
-	 */
-	cdsa_data = g_new0(PurpleSslCDSAData, 1);
-	gsc->private_data = cdsa_data;
-	connections = g_list_append(connections, gsc);
+  /*
+   * allocate some memory to store variables for the cdsa connection.
+   * the memory comes zero'd from g_new0 so we don't need to null the
+   * pointers held in this struct.
+   */
+  cdsa_data = g_new0(PurpleSslCDSAData, 1);
+  gsc->private_data = cdsa_data;
+  connections = g_list_append(connections, gsc);
 
-	/*
-	 * allocate a new SSLContextRef object
-	 */
-    err = SSLNewContext(false, &cdsa_data->ssl_ctx);
-	if (err != noErr) {
-		purple_debug_error("cdsa", "SSLNewContext failed\n");
-		if (gsc->error_cb != NULL)
-			gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-				gsc->connect_cb_data);
+  /*
+   * allocate a new SSLContextRef object
+   */
+  err = SSLNewContext(false, &cdsa_data->ssl_ctx);
+  if (err != noErr) 
+  {
+    purple_debug_error("cdsa", "SSLNewContext failed\n");
+    if (gsc->error_cb != NULL)
+    {
+      gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
+          gsc->connect_cb_data);
+    }
+    purple_ssl_close(gsc);
+    return;
+  }
 
-		purple_ssl_close(gsc);
-		return;
-	}
-    
+  /*
+   * Set up our callbacks for reading/writing the file descriptor
+   */
+  err = SSLSetIOFuncs(cdsa_data->ssl_ctx, SocketRead, SocketWrite);
+  if (err != noErr) 
+  {
+    purple_debug_error("cdsa", "SSLSetIOFuncs failed\n");
+    if (gsc->error_cb != NULL)
+    {
+      gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
+          gsc->connect_cb_data);
+    }
+    purple_ssl_close(gsc);
+    return;
+  }
+
+  /*
+   * Pass the connection information to the connection to be used by our callbacks
+   */
+  err = SSLSetConnection(cdsa_data->ssl_ctx,(SSLConnectionRef)gsc->fd);
+  if (err != noErr) 
+  {
+    purple_debug_error("cdsa", "SSLSetConnection failed\n");
+    if (gsc->error_cb != NULL)
+    {
+      gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
+          gsc->connect_cb_data);
+    }
+    purple_ssl_close(gsc);
+    return;
+  }
+
+  /*
+   * Disable ciphers that confuse some servers
+   */
+  SSLCipherSuite ciphers[27] = {
+    TLS_RSA_WITH_AES_128_CBC_SHA,
+    SSL_RSA_WITH_RC4_128_SHA,
+    SSL_RSA_WITH_RC4_128_MD5,
+    TLS_RSA_WITH_AES_256_CBC_SHA,
+    SSL_RSA_WITH_3DES_EDE_CBC_SHA,
+    SSL_RSA_WITH_3DES_EDE_CBC_MD5,
+    SSL_RSA_WITH_DES_CBC_SHA,
+    SSL_RSA_EXPORT_WITH_RC4_40_MD5,
+    SSL_RSA_EXPORT_WITH_DES40_CBC_SHA,
+    SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
+    TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+    TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+    SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+    SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
+    SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+    SSL_DHE_DSS_WITH_DES_CBC_SHA,
+    SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,
+    TLS_DH_anon_WITH_AES_128_CBC_SHA,
+    TLS_DH_anon_WITH_AES_256_CBC_SHA,
+    SSL_DH_anon_WITH_RC4_128_MD5,
+    SSL_DH_anon_WITH_3DES_EDE_CBC_SHA,
+    SSL_DH_anon_WITH_DES_CBC_SHA,
+    SSL_DH_anon_EXPORT_WITH_RC4_40_MD5,
+    SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA,
+    SSL_RSA_WITH_NULL_MD5,
+  };
+  err = (OSStatus)SSLSetEnabledCiphers(cdsa_data->ssl_ctx, ciphers, sizeof(ciphers) / sizeof(SSLCipherSuite));
+  if (err != noErr) 
+  {
+    purple_debug_error("cdsa", "SSLSetEnabledCiphers failed\n");
+    if (gsc->error_cb != NULL)
+    {
+      gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
+          gsc->connect_cb_data);
+    }
+    purple_ssl_close(gsc);
+    return;
+  }
+
+  if(gsc->host) 
+  {
     /*
-     * Set up our callbacks for reading/writing the file descriptor
+     * Set the peer's domain name so CDSA can check the certificate's CN
      */
-    err = SSLSetIOFuncs(cdsa_data->ssl_ctx, SocketRead, SocketWrite);
-    if (err != noErr) {
-		purple_debug_error("cdsa", "SSLSetIOFuncs failed\n");
-		if (gsc->error_cb != NULL)
-			gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-                          gsc->connect_cb_data);
-        
-		purple_ssl_close(gsc);
-		return;
+    err = SSLSetPeerDomainName(cdsa_data->ssl_ctx, gsc->host, strlen(gsc->host));
+    if (err != noErr) 
+    {
+      purple_debug_error("cdsa", "SSLSetPeerDomainName failed\n");
+      if (gsc->error_cb != NULL)
+      {
+        gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
+            gsc->connect_cb_data);
+      }
+      purple_ssl_close(gsc);
+      return;
     }
-    
-    /*
-     * Pass the connection information to the connection to be used by our callbacks
-     */
-    err = SSLSetConnection(cdsa_data->ssl_ctx,(SSLConnectionRef)gsc->fd);
-    if (err != noErr) {
-		purple_debug_error("cdsa", "SSLSetConnection failed\n");
-		if (gsc->error_cb != NULL)
-			gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-                          gsc->connect_cb_data);
-        
-		purple_ssl_close(gsc);
-		return;
-    }
-    
-    /*
-     * Disable ciphers that confuse some servers
-     */
-    SSLCipherSuite ciphers[27] = {
-        TLS_RSA_WITH_AES_128_CBC_SHA,
-        SSL_RSA_WITH_RC4_128_SHA,
-        SSL_RSA_WITH_RC4_128_MD5,
-        TLS_RSA_WITH_AES_256_CBC_SHA,
-        SSL_RSA_WITH_3DES_EDE_CBC_SHA,
-        SSL_RSA_WITH_3DES_EDE_CBC_MD5,
-        SSL_RSA_WITH_DES_CBC_SHA,
-        SSL_RSA_EXPORT_WITH_RC4_40_MD5,
-        SSL_RSA_EXPORT_WITH_DES40_CBC_SHA,
-        SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
-        TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
-        TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-        TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
-        TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-        SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-        SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
-        SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-        SSL_DHE_DSS_WITH_DES_CBC_SHA,
-        SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,
-        TLS_DH_anon_WITH_AES_128_CBC_SHA,
-        TLS_DH_anon_WITH_AES_256_CBC_SHA,
-        SSL_DH_anon_WITH_RC4_128_MD5,
-        SSL_DH_anon_WITH_3DES_EDE_CBC_SHA,
-        SSL_DH_anon_WITH_DES_CBC_SHA,
-        SSL_DH_anon_EXPORT_WITH_RC4_40_MD5,
-        SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA,
-        SSL_RSA_WITH_NULL_MD5,
-    };
-    err = (OSStatus)SSLSetEnabledCiphers(cdsa_data->ssl_ctx, ciphers, sizeof(ciphers) / sizeof(SSLCipherSuite));
-    if (err != noErr) {
-        purple_debug_error("cdsa", "SSLSetEnabledCiphers failed\n");
-        if (gsc->error_cb != NULL)
-            gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-                       gsc->connect_cb_data);
+  }
 
-        purple_ssl_close(gsc);
-        return;
-    }
-    
-    if(gsc->host) {
-        /*
-         * Set the peer's domain name so CDSA can check the certificate's CN
-         */
-        err = SSLSetPeerDomainName(cdsa_data->ssl_ctx, gsc->host, strlen(gsc->host));
-        if (err != noErr) {
-            purple_debug_error("cdsa", "SSLSetPeerDomainName failed\n");
-            if (gsc->error_cb != NULL)
-                gsc->error_cb(gsc, PURPLE_SSL_HANDSHAKE_FAILED,
-                              gsc->connect_cb_data);
-            
-            purple_ssl_close(gsc);
-            return;
-        }
-    }
+  /*
+   * Disable verifying the certificate chain.
+   * We have to do that manually later on! This is the only way to be able to continue with a connection, even though the user
+   * had to manually accept the certificate.
+   */
+  err = SSLSetEnableCertVerify(cdsa_data->ssl_ctx, false);
+  if (err != noErr) 
+  {
+    purple_debug_error("cdsa", "SSLSetEnableCertVerify failed\n");
+    /* error is not fatal */
+  }
 
-	/*
-     * Disable verifying the certificate chain.
-	 * We have to do that manually later on! This is the only way to be able to continue with a connection, even though the user
-	 * had to manually accept the certificate.
-     */
-	err = SSLSetEnableCertVerify(cdsa_data->ssl_ctx, false);
-    if (err != noErr) {
-		purple_debug_error("cdsa", "SSLSetEnableCertVerify failed\n");
-        /* error is not fatal */
-    }
-	
-	cdsa_data->handshake_handler = purple_input_add(gsc->fd, PURPLE_INPUT_READ, ssl_cdsa_handshake_cb, gsc);
+  cdsa_data->handshake_handler = purple_input_add(gsc->fd, PURPLE_INPUT_READ, ssl_cdsa_handshake_cb, gsc);
 
-	// calling this here relys on the fact that SSLHandshake has to be called at least twice
-	// to get an actual connection (first time returning errSSLWouldBlock).
-	// I guess this is always the case because SSLHandshake has to send the initial greeting first, and then wait
-	// for a reply from the server, which would block the connection. SSLHandshake is called again when the server
-	// has sent its reply (this is achieved by the second line below)
-    ssl_cdsa_handshake_cb(gsc, gsc->fd, PURPLE_INPUT_READ);
+  // calling this here relys on the fact that SSLHandshake has to be called at least twice
+  // to get an actual connection (first time returning errSSLWouldBlock).
+  // I guess this is always the case because SSLHandshake has to send the initial greeting first, and then wait
+  // for a reply from the server, which would block the connection. SSLHandshake is called again when the server
+  // has sent its reply (this is achieved by the second line below)
+  ssl_cdsa_handshake_cb(gsc, gsc->fd, PURPLE_INPUT_READ);
 }
 
-static void
-ssl_cdsa_close(PurpleSslConnection *gsc)
+static void ssl_cdsa_close(PurpleSslConnection *gsc)
 {
 	PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
 
@@ -446,8 +451,11 @@ ssl_cdsa_close(PurpleSslConnection *gsc)
         
         err = SSLGetSessionState(cdsa_data->ssl_ctx, &state);
         if(err != noErr)
+        {
             purple_debug_error("cdsa", "SSLGetSessionState failed\n");
-        else if(state == kSSLConnected) {
+        }
+        else if(state == kSSLConnected) 
+        {
             err = SSLClose(cdsa_data->ssl_ctx);
             if(err != noErr)
                 purple_debug_error("cdsa", "SSLClose failed\n");
@@ -459,7 +467,9 @@ ssl_cdsa_close(PurpleSslConnection *gsc)
 
         err = SSLDisposeContext(cdsa_data->ssl_ctx);
         if(err != noErr)
+        {
             purple_debug_error("cdsa", "SSLDisposeContext failed\n");
+        }
         cdsa_data->ssl_ctx = NULL;
     }
 
@@ -469,34 +479,33 @@ ssl_cdsa_close(PurpleSslConnection *gsc)
 	gsc->private_data = NULL;
 }
 
-static size_t
-ssl_cdsa_read(PurpleSslConnection *gsc, void *data, size_t len)
+static size_t ssl_cdsa_read(PurpleSslConnection *gsc, void *data, size_t len)
 {
-	PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
-	OSStatus	err;			/* Error info */
-	size_t		processed;		/* Number of bytes processed */
-	size_t		result;			/* Return value */
+  PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
+  OSStatus	err;			/* Error info */
+  size_t		processed;		/* Number of bytes processed */
+  size_t		result;			/* Return value */
 
-    errno = 0;
-    err = SSLRead(cdsa_data->ssl_ctx, data, len, &processed);
-	switch (err) {
-		case noErr:
-			result = processed;
-			break;
-		case errSSLWouldBlock:
-			errno = EAGAIN;
-			result = ((processed > 0) ? processed : -1);
-			break;
-		case errSSLClosedGraceful:
-			result = 0;
-			break;
-		default:
-			result = -1;
-			purple_debug_error("cdsa", "receive failed (%d): %s\n", (int)err, strerror(errno));
-			break;
-	}
+  errno = 0;
+  err = SSLRead(cdsa_data->ssl_ctx, data, len, &processed);
+  switch (err) {
+    case noErr:
+      result = processed;
+      break;
+    case errSSLWouldBlock:
+      errno = EAGAIN;
+      result = ((processed > 0) ? processed : -1);
+      break;
+    case errSSLClosedGraceful:
+      result = 0;
+      break;
+    default:
+      result = -1;
+      purple_debug_error("cdsa", "receive failed (%d): %s\n", (int)err, strerror(errno));
+      break;
+  }
 
-    return result;
+  return result;
 }
 
 static size_t
@@ -509,41 +518,42 @@ ssl_cdsa_write(PurpleSslConnection *gsc, const void *data, size_t len)
 	
 	if (cdsa_data != NULL) {
 #ifdef CDSA_DEBUG
-		purple_debug_info("cdsa", "SSLWrite(%p, %p %i)", cdsa_data->ssl_ctx, data, len);
+    purple_debug_info("cdsa", "SSLWrite(%p, %p %i)", cdsa_data->ssl_ctx, data, len);
 #endif
 
-        err = SSLWrite(cdsa_data->ssl_ctx, data, len, &processed);
-        
-		switch (err) {
-			case noErr:
-				result = processed;
-				break;
-			case errSSLWouldBlock:
-				errno = EAGAIN;
-				result = ((processed > 0) ? processed : -1);
-				break;
-			case errSSLClosedGraceful:
-				result = 0;
-				break;
-			default:
-				result = -1;
-				purple_debug_error("cdsa", "send failed (%d): %s\n", (int)err, strerror(errno));
-				break;
-		}
-		
-		return result;
+    err = SSLWrite(cdsa_data->ssl_ctx, data, len, &processed);
+
+    switch (err) {
+      case noErr:
+        result = processed;
+        break;
+      case errSSLWouldBlock:
+        errno = EAGAIN;
+        result = ((processed > 0) ? processed : -1);
+        break;
+      case errSSLClosedGraceful:
+        result = 0;
+        break;
+      default:
+        result = -1;
+        purple_debug_error("cdsa", "send failed (%d): %s\n", (int)err, strerror(errno));
+        break;
+    }
+
+    return result;
     } else {
 		return -1;
 	}
 }
 
-static gboolean register_certificate_ui_cb(query_cert_chain cb) {
+static gboolean register_certificate_ui_cb(query_cert_chain cb) 
+{
 	certificate_ui_cb = cb;
-	
 	return true;
 }
-
-static gboolean copy_certificate_chain(PurpleSslConnection *gsc /* IN */, CFArrayRef *result /* OUT */) {
+//TODO CHECK THE CFARRAY SHIT>> IS IT OBJC CRAP
+static gboolean copy_certificate_chain(PurpleSslConnection *gsc, CFArrayRef *result) 
+{
 	PurpleSslCDSAData *cdsa_data = PURPLE_SSL_CDSA_DATA(gsc);
 #if MAC_OS_X_VERSION_10_5 > MAC_OS_X_VERSION_MAX_ALLOWED
 	// this function was declared deprecated in 10.5
