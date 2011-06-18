@@ -30,7 +30,6 @@
 //#define CDSA_DEBUG
 
 #include <Security/Security.h>
-#include <CoreServices/CarbonCore/Debugging.h>
 #include <unistd.h>
 
 typedef struct
@@ -60,7 +59,7 @@ static GList *connections = NULL;
  * userdata: opaque pointer which has to be passed to the callbacks
  */
 typedef
-void (*query_cert_chain)(PurpleSslConnection *gsc, const char *hostname, CFArrayRef certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata);
+void (*query_cert_chain)(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata);
 
 static query_cert_chain certificate_ui_cb = NULL;
 
@@ -119,7 +118,9 @@ static void query_cert_result(gboolean trusted, void *userdata)
  */
 static const char *ssl_cdsa_stringForSecErrorCode(OSStatus err)
 {    
-    return GetMacOSStatusErrorString(err); 
+    char *errstr = malloc(256);
+    sprintf(errstr, "%ld\n", err);
+    return errstr;
 }
 
 /*

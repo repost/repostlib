@@ -16,4 +16,5 @@ elif( env['PLATFORM'] != 'win'):
     env.ParseConfig( 'pkg-config --cflags --libs glib-2.0')
 
 objs = env.SharedObject([Glob('*.cpp'), platformspecifics])
+print objs
 Return('objs')
