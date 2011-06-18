@@ -1,6 +1,6 @@
 # import env
 Import('env')
-platformspecifics = ''
+platformspecifics = []
 
 if( env['PLATFORM'] == 'darwin'):
     env.Append(CPPPATH = ['/usr/include/libxml2'])
@@ -15,5 +15,4 @@ elif( env['PLATFORM'] != 'win'):
     env.ParseConfig( 'pkg-config --cflags --libs glib-2.0')
 
 objs = env.SharedObject([Glob('*.cpp'), platformspecifics])
-print objs
 Return('objs')
