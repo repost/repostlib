@@ -1,12 +1,18 @@
 # import env
 Import('env')
-if env['PLATFORM'] == 'darwin':
-    env.Append(CPPPATH = ['/usr/include/libxml2'])
-elif env['PLATFORM'] == 'linux':
-    env.Append(CPPPATH = ['/usr/include/glib-2.0/','/usr/lib/glib-2.0/include/','/usr/include/libpurple/','/usr/include/','/usr/include/libxml2/'])
- 
-if( env['PLATFORM'] != 'win'):
-    env.ParseConfig( 'pkg-config --cflags --libs glib-2.0 ')
+platformspecifics = []
 
-objs = env.SharedObject([Glob('*.cpp')])
+if( env['PLATFORM'] == 'darwin'):
+    env.Append(CPPPATH = ['/usr/include/libxml2'])
+    platformspecifics = Glob('osx/*.c')
+elif( env['PLATFORM'] == 'linux'):
+    env.Append(CPPPATH = ['/usr/include/glib-2.0/',
+                          '/usr/lib/glib-2.0/include/',
+                           '/usr/include/libpurple/',
+                           '/usr/include/',
+                           '/usr/include/libxml2/'])
+elif( env['PLATFORM'] != 'win'):
+    env.ParseConfig( 'pkg-config --cflags --libs glib-2.0')
+
+objs = env.SharedObject([Glob('*.cpp'), platformspecifics])
 Return('objs')

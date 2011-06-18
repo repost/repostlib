@@ -73,6 +73,10 @@ void rpl_network::addAccount(Account& acct)
     {
         this->jbp->addJabber(acct.user(),acct.pass());
     }
+    else if(acct.type() == "Gtalk")
+		{
+        this->jbp->addGtalk(acct.user(),acct.pass());
+		}
     else if(acct.type() == "Bonjour")
     {
         this->jbp->addBonjour(acct.user());
