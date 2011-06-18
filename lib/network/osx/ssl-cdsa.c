@@ -25,8 +25,6 @@
 
 #define SSL_CDSA_PLUGIN_ID "ssl-cdsa"
 
-#ifdef HAVE_CDSA
-
 //#define CDSA_DEBUG
 
 #include <Security/Security.h>
@@ -577,12 +575,9 @@ static PurpleSslOps ssl_ops = {
 	NULL  /* reserved4 */
 };
 
-#endif /* HAVE_CDSA */
-
 static gboolean
 plugin_load(PurplePlugin *plugin)
 {
-#ifdef HAVE_CDSA
 	if (!purple_ssl_get_ops())
 		purple_ssl_set_ops(&ssl_ops);
 	
@@ -601,20 +596,15 @@ plugin_load(PurplePlugin *plugin)
 							   2, purple_value_new(PURPLE_TYPE_POINTER), purple_value_new(PURPLE_TYPE_POINTER));
 	
 	return (TRUE);
-#else
-	return (FALSE);
-#endif
 }
 
 static gboolean
 plugin_unload(PurplePlugin *plugin)
 {
-#ifdef HAVE_CDSA
 	if (purple_ssl_get_ops() == &ssl_ops)
 		purple_ssl_set_ops(NULL);
 	
 	purple_plugin_ipc_unregister_all(plugin);
-#endif
 
 	return (TRUE);
 }
