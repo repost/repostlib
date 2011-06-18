@@ -48,6 +48,32 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL 
 };
 
+#if OS_MACOSX
+void query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
+{
+  // only the jabber service supports this right now
+  query_cert_cb(true, userdata);
+}
+
+extern "C" {
+extern gboolean purple_init_ssl_plugin(void);
+extern gboolean purple_init_ssl_cdsa_plugin(void);
+}
+
+void init_ssl_plugins()
+{
+  //First, initialize our built-in plugins
+  purple_init_ssl_plugin();
+  purple_init_ssl_cdsa_plugin();
+  PurplePlugin *cdsa_plugin = purple_plugins_find_with_name("CDSA");
+  if(cdsa_plugin) 
+  {
+    gboolean ok = false; 
+    purple_plugin_ipc_call(cdsa_plugin, "register_certificate_ui_cb", &ok, query_cert_chain);
+  }   
+}
+#endif
+
 void jabposter::w_initUI(void)
 {
   if( jabint )
@@ -59,6 +85,9 @@ void jabposter::w_initUI(void)
 void jabposter::initUI(void)
 { 
     printf("initialise UI\n");
+#if OS_MACOSX
+    init_ssl_plugins();
+#endif
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
@@ -207,6 +236,7 @@ gboolean jabposter::retrieveUserInfo(gpointer data)
             }
             else /* signed off remove resources */
             {
+                printf("buddy is offline %s\n", name);
                 g_hash_table_remove(resMap, name); 
             }
         }
@@ -474,23 +504,30 @@ int jabposter::getlinks(Link* links, int num)
     return x;
 }
 
-void jabposter::addJabber(string user, string pass)
+string jabposter::getUniqueIdString()
+{
+		time_t now = time( NULL );
+    std::stringstream unique_str;
+    unique_str << IDENTIFY_STRING;
+    unique_str << now%100000;
+		return unique_str.str();
+}
+
+void jabposter::addGtalk(string user, string pass)
 {
     PurpleSavedStatus *status;
-    time_t now = time( NULL );
-    std::stringstream unique_reposter;
-    unique_reposter << "/" IDENTIFY_STRING;
-    unique_reposter << now%100000;
+		string uniqueid = this->getUniqueIdString();
 
     /* We need to add reposter postfix so we can find each other */
     size_t slash = user.rfind("/");
     if (slash!=string::npos)
     {
-        user.replace(slash, user.length(), unique_reposter.str());
+        user.replace(slash + 1, user.length(), uniqueid);
     }
     else
     {
-        user.append(unique_reposter.str());
+        user.append("/");
+        user.append(uniqueid);
     }
     
     /* Create the account */
@@ -499,23 +536,50 @@ void jabposter::addJabber(string user, string pass)
     /* Get the password for the account */
     purple_account_set_password(jabacct, pass.c_str());
 
-    /* Check for gtalk account as we have special settings */
-    if( user.find("gmail") != std::string::npos )
-    {
-        purple_account_set_bool(jabacct,"old_ssl", TRUE);
-        purple_account_set_int(jabacct,"port", 443);
-        purple_account_set_string(jabacct,"connect_server", "talk.google.com");
-    }
-    else
-    {
-        purple_account_set_bool(jabacct,"require_tls",FALSE);
-    }
+    /* For gtalk account as we have special settings */
+		purple_account_set_bool(jabacct,"old_ssl", TRUE);
+		purple_account_set_int(jabacct,"port", 443);
+		purple_account_set_string(jabacct,"connect_server", "talk.google.com");
 
     /* It's necessary to enable the account first. */
     purple_accounts_add(jabacct);
     purple_account_set_enabled(jabacct, UI_ID, TRUE);
 
-    status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
+    status = purple_savedstatus_new(NULL, PURPLE_STATUS_UNAVAILABLE);
+    purple_savedstatus_activate(status);
+}
+
+void jabposter::addJabber(string user, string pass)
+{
+    PurpleSavedStatus *status;
+		string uniqueid = this->getUniqueIdString();
+
+    /* We need to add reposter postfix so we can find each other */
+    size_t slash = user.rfind("/");
+    if (slash!=string::npos)
+    {
+        user.replace(slash + 1, user.length(), uniqueid);
+    }
+    else
+    {
+        user.append("/");
+        user.append(uniqueid);
+    }
+    
+    /* Create the account */
+    PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
+
+    /* Get the password for the account */
+    purple_account_set_password(jabacct, pass.c_str());
+
+    purple_account_set_bool(jabacct,"opportunistic_tls", TRUE);
+    purple_account_set_bool(jabacct,"require_tls", FALSE);
+
+    /* It's necessary to enable the account first. */
+    purple_accounts_add(jabacct);
+    purple_account_set_enabled(jabacct, UI_ID, TRUE);
+    /* Unavailable so we have low priority */
+    status = purple_savedstatus_new(NULL, PURPLE_STATUS_UNAVAILABLE);
     purple_savedstatus_activate(status);
 }
 
