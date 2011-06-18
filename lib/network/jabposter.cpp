@@ -48,7 +48,8 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL 
 };
 
-void adium_query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
+#if OS_MACOSX
+void query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
 {
   // only the jabber service supports this right now
   query_cert_cb(true, userdata);
@@ -59,7 +60,7 @@ extern gboolean purple_init_ssl_plugin(void);
 extern gboolean purple_init_ssl_cdsa_plugin(void);
 }
 
-static void init_all_plugins()
+void init_ssl_plugins()
 {
   //First, initialize our built-in plugins
   purple_init_ssl_plugin();
@@ -68,9 +69,10 @@ static void init_all_plugins()
   if(cdsa_plugin) 
   {
     gboolean ok = false; 
-    purple_plugin_ipc_call(cdsa_plugin, "register_certificate_ui_cb", &ok, adium_query_cert_chain);
+    purple_plugin_ipc_call(cdsa_plugin, "register_certificate_ui_cb", &ok, query_cert_chain);
   }   
 }
+#endif
 
 void jabposter::w_initUI(void)
 {
@@ -83,7 +85,9 @@ void jabposter::w_initUI(void)
 void jabposter::initUI(void)
 { 
     printf("initialise UI\n");
-    init_all_plugins();
+#if OS_MACOSX
+    init_ssl_plugins();
+#endif
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
