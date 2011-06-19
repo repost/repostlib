@@ -29,6 +29,7 @@ public:
     void addlink(Link& link);
     void rmlink(Link& link);
     void go();
+    void stop();
     std::string get_repostdir();
     static void w_initUI();
     

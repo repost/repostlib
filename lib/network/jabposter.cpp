@@ -683,12 +683,22 @@ jabposter::~jabposter()
     g_hash_table_destroy(this->resMap);
 }
 
-void jabposter::go(){
-    
+void jabposter::go()
+{
     if(running == false)
     {
         running = true;
         pthread_create(&m_thread, 0, (&jabposter::start_thread), this);
+    }
+}
+
+void jabposter::stop()
+{
+    if(running == true)
+    {
+        purple_core_quit();
+        this->in_queue->add(NULL); // we going down
+        //g_main_loop_quit(loop);
     }
 }
 

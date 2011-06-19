@@ -14,6 +14,10 @@ rpl_con::rpl_con(rpl_network *net, rpl_storage *store,
     this->pstore = store;
 }
 
+rpl_con::~rpl_con()
+{
+}
+
 void rpl_con::stop()
 {
     if(running==true){
