@@ -6,6 +6,20 @@
 
 static jabconnections *jabconn = NULL;
 
+void jabconnections::w_freeTimeouts(gpointer data)
+{
+  if( jabconn )
+  {
+    jabconn->freeTimeouts(data);
+  }
+}
+
+void jabconnections::freeTimeouts(gpointer data)
+{
+  g_source_remove(*(guint*)data);
+  delete (guint*)data;
+}
+
 gboolean jabconnections::w_signon(gpointer data)
 {
   if( jabconn )
@@ -23,6 +37,7 @@ gboolean jabconnections::signon(gpointer data)
   {
     purple_account_connect(account);
   }
+  g_hash_table_remove(this->timeoutSignons, data);
   return false;
 }
 
@@ -43,15 +58,17 @@ void jabconnections::startReconn(PurpleConnection *gc, PurpleConnectionError rea
 
   account = purple_connection_get_account(gc);
   printf("startreconn acc %s reason %d\n",purple_account_get_username(account), reason);
-  if (!purple_connection_error_is_fatal (reason)) 
+  if(!purple_connection_error_is_fatal(reason)) 
   {
     delay = g_random_int_range(RECON_DELAY_MIN, RECON_DELAY_MAX);
     printf("startreconn add timeout cb\n");
-    g_timeout_add(delay, &jabconnections::w_signon, account);
+    gpointer timeid = new guint(g_timeout_add(delay, &jabconnections::w_signon, account));
+    g_hash_table_insert(this->timeoutSignons, account, timeid);
+                        
   } 
 }
 
-void jabconnections::w_networkConnected (void)
+void jabconnections::w_networkConnected(void)
 {
   if( jabconn )
   {
@@ -59,7 +76,7 @@ void jabconnections::w_networkConnected (void)
   }
 }
 
-void jabconnections::networkConnected (void)
+void jabconnections::networkConnected(void)
 {
   GList *list, *l;
   l = list = purple_accounts_get_all_active();
@@ -100,8 +117,11 @@ PurpleConnectionUiOps* jabconnections::getUiOps()
 jabconnections::jabconnections()
 {
   jabconn = this;
+  timeoutSignons = g_hash_table_new_full(g_direct_hash, g_direct_equal,
+                                NULL, &jabconnections::w_freeTimeouts);
 }
 
 jabconnections::~jabconnections(void)
 {
+  g_hash_table_destroy(this->timeoutSignons);
 }

@@ -678,9 +678,10 @@ jabposter::jabposter(rpqueue* rq)
 
 jabposter::~jabposter()
 {
+    delete jabconn;
     uninit_xml();
-    purple_core_quit();
     g_hash_table_destroy(this->resMap);
+    g_main_loop_quit(this->loop);
 }
 
 void jabposter::go()
@@ -696,9 +697,9 @@ void jabposter::stop()
 {
     if(running == true)
     {
+        running = false;
         purple_core_quit();
         this->in_queue->add(NULL); // we going down
-        //g_main_loop_quit(loop);
     }
 }
 
@@ -714,12 +715,11 @@ void jabposter::libpurple()
 #ifdef LINUX
     con = g_main_context_new();
 #endif
-    GMainLoop *loop = g_main_loop_new(con, FALSE);
+    this->loop = g_main_loop_new(con, FALSE);
     if(loop == NULL)
     {
       printf("GLOOP FAIL WE IN DA SHIT\n");
     }
     g_main_loop_run(loop);
 }
-
 

@@ -19,12 +19,16 @@ public:
   static gboolean w_signon(gpointer data);
 
 private:
+  GHashTable *timeoutSignons;
+
   gboolean signon(gpointer data);
   void startReconn(PurpleConnection *gc,
                         PurpleConnectionError reason, const char *text);
   void networkConnected (void);
   static void w_accountRemoved(PurpleAccount *account, gpointer user_data);
   void accountRemoved(PurpleAccount *account, gpointer user_data);
+  static void w_freeTimeouts(gpointer data);
+  void freeTimeouts(gpointer data);
 };
 
 #endif
