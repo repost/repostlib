@@ -15,8 +15,8 @@ rpl_network::rpl_network()
 
 rpl_network::~rpl_network()
 {
-    free(in_queue);
-    free(jbp);
+    delete in_queue;
+    delete jbp;
 }
 
 Post *rpl_network::getpost()
@@ -100,4 +100,6 @@ void rpl_network::go()
 
 void rpl_network::stop()
 {
+    if(this->jbp)
+        this->jbp->stop();
 }

@@ -147,3 +147,15 @@ void rePoster::downboat(std::string uuid) {
     std::cout << "downboated! delete that shit" << std::endl;
     pstore->delete_post(uuid);
 }
+
+rePoster::~rePoster()
+{
+    if(pnet)
+        pnet->stop();
+    //pstore->stop();
+    if(pcon)
+        pcon->stop();
+    delete pnet;
+    delete pstore;
+    delete pcon;
+}

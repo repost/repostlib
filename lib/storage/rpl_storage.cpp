@@ -148,6 +148,7 @@ rpl_storage::rpl_storage()
 
 rpl_storage::~rpl_storage()
 {
+   
 }
 
 void rpl_storage::init(string dir)

@@ -24,11 +24,12 @@ public:
     int getaccounts(Account* accts, int num);
     void addBonjour(string user);
     void addJabber(string user, string pass);
-		void addGtalk(string user, string pass);
+    void addGtalk(string user, string pass);
     void sendpost(Post* post);
     void addlink(Link& link);
     void rmlink(Link& link);
     void go();
+    void stop();
     std::string get_repostdir();
     static void w_initUI();
     
@@ -41,12 +42,13 @@ private:
     Account pendaccts[MAXACCTS];
     std::string repostdir;
     GHashTable* resMap;
+    GMainLoop *loop;
 
     void connectToSignals();
     void initUI();
     void libpurple();
     void libpurpleDiag();
-		string getUniqueIdString();
+    string getUniqueIdString();
     static void *start_thread(void* obj);
 
     /* C Style callbacks and wrappers */

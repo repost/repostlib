@@ -19,7 +19,8 @@ public:
         virtual void Run(const Post&  p, const int rank)=0;
     };
 
-    rePoster() {};
+    rePoster(){pnet=NULL;pstore=NULL;pcon=NULL;};
+    ~rePoster();
     void init();
     void startRepost();
     void stopRepost();
