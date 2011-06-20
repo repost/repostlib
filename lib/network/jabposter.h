@@ -51,6 +51,7 @@ private:
     void libpurpleDiag();
     string getUniqueIdString();
     static void *start_thread(void* obj);
+    void freeReposterNames(GList* reposters);
 
     /* C Style callbacks and wrappers */
     static int authorization_requested(PurpleAccount* account, const char* user);

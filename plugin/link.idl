@@ -3,5 +3,6 @@
     Link();
     [getter,setter] std::string name_;
     [getter,setter] std::string host_;
+    [getter,setter] std::string status_;
 };
 

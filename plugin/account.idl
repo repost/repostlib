@@ -4,5 +4,6 @@
     [getter,setter] std::string user_;
     [getter,setter] std::string pass_;
     [getter,setter] std::string type_;
+    [getter,setter] std::string status_;
 };
 

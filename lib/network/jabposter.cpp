@@ -16,6 +16,10 @@
 
 #define IDENTIFY_STRING "reposter"
 
+#define STATUS_ONLINE   "online"
+#define STATUS_OFFLINE  "offline"
+#define STATUS_REPOSTER "reposter"
+
 static jabposter *jabint = NULL;
 
 static PurpleCoreUiOps jab_core_uiops = 
@@ -338,6 +342,16 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
     return reposters;
 }
 
+void jabposter::freeReposterNames(GList* reposters)
+{
+    GList* rnames = NULL;
+    for(rnames = reposters; rnames; rnames = g_list_next(rnames))
+    {
+        g_free(rnames->data);
+    }
+    g_list_free(reposters);
+}
+
 void jabposter::sendpost(Post *post)
 {
     string strpost;
@@ -396,11 +410,7 @@ void jabposter::sendpost(Post *post)
                     }
                 }
                 /* ok its our job to clean up the glist */
-                for(rnames = reposters; rnames; rnames = g_list_next(rnames))
-                {
-                    g_free(rnames->data);
-                }
-                g_list_free(reposters);
+                this->freeReposterNames(reposters);
             }
         }
         bnode = purple_blist_node_next (bnode, false);
@@ -426,6 +436,14 @@ int jabposter::getaccounts(Account* accts, int num)
             {
                 accts[x].set_user(user);
                 accts[x].set_type(type);
+                if(purple_account_is_connected(account))
+                {
+                    accts[x].set_status(STATUS_ONLINE);
+                }
+                else
+                {
+                    accts[x].set_status(STATUS_OFFLINE);
+                }
                 x++;
             }
         }
@@ -479,19 +497,36 @@ int jabposter::getlinks(Link* links, int num)
     int x = 0;
     const char* name = NULL;
     const char* host = NULL;
+    PurpleStatus* status = NULL; 
+    PurplePresence* pres = NULL;
+    PurpleAccount* acct = NULL;
     PurpleBlistNode * bnode = purple_blist_get_root();
+    GList* reposters = NULL;
 
     while((bnode != NULL) && (x < num))
     {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
+            acct = purple_buddy_get_account(PURPLE_BUDDY(bnode));
             name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
-            host = purple_account_get_username(
-                purple_buddy_get_account(PURPLE_BUDDY(bnode)));
-            if(name && host)
+            host = purple_account_get_username(acct);
+            pres = purple_buddy_get_presence(PURPLE_BUDDY(bnode));
+            if(name && host && pres)
             {
                 links[x].set_name(name);
                 links[x].set_host(host);
+                if( !purple_presence_is_online(pres) )
+                {
+                    links[x].set_status(STATUS_OFFLINE);
+                }
+                else if((reposters = this->reposterName(PURPLE_BUDDY(bnode))))
+                {
+                    links[x].set_status(STATUS_REPOSTER);
+                }
+                else
+                {
+                    links[x].set_status(STATUS_ONLINE);
+                }
                 x++;
             }
             else
