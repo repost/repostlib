@@ -506,11 +506,11 @@ int jabposter::getlinks(Link* links, int num)
 
 string jabposter::getUniqueIdString()
 {
-		time_t now = time( NULL );
+    time_t now = time( NULL );
     std::stringstream unique_str;
     unique_str << IDENTIFY_STRING;
     unique_str << now%100000;
-		return unique_str.str();
+    return unique_str.str();
 }
 
 void jabposter::addGtalk(string user, string pass)
@@ -552,7 +552,7 @@ void jabposter::addGtalk(string user, string pass)
 void jabposter::addJabber(string user, string pass)
 {
     PurpleSavedStatus *status;
-		string uniqueid = this->getUniqueIdString();
+    string uniqueid = this->getUniqueIdString();
 
     /* We need to add reposter postfix so we can find each other */
     size_t slash = user.rfind("/");
@@ -595,6 +595,25 @@ void jabposter::addBonjour(string user)
 
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
+}
+
+void jabposter::rmAccount(Account& acct)
+{
+    PurpleAccount* pbacct = NULL;
+    
+    if((acct.type() == "XMPP")||(acct.type() == "Gtalk"))
+    {
+        pbacct = purple_accounts_find(acct.user().c_str(), "prpl-jabber");
+    }
+    else if(acct.type() == "Bonjour")
+    {
+         pbacct = purple_accounts_find(acct.user().c_str(), "prpl-bonjour");
+    }
+    
+    if(pbacct)
+    {
+        purple_accounts_delete(pbacct);
+    }
 }
 
 #ifdef OS_MACOSX

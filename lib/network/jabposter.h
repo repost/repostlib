@@ -22,6 +22,7 @@ public:
     ~jabposter();
     int getlinks(Link* links, int num);
     int getaccounts(Account* accts, int num);
+    void rmAccount(Account& acct);
     void addBonjour(string user);
     void addJabber(string user, string pass);
     void addGtalk(string user, string pass);

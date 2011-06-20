@@ -74,9 +74,9 @@ void rpl_network::addAccount(Account& acct)
         this->jbp->addJabber(acct.user(),acct.pass());
     }
     else if(acct.type() == "Gtalk")
-		{
+    {
         this->jbp->addGtalk(acct.user(),acct.pass());
-		}
+    }
     else if(acct.type() == "Bonjour")
     {
         this->jbp->addBonjour(acct.user());
@@ -85,12 +85,12 @@ void rpl_network::addAccount(Account& acct)
 
 void rpl_network::rmAccount(Account& acct)
 {
-
+    this->jbp->rmAccount(acct);
 }
 
 std::string rpl_network::get_userdir()
 {
-  return this->jbp->get_repostdir();
+    return this->jbp->get_repostdir();
 }
 
 void rpl_network::go()
