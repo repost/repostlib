@@ -6,6 +6,7 @@
 #include "jabposter.h"
 #include "jabconnections.h"
 #include "rpqueue.h"
+#include "lockstep.h"
 #include "rpl.h"
 
 #ifndef WIN32 /* Always last include */
@@ -661,9 +662,10 @@ static void ZombieKiller_Signal(int i)
 }
 #endif
 
-jabposter::jabposter(rpqueue* rq)
+jabposter::jabposter(rpqueue* rq, lockstep* ls)
 {
     jabint = this;
+    this->lock = ls;
     this->in_queue = rq;
     this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &jabposter::w_resFree);
 
@@ -728,6 +730,7 @@ jabposter::jabposter(rpqueue* rq)
     this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
     g_timeout_add(60000, &jabposter::w_retrieveUserInfo, NULL);
+    g_timeout_add(2000, &jabposter::w_lockStep, NULL);
 }
 
 jabposter::~jabposter()
@@ -755,6 +758,19 @@ void jabposter::stop()
         purple_core_quit();
         this->in_queue->add(NULL); // we going down
     }
+}
+
+gboolean jabposter::w_lockStep(void *unused)
+{
+    if( jabint )
+    {
+        jabint->lockStep();
+    }
+}
+
+void jabposter::lockStep(void)
+{
+    this->lock->checkSpinner();
 }
 
 void *jabposter::start_thread(void *obj)

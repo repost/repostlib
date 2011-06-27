@@ -354,10 +354,15 @@ def _MakeRunFunction(scope, type_defn):
   function.params = type_defn.params
   return function
 
-
 _npapi_binding_glue_header_template = string.Template("""
+struct callbackArgs {
+  callbackArgs(${ArgsList}) ${ArgsConstruct} {}
+  ${InstanceArgs}
+};
+
 class ${GlueClass} : public ${BaseClass} {
  public:
+  static void createCallbackArgs(NPP npp,std::vector<NPVariant> &args,void *ctx);
   ${GlueClass}(NPP npp, NPObject *npobject);
   virtual ~${GlueClass}();
   virtual ${RunFunction};
@@ -381,12 +386,40 @@ def NpapiBindingGlueHeader(scope, type_defn):
   """
   glue_class = type_defn.name + '_glue'
   base_class = cpp_utils.GetScopedName(scope, type_defn)
+
+  check_types = []
+  param_strings = []
+  construct_strings = [];
+  instance_strings = [];
+  for p in type_defn.params:
+    param_string, check_type = cpp_utils.GetFunctionParamPrototype(scope, p)
+    check_types += check_type
+    param_strings += [param_string]
+    construct_strings += ['_'+p.name+'('+p.name+')'];
+    instance_strings += [cpp_utils.GetScopedName(scope,p.type_defn)+' _'+p.name];
+  param_string = ', '.join(param_strings)
+  if construct_strings:
+    construct_string = ': ' + ', '.join(construct_strings)
+  else:
+    construct_string=''
+
+  
   run_function, unused_check = cpp_utils.GetFunctionPrototype(
       scope, _MakeRunFunction(scope, type_defn), '')
+  args_list = param_string;
+  args_construct = construct_string;
+  if instance_strings:
+    instance_args = ';\n'.join(instance_strings) + ';';
+  else:
+    instance_args = '';
+
   return _npapi_binding_glue_header_template.substitute(
       GlueClass=glue_class,
       BaseClass=base_class,
-      RunFunction=run_function)
+      RunFunction=run_function,
+      ArgsList=args_list,
+      ArgsConstruct=args_construct,
+      InstanceArgs=instance_args)
 
 
 _npapi_binding_glue_cpp_template = string.Template("""

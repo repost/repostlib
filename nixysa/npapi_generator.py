@@ -1817,6 +1817,7 @@ class NpapiGenerator(object):
 
     param_to_variant_pre = []
     param_to_variant_post = []
+    param_to_variant = []
     param_strings = []
     for i in xrange(len(obj.params)):
       p = obj.params[i]
@@ -1828,8 +1829,12 @@ class NpapiGenerator(object):
       pre, post = bm.NpapiExprToNPVariant(scope, p.type_defn, 'var_' + p.name,
                                           p.name, '(args + %d)' % i, 'success',
                                           'npp')
+      param,null = bm.NpapiExprToNPVariant(scope, p.type_defn, 'var_' + p.name,
+                                           'in->_' + p.name,'&args[%d]' % i,'success',
+                                           'npp');
       param_to_variant_pre.append(pre)
       param_to_variant_post.append(post)
+      param_to_variant.append(param)
 
     if param_strings:
       param_strings = [''] + param_strings
@@ -1850,19 +1855,19 @@ class NpapiGenerator(object):
                                                       'npp')
     start_exception, end_exception = GenExceptionContext(
         _exception_macro_name, "callback return value", "<no name>")
+    callback_args = ', '.join([t.name for t in obj.params]);
+
     subst_dict = {'RunCallback': run_callback,
                   'ArgCount': str(len(obj.params)),
                   'ParamsToVariantsPre': '\n'.join(param_to_variant_pre),
                   'ParamsToVariantsPost': '\n'.join(param_to_variant_post),
+                  'ParamsToVariants': '\n'.join(param_to_variant),
                   'ReturnEval': return_eval,
                   'ReturnValue': return_value,
                   'StartException': start_exception,
-                  'EndException': end_exception}
-    if obj.params:
-      glue_template = _callback_glue_cpp_template
-    else:
-      glue_template = _callback_no_param_glue_cpp_template
-    cpp_section.EmitCode(glue_template.substitute(subst_dict))
+                  'EndException': end_exception,
+                  'CallbackArgs': callback_args}
+    cpp_section.EmitCode(_callback_glue_cpp_template.substitute(subst_dict))
     cpp_section.EmitCode(binding_model.NpapiBindingGlueCpp(scope, obj))
     header_section.EmitCode(binding_model.NpapiBindingGlueHeader(scope, obj))
 

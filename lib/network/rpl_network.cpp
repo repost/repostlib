@@ -2,6 +2,7 @@
 #include "slavenetwork.h"
 #include "rpl_network.h"
 #include "rpqueue.h"
+#include "lockstep.h"
 #include "jabposter.h"
 
 #define MAXLINKS 100
@@ -10,7 +11,8 @@
 rpl_network::rpl_network()
 {
     in_queue = new rpqueue();
-    jbp = new jabposter(in_queue);
+    lock = new lockstep();
+    jbp = new jabposter(in_queue, lock);
 }
 
 rpl_network::~rpl_network()
@@ -26,7 +28,9 @@ Post *rpl_network::getpost()
 
 void rpl_network::post(Post &post)
 {
+    lock->lockSpinner(); // lock the spinner
     jbp->sendpost(&post);
+    lock->unlockSpinner(); // release the spinner
 }
 
 std::vector<Link> rpl_network::getLinks()

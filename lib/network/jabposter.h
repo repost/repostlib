@@ -15,10 +15,12 @@ extern "C" {
 
 #define MAXACCTS 10
 
+class lockstep;
+
 class jabposter : public slavenet
 {
 public:
-    jabposter(rpqueue* rq);
+    jabposter(rpqueue* rq, lockstep* ls);
     ~jabposter();
     int getlinks(Link* links, int num);
     int getaccounts(Account* accts, int num);
@@ -44,6 +46,7 @@ private:
     std::string repostdir;
     GHashTable* resMap;
     GMainLoop *loop;
+    lockstep *lock;
 
     void connectToSignals();
     void initUI();
@@ -54,6 +57,8 @@ private:
     void freeReposterNames(GList* reposters);
 
     /* C Style callbacks and wrappers */
+    static gboolean w_lockStep(void *unused);
+    void lockStep();
     static int authorization_requested(PurpleAccount* account, const char* user);
     static void w_receivedIm(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);

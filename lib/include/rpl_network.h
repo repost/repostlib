@@ -2,12 +2,12 @@
 #define RPL_NETWORK_H_
 
 #include <vector>
+#include <string>
 
 #include "rpl.h"
 
-#include <string>
-
 class rpqueue;
+class lockstep;
 class jabposter;
 
 class rpl_network 
@@ -44,6 +44,7 @@ private:
     rpqueue *out_queue;
     rpqueue *in_queue;
     jabposter *jbp;
+    lockstep *lock;
 };
 
 #endif
