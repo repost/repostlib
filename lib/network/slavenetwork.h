@@ -11,6 +11,7 @@ namespace xercesc_3_1 //May have to update as version numbers increase
 {
     class SAX2XMLReader;
 }
+
 typedef struct {
   void  (*newpost)();
   void  (*newlink)();
@@ -21,10 +22,10 @@ class slavenet
 public:
     slavenet(): stopreq(false), running(false){init_xml();};
     virtual ~slavenet(){};
-    virtual void go() = 0;
-    void stop();
-    virtual void sendpost(Post *post) = 0;
-    virtual int getlinks(Link* links, int num) = 0;
+    virtual void Go() = 0;
+    void Stop();
+    virtual void SendPost(Post *post) = 0;
+    virtual int GetLinks(Link* links, int num) = 0;
     bool stopreq;
     bool running;
     pthread_t m_thread;

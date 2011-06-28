@@ -8,7 +8,7 @@
 #include <time.h>
 #endif
 
-lockstep::lockstep()
+LockStep::LockStep()
 {
 #ifdef NAMED_SEMAPHORE
     char name[32];
@@ -22,15 +22,15 @@ lockstep::lockstep()
     this->spinner = sem_open(name, O_CREAT, 0, 0);
 
 #else
-    this->boss =  new sem_t;
-    this->spinner =  new sem_t;
+    this->boss = new sem_t;
+    this->spinner = new sem_t;
     sem_init(this->boss, 0, 0);
     sem_init(this->spinner, 0, 1);
 #endif
     this->semval = 0;
 }  
 
-lockstep::~lockstep()
+LockStep::~LockStep()
 {
 #ifdef NAMED_SEMAPHORE
     sem_close(boss);
@@ -41,42 +41,42 @@ lockstep::~lockstep()
 #endif
 }
 
-void lockstep::unlockBoss()
+void LockStep::UnlockBoss()
 {
     sem_post(boss);
 }
 
-void lockstep::checkBoss()
+void LockStep::CheckBoss()
 {
     sem_wait(boss);
 }
 
-void lockstep::lockBoss()
+void LockStep::LockBoss()
 {
     sem_post(spinner);
 }
 
-void lockstep::unlockSpinner()
+void LockStep::UnlockSpinner()
 {
-		printf("unlocking spinner\n");
+    printf("unlocking spinner\n");
     sem_post(spinner);
 }
 
-void lockstep::checkSpinner()
+void LockStep::CheckSpinner()
 {
-		printf("checking spinner\n");
+    printf("checking spinner\n");
     sem_post(boss);
-		printf("waiting on spinner spinner\n");
+    printf("waiting on spinner spinner\n");
     sem_wait(spinner);
     sem_post(spinner);
     sem_trywait(boss);
-		printf("finished checking spinner\n");
+    printf("finished checking spinner\n");
 }
 
-void lockstep::lockSpinner()
+void LockStep::LockSpinner()
 {	
-		printf("locking spinner\n");
+    printf("locking spinner\n");
     sem_trywait(spinner);
     sem_wait(boss);
-		printf("finsihed locking spinner\n");
+    printf("finsihed locking spinner\n");
 }

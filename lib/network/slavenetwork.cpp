@@ -100,7 +100,7 @@ void slavenet::uninit_xml(){
 
 }
 
-void slavenet::stop(){
+void slavenet::Stop(){
     if(running == true)
     {
          running = false;

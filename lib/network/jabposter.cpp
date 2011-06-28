@@ -15,20 +15,23 @@
 #include "win32/win32dep.h"
 #endif
 
+#define START_THREADSAFE LockSpinner();
+#define END_THREADSAFE   UnlockSpinner();
+
 #define IDENTIFY_STRING "reposter"
 
 #define STATUS_ONLINE   "online"
 #define STATUS_OFFLINE  "offline"
 #define STATUS_REPOSTER "reposter"
 
-static jabposter *jabint = NULL;
+static JabPoster *jabint = NULL;
 
 static PurpleCoreUiOps jab_core_uiops = 
 {
     NULL,
     NULL,
     NULL,
-    &jabposter::w_initUI,
+    &JabPoster::w_InitUI,
     /* padding */
     NULL,
     NULL,
@@ -36,7 +39,7 @@ static PurpleCoreUiOps jab_core_uiops =
     NULL
 };
 
-static PurpleNotifyUiOps jabposterNotifyUiOps =
+static PurpleNotifyUiOps JabPosterNotifyUiOps =
 {
     NULL, /* pidgin_notify_message, */
     NULL, /* pidgin_notify_email, */
@@ -44,7 +47,7 @@ static PurpleNotifyUiOps jabposterNotifyUiOps =
     NULL, /* pidgin_notify_formatted, */
     NULL, /* pidgin_notify_searchresults, */
     NULL, /* pidgin_notify_searchresults_new_rows, */
-    &jabposter::w_notifyUserInfo, /* pidgin_notify_userinfo, */
+    &JabPoster::w_NotifyUserInfo, /* pidgin_notify_userinfo, */
     NULL, /* pidgin_notify_uri, */
     NULL, /* pidgin_close_notify, */
     NULL,
@@ -79,15 +82,15 @@ void init_ssl_plugins()
 }
 #endif
 
-void jabposter::w_initUI(void)
+void JabPoster::w_InitUI(void)
 {
   if( jabint )
   {
-    jabint->initUI();   
+    jabint->InitUI();   
   }
 }
 
-void jabposter::initUI(void)
+void JabPoster::InitUI(void)
 { 
     printf("initialise UI\n");
 #if OS_MACOSX
@@ -95,31 +98,29 @@ void jabposter::initUI(void)
 #endif
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
-    purple_notify_set_ui_ops(&jabposterNotifyUiOps);
-    this->retrieveUserInfo(NULL);
+    purple_notify_set_ui_ops(&JabPosterNotifyUiOps);
+    this->RetrieveUserInfo(NULL);
 }
 
-void jabposter::connectToSignals(void)
+void JabPoster::ConnectToSignals(void)
 {
     static int handle;
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
-            PURPLE_CALLBACK(&jabposter::w_receivedIm), NULL);
+            PURPLE_CALLBACK(&JabPoster::w_ReceivedIm), NULL);
     purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
-            PURPLE_CALLBACK(&jabposter::authorization_requested), NULL);
- //   purple_signal_connect(purple_conversations_get_handle(), "account-signed-on", &handle,
-   //         PURPLE_CALLBACK(&jabposter::w_signonRetrieveUserInfo), NULL);
+            PURPLE_CALLBACK(&JabPoster::AuthorizationRequested), NULL);
 }
 
-void jabposter::w_receivedIm(PurpleAccount *account, char *sender, char *message,
+void JabPoster::w_ReceivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     if(message != NULL)
     {    
-        jabint->receivedIm(account, sender, message, conv, flags);
+        jabint->ReceivedIm(account, sender, message, conv, flags);
     }
 }
 
-void jabposter::receivedIm(PurpleAccount *account, char *sender, char *message,
+void JabPoster::ReceivedIm(PurpleAccount *account, char *sender, char *message,
                               PurpleConversation *conv, PurpleMessageFlags flags)
 {
     char* unescaped = NULL;
@@ -147,14 +148,14 @@ void jabposter::receivedIm(PurpleAccount *account, char *sender, char *message,
     }
 }
 
-int jabposter::authorization_requested(PurpleAccount *account, const char *user)
+int JabPoster::AuthorizationRequested(PurpleAccount *account, const char *user)
 {
     purple_account_add_buddy(account, purple_buddy_new(account,user,NULL));
     return 1;
 } 
 
 
-void jabposter::libpurpleDiag()
+void JabPoster::PrintSupportedProtocols(void)
 {
     GList *iter;
     int i;
@@ -171,7 +172,7 @@ void jabposter::libpurpleDiag()
     }
 }
 
-std::string jabposter::get_repostdir()
+std::string JabPoster::GetRepostDir(void)
 {
   return repostdir;
 }
@@ -185,15 +186,15 @@ std::string jabposter::get_repostdir()
  * Other account types I got no idea. Probably check status to 
  * see if they reposting etc... That is a TODO
  */
-void jabposter::w_resFree(gpointer data)
+void JabPoster::w_ResFree(gpointer data)
 {
     if( jabint )
     {
-        jabint->resFree(data);
+        jabint->ResFree(data);
     }
 }
 
-void jabposter::resFree(gpointer data)
+void JabPoster::ResFree(gpointer data)
 {
     GList* resources = (GList*) data;
     for(;resources;resources = g_list_next(resources))
@@ -203,24 +204,24 @@ void jabposter::resFree(gpointer data)
     g_list_free(resources);
 }
 
-void jabposter::w_signonRetrieveUserInfo(PurpleAccount *account)
+void JabPoster::w_SignonRetrieveUserInfo(PurpleAccount *account)
 {
      if( jabint )
     {
-        jabint->retrieveUserInfo(NULL);
+        jabint->RetrieveUserInfo(NULL);
     }
 }
 
-gboolean jabposter::w_retrieveUserInfo(gpointer data)
+gboolean JabPoster::w_RetrieveUserInfo(gpointer data)
 {                 
     if( jabint )
     {
-        return jabint->retrieveUserInfo(data);
+        return jabint->RetrieveUserInfo(data);
     }
     return false;
 }
 
-gboolean jabposter::retrieveUserInfo(gpointer data)
+gboolean JabPoster::RetrieveUserInfo(gpointer data)
 {                                      
     PurpleBlistNode * bnode = purple_blist_get_root();
     while(bnode != NULL)
@@ -250,17 +251,17 @@ gboolean jabposter::retrieveUserInfo(gpointer data)
     return true;
 }                         
 
-void* jabposter::w_notifyUserInfo(PurpleConnection *gc, const char *who,
+void* JabPoster::w_NotifyUserInfo(PurpleConnection *gc, const char *who,
                          PurpleNotifyUserInfo *user_info)
 {
     if( jabint )
     {
-        return jabint->notifyUserInfo(gc, who, user_info);
+        return jabint->NotifyUserInfo(gc, who, user_info);
     }
     return NULL;
 }
 
-void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
+void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
                          PurpleNotifyUserInfo *user_info)
 {
     PurpleAccount* ac = purple_connection_get_account(gc);
@@ -299,7 +300,7 @@ void* jabposter::notifyUserInfo(PurpleConnection *gc, const char *who,
     return NULL;
 }
 
-GList* jabposter::reposterName(PurpleBuddy* pb)
+GList* JabPoster::ReposterName(PurpleBuddy* pb)
 {
     GList* reposters = NULL;
     PurpleBlistNode* pbln = (PurpleBlistNode*)pb;
@@ -343,7 +344,7 @@ GList* jabposter::reposterName(PurpleBuddy* pb)
     return reposters;
 }
 
-void jabposter::freeReposterNames(GList* reposters)
+void JabPoster::FreeReposterNames(GList* reposters)
 {
     GList* rnames = NULL;
     for(rnames = reposters; rnames; rnames = g_list_next(rnames))
@@ -353,79 +354,87 @@ void jabposter::freeReposterNames(GList* reposters)
     g_list_free(reposters);
 }
 
-void jabposter::sendpost(Post *post)
+void JabPoster::SendPost(Post *post)
 {
     string strpost;
     PurpleConversation* conv = NULL;
     PurpleBuddy* pb = NULL;
     char* nomarkup = NULL;
     GList* reposters = NULL;
-    PurpleBlistNode * bnode = purple_blist_get_root();
+    PurpleBlistNode* bnode = NULL;
+
+    START_THREADSAFE
 
     if(!post)
     {
         printf("post is null :'(. All your bases belong to us\n");
-        return;
     }
-
-    post2xml(&strpost, post);
-    while(bnode != NULL)
+    else
     {
-        if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
+        bnode =  purple_blist_get_root();
+        post2xml(&strpost, post);
+        while(bnode != NULL)
         {
-            pb = PURPLE_BUDDY(bnode);
-            /* Ok we have a buddy now lets find the reposter */
-            reposters = reposterName(pb); 
-            if(reposters)
+            if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
             {
-                GList* rnames = NULL;
-                for(rnames = reposters; rnames; rnames = g_list_next(rnames))
+                pb = PURPLE_BUDDY(bnode);
+                /* Ok we have a buddy now lets find the reposter */
+                reposters = ReposterName(pb); 
+                if(reposters)
                 {
-                    printf("sending to %s\n",(const char*)rnames->data);
-                    conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
-                            purple_buddy_get_account(pb),
-                            (const char*) rnames->data);
-                    if(conv)
-                    {	
-                        PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
-                        nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
-                        if(PURPLE_CONV_IM(conv))
-                        {
-                            printf("send im\n");
-                            purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
-                                    nomarkup,flag);
+                    GList* rnames = NULL;
+                    for(rnames = reposters; rnames; rnames = g_list_next(rnames))
+                    {
+                        printf("sending to %s\n",(const char*)rnames->data);
+                        conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
+                                purple_buddy_get_account(pb),
+                                (const char*) rnames->data);
+                        if(conv)
+                        {	
+                            PurpleMessageFlags flag = (PurpleMessageFlags) (PURPLE_MESSAGE_RAW);
+                            nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
+                            if(PURPLE_CONV_IM(conv))
+                            {
+                                printf("send im\n");
+                                purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
+                                        nomarkup,flag);
+                            }
+                            else if(PURPLE_CONV_CHAT(conv))
+                            {
+                                printf("send chat\n");
+                                purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
+                                        nomarkup,flag);
+                            }
+                            else
+                            {
+                                printf("Other unexpected convo type\n");
+                            }
+                            g_free(nomarkup);
+                            purple_conversation_destroy(conv); /* have to destroy each convo so we 
+                                                                * don't lock to a single resource*/
                         }
-                        else if(PURPLE_CONV_CHAT(conv))
-                        {
-                            printf("send chat\n");
-                            purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
-                                    nomarkup,flag);
-                        }
-                        else
-                        {
-                            printf("Other unexpected convo type\n");
-                        }
-                        g_free(nomarkup);
-                        purple_conversation_destroy(conv); /* have to destroy each convo so we 
-                                                            * don't lock to a single resource */
                     }
+                    /* ok its our job to clean up the glist */
+                    this->FreeReposterNames(reposters);
                 }
-                /* ok its our job to clean up the glist */
-                this->freeReposterNames(reposters);
             }
+            bnode = purple_blist_node_next (bnode, false);
         }
-        bnode = purple_blist_node_next (bnode, false);
     }
+    END_THREADSAFE
 }
 
-int jabposter::getaccounts(Account* accts, int num)
+int JabPoster::GetAccounts(Account* accts, int num)
 {
     int x = 0;
     const char* user = NULL;
     const char* type = NULL;
-    GList *alist = purple_accounts_get_all();
-    alist = g_list_first(alist);
+    GList* alist = NULL;
 
+    START_THREADSAFE
+
+    alist = purple_accounts_get_all();
+    alist = g_list_first(alist);
     while((alist != NULL) && (x < num))
     {
         PurpleAccount* account = (PurpleAccount*) alist->data;
@@ -450,32 +459,37 @@ int jabposter::getaccounts(Account* accts, int num)
         }
         alist = g_list_next(alist);
     }
+    END_THREADSAFE
     return x;
 }
 
-void jabposter::addlink(Link& link)
+void JabPoster::AddLink(Link& link)
 {
-    GList *l;
-    
+    GList *l = NULL;
+    START_THREADSAFE
     for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) 
     {
         PurpleAccount *account = (PurpleAccount *)l->data;
         if(account && (purple_account_get_username(account) == link.host()))
         {
             purple_account_add_buddy(account, 
-                purple_buddy_new(account,link.name().c_str(),NULL));
+                purple_buddy_new(account, link.name().c_str(), NULL));
         }
     }
+    END_THREADSAFE
 }
 
-void jabposter::rmlink(Link& link)
+void JabPoster::RmLink(Link& link)
 {
     int x = 0;
     const char* name = NULL;
     const char* host = NULL;
     PurpleAccount *account = NULL;
-    PurpleBlistNode * bnode = purple_blist_get_root();
+    PurpleBlistNode* bnode = NULL;
+    
+    START_THREADSAFE
 
+    bnode = purple_blist_get_root();
     while(bnode != NULL)
     {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
@@ -491,9 +505,10 @@ void jabposter::rmlink(Link& link)
         }
         bnode = purple_blist_node_next (bnode, false);
     }
+    END_THREADSAFE
 }
 
-int jabposter::getlinks(Link* links, int num)
+int JabPoster::GetLinks(Link* links, int num)
 {
     int x = 0;
     const char* name = NULL;
@@ -501,9 +516,12 @@ int jabposter::getlinks(Link* links, int num)
     PurpleStatus* status = NULL; 
     PurplePresence* pres = NULL;
     PurpleAccount* acct = NULL;
-    PurpleBlistNode * bnode = purple_blist_get_root();
+    PurpleBlistNode* bnode = NULL;
     GList* reposters = NULL;
+    
+    START_THREADSAFE
 
+    bnode = purple_blist_get_root();
     while((bnode != NULL) && (x < num))
     {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
@@ -520,7 +538,7 @@ int jabposter::getlinks(Link* links, int num)
                 {
                     links[x].set_status(STATUS_OFFLINE);
                 }
-                else if((reposters = this->reposterName(PURPLE_BUDDY(bnode))))
+                else if((reposters = this->ReposterName(PURPLE_BUDDY(bnode))))
                 {
                     links[x].set_status(STATUS_REPOSTER);
                 }
@@ -537,10 +555,11 @@ int jabposter::getlinks(Link* links, int num)
         }
         bnode = purple_blist_node_next (bnode, false);
     }
+    END_THREADSAFE
     return x;
 }
 
-string jabposter::getUniqueIdString()
+string JabPoster::GetUniqueIdString(void)
 {
     time_t now = time( NULL );
     std::stringstream unique_str;
@@ -549,10 +568,11 @@ string jabposter::getUniqueIdString()
     return unique_str.str();
 }
 
-void jabposter::addGtalk(string user, string pass)
+void JabPoster::AddGtalk(string user, string pass)
 {
-    PurpleSavedStatus *status;
-		string uniqueid = this->getUniqueIdString();
+    PurpleSavedStatus* status = NULL;
+    string uniqueid = this->GetUniqueIdString();
+    START_THREADSAFE
 
     /* We need to add reposter postfix so we can find each other */
     size_t slash = user.rfind("/");
@@ -565,7 +585,7 @@ void jabposter::addGtalk(string user, string pass)
         user.append("/");
         user.append(uniqueid);
     }
-    
+
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
@@ -573,9 +593,9 @@ void jabposter::addGtalk(string user, string pass)
     purple_account_set_password(jabacct, pass.c_str());
 
     /* For gtalk account as we have special settings */
-		purple_account_set_bool(jabacct,"old_ssl", TRUE);
-		purple_account_set_int(jabacct,"port", 443);
-		purple_account_set_string(jabacct,"connect_server", "talk.google.com");
+    purple_account_set_bool(jabacct,"old_ssl", TRUE);
+    purple_account_set_int(jabacct,"port", 443);
+    purple_account_set_string(jabacct,"connect_server", "talk.google.com");
 
     /* It's necessary to enable the account first. */
     purple_accounts_add(jabacct);
@@ -583,12 +603,14 @@ void jabposter::addGtalk(string user, string pass)
 
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_UNAVAILABLE);
     purple_savedstatus_activate(status);
+    END_THREADSAFE
 }
 
-void jabposter::addJabber(string user, string pass)
+void JabPoster::AddJabber(string user, string pass)
 {
     PurpleSavedStatus *status;
-    string uniqueid = this->getUniqueIdString();
+    string uniqueid = this->GetUniqueIdString();
+    START_THREADSAFE
 
     /* We need to add reposter postfix so we can find each other */
     size_t slash = user.rfind("/");
@@ -617,26 +639,29 @@ void jabposter::addJabber(string user, string pass)
     /* Unavailable so we have low priority */
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_UNAVAILABLE);
     purple_savedstatus_activate(status);
+    END_THREADSAFE
 }
 
-void jabposter::addBonjour(string user)
+void JabPoster::AddBonjour(string user)
 {
-    PurpleSavedStatus *status;
-    /* We need to ad reposter postfix so we can find each other */
+    PurpleSavedStatus* status = NULL;
+    PurpleAccount* bon = NULL;
 
-    PurpleAccount *bon = purple_account_new(user.c_str(),"prpl-bonjour");
+    START_THREADSAFE
+    /* We need to add reposter postfix so we can find each other */
+    bon = purple_account_new(user.c_str(),"prpl-bonjour");
     purple_accounts_add(bon);
     purple_account_set_enabled(bon, UI_ID, TRUE);
     purple_account_connect(bon);
-
     status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
+    END_THREADSAFE
 }
 
-void jabposter::rmAccount(Account& acct)
+void JabPoster::RmAccount(Account& acct)
 {
     PurpleAccount* pbacct = NULL;
-    
+    START_THREADSAFE
     if((acct.type() == "XMPP")||(acct.type() == "Gtalk"))
     {
         pbacct = purple_accounts_find(acct.user().c_str(), "prpl-jabber");
@@ -650,6 +675,7 @@ void jabposter::rmAccount(Account& acct)
     {
         purple_accounts_delete(pbacct);
     }
+    END_THREADSAFE
 }
 
 #ifdef OS_MACOSX
@@ -662,12 +688,12 @@ static void ZombieKiller_Signal(int i)
 }
 #endif
 
-jabposter::jabposter(rpqueue* rq, lockstep* ls)
+JabPoster::JabPoster(rpqueue* rq)
 {
     jabint = this;
-    this->lock = ls;
+    lock = new LockStep();
     this->in_queue = rq;
-    this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &jabposter::w_resFree);
+    this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &JabPoster::w_ResFree);
 
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
@@ -726,14 +752,14 @@ jabposter::jabposter(rpqueue* rq, lockstep* ls)
 #ifdef DEBUG
     libpurpleDiag();
 #endif
-    this->initUI();
-    this->connectToSignals();
-    purple_notify_set_ui_ops(&jabposterNotifyUiOps);
-    g_timeout_add(60000, &jabposter::w_retrieveUserInfo, NULL);
-    g_timeout_add(30000, &jabposter::w_lockStep, NULL);
+    this->InitUI();
+    this->ConnectToSignals();
+    purple_notify_set_ui_ops(&JabPosterNotifyUiOps);
+    g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
+    g_timeout_add(30000, &JabPoster::w_CheckForLock, NULL);
 }
 
-jabposter::~jabposter()
+JabPoster::~JabPoster()
 {
     delete jabconn;
     uninit_xml();
@@ -741,16 +767,16 @@ jabposter::~jabposter()
     g_main_loop_quit(this->loop);
 }
 
-void jabposter::go()
+void JabPoster::Go()
 {
     if(running == false)
     {
         running = true;
-        pthread_create(&m_thread, 0, (&jabposter::start_thread), this);
+        pthread_create(&m_thread, 0, (&JabPoster::StartThread), this);
     }
 }
 
-void jabposter::stop()
+void JabPoster::Stop()
 {
     if(running == true)
     {
@@ -760,28 +786,13 @@ void jabposter::stop()
     }
 }
 
-gboolean jabposter::w_lockStep(void *unused)
+void *JabPoster::StartThread(void *obj)
 {
-    if( jabint )
-    {
-        jabint->lockStep();
-    }
-		return false;
-}
-
-void jabposter::lockStep(void)
-{
-		purple_core_quit();
-    //this->lock->checkSpinner();
-}
-
-void *jabposter::start_thread(void *obj)
-{
-    reinterpret_cast<jabposter *>(obj)->libpurple();
+    reinterpret_cast<JabPoster *>(obj)->LibpurpleLoop();
     return NULL;
 }
 
-void jabposter::libpurple()
+void JabPoster::LibpurpleLoop()
 {
     GMainContext *con = NULL;
 #ifdef LINUX
@@ -794,4 +805,30 @@ void jabposter::libpurple()
     }
     g_main_loop_run(loop);
 }
+
+void JabPoster::LockSpinner(void)
+{
+    this->lock->LockSpinner();
+}
+
+void JabPoster::UnlockSpinner(void)
+{
+    this->lock->UnlockSpinner();
+}
+
+
+gboolean JabPoster::w_CheckForLock(void *unused)
+{
+    if( jabint )
+    {
+        jabint->CheckForLock();
+    }
+		return false;
+}
+
+void JabPoster::CheckForLock(void)
+{
+    this->lock->CheckSpinner();
+}
+
 

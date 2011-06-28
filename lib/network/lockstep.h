@@ -4,17 +4,17 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-class lockstep
+class LockStep
 {
 public:
-    lockstep();
-    ~lockstep();
-    void checkBoss();
-    void lockBoss();
-    void unlockBoss();
-    void checkSpinner();
-    void unlockSpinner();
-    void lockSpinner();
+    LockStep();
+    ~LockStep();
+    void CheckBoss();
+    void LockBoss();
+    void UnlockBoss();
+    void CheckSpinner();
+    void UnlockSpinner();
+    void LockSpinner();
 
 private:
     sem_t* boss;
