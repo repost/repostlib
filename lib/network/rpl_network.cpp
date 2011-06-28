@@ -39,7 +39,9 @@ std::vector<Link> rpl_network::getLinks()
     std::vector<Link> links;
     int numret = 0, x = 0;
 
+    lock->lockSpinner(); // lock the spinner
     numret = jbp->getlinks(arr_link, MAXLINKS);
+    lock->unlockSpinner(); // lock the spinner
     for( x = 0; x<numret; x++)
     {
         links.push_back(arr_link[x]);
@@ -49,12 +51,16 @@ std::vector<Link> rpl_network::getLinks()
 
 void rpl_network::addLink(Link& link)
 {
+    lock->lockSpinner(); // lock the spinner
     jbp->addlink(link);
+    lock->unlockSpinner(); // lock the spinner
 }
 
 void rpl_network::rmLink(Link& link)
 {
+    lock->lockSpinner(); // lock the spinner
     jbp->rmlink(link);
+    lock->unlockSpinner(); // lock the spinner
 }
 
 std::vector<Account> rpl_network::getAccounts()
@@ -63,7 +69,9 @@ std::vector<Account> rpl_network::getAccounts()
     std::vector<Account> accts;
     int numret = 0, x = 0;
 
+    lock->lockSpinner(); // lock the spinner
     numret = jbp->getaccounts(arr_acc, MAXACCS);
+    lock->unlockSpinner(); // lock the spinner
     for( x = 0; x<numret; x++)
     {
         accts.push_back(arr_acc[x]);
@@ -94,7 +102,11 @@ void rpl_network::rmAccount(Account& acct)
 
 std::string rpl_network::get_userdir()
 {
-    return this->jbp->get_repostdir();
+		string rpdir;
+    lock->lockSpinner(); // lock the spinner
+    rpdir = this->jbp->get_repostdir();
+    lock->unlockSpinner(); // lock the spinner
+		return rpdir;
 }
 
 void rpl_network::go()
@@ -105,5 +117,11 @@ void rpl_network::go()
 void rpl_network::stop()
 {
     if(this->jbp)
+		{
+				//lock->lockSpinner(); // lock the spinner
+				printf("stopping jab\n");
         this->jbp->stop();
+				printf("fin stopping jab\n");
+				//lock->unlockSpinner(); // lock the spinner
+		}
 }

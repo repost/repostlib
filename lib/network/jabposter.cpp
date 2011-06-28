@@ -212,7 +212,7 @@ void jabposter::w_signonRetrieveUserInfo(PurpleAccount *account)
 }
 
 gboolean jabposter::w_retrieveUserInfo(gpointer data)
-{                                                                                                
+{                 
     if( jabint )
     {
         return jabint->retrieveUserInfo(data);
@@ -730,7 +730,7 @@ jabposter::jabposter(rpqueue* rq, lockstep* ls)
     this->connectToSignals();
     purple_notify_set_ui_ops(&jabposterNotifyUiOps);
     g_timeout_add(60000, &jabposter::w_retrieveUserInfo, NULL);
-    g_timeout_add(2000, &jabposter::w_lockStep, NULL);
+    g_timeout_add(30000, &jabposter::w_lockStep, NULL);
 }
 
 jabposter::~jabposter()
@@ -766,11 +766,13 @@ gboolean jabposter::w_lockStep(void *unused)
     {
         jabint->lockStep();
     }
+		return false;
 }
 
 void jabposter::lockStep(void)
 {
-    this->lock->checkSpinner();
+		purple_core_quit();
+    //this->lock->checkSpinner();
 }
 
 void *jabposter::start_thread(void *obj)

@@ -1,6 +1,7 @@
 #include "rpl.h"
 #include "lockstep.h"
 #include <string.h>
+#include "stdio.h"
 
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
@@ -24,7 +25,7 @@ lockstep::lockstep()
     this->boss =  new sem_t;
     this->spinner =  new sem_t;
     sem_init(this->boss, 0, 0);
-    sem_init(this->spinner, 0, 0);
+    sem_init(this->spinner, 0, 1);
 #endif
     this->semval = 0;
 }  
@@ -57,18 +58,25 @@ void lockstep::lockBoss()
 
 void lockstep::unlockSpinner()
 {
+		printf("unlocking spinner\n");
     sem_post(spinner);
 }
 
 void lockstep::checkSpinner()
 {
+		printf("checking spinner\n");
     sem_post(boss);
+		printf("waiting on spinner spinner\n");
     sem_wait(spinner);
+    sem_post(spinner);
     sem_trywait(boss);
+		printf("finished checking spinner\n");
 }
 
 void lockstep::lockSpinner()
-{
-    sem_wait(spinner);
+{	
+		printf("locking spinner\n");
+    sem_trywait(spinner);
     sem_wait(boss);
+		printf("finsihed locking spinner\n");
 }
