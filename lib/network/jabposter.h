@@ -32,13 +32,11 @@ public:
     void AddLink(Link& link);
     void RmLink(Link& link);
     std::string GetRepostDir();
-    /* Stop and starting libpurple loop thread */
+
+    /* Thread Actions */
     void Go();
     void Stop();
 
-    static void w_InitUI();
-    static void* w_NotifyUserInfo(PurpleConnection *gc, const char *who,
-                         PurpleNotifyUserInfo *user_info);
 private:
     jabconnections *jabconn; /* Connection handlers */
     rpqueue *in_queue;      /* Post message in queue */
@@ -48,31 +46,36 @@ private:
     LockStep *lock;         /* Lock for sync between lploop and extern interfaces */
 
     void ConnectToSignals();
+    static void w_InitUI();
     void InitUI();
-    void LibpurpleLoop();
     void PrintSupportedProtocols();
     string GetUniqueIdString();
-    static void *StartThread(void* obj);
     void FreeReposterNames(GList* reposters);
-
+    
+    /* Thread helpers */
+    void LibpurpleLoop();
+    static void *StartThread(void* obj);
     void LockSpinner(void);
     void UnlockSpinner(void);
     static gboolean w_CheckForLock(void *unused);
     void CheckForLock(void);
 
     /* C Style callbacks and wrappers */
-    static gboolean w_LockStep(void *unused);
+    static PurpleNotifyUiOps NotifyUiOps;
+    static PurpleCoreUiOps CoreUiOps;
     static int AuthorizationRequested(PurpleAccount* account, const char* user);
     static void w_ReceivedIm(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);
     void ReceivedIm(PurpleAccount* account, char* sender, char* message,
                               PurpleConversation* conv, PurpleMessageFlags flags);
-    /* Resource handlers */
+    /* XMPP Resource handlers */
     static void w_ResFree(gpointer data);
     void ResFree(gpointer data);
     static gboolean w_RetrieveUserInfo(gpointer data);
-    static void w_SignonRetrieveUserInfo(PurpleAccount *account);
     gboolean RetrieveUserInfo(gpointer data);
+    static void w_SignonRetrieveUserInfo(PurpleAccount *account);
+    static void* w_NotifyUserInfo(PurpleConnection *gc, const char *who,
+                         PurpleNotifyUserInfo *user_info);
     void* NotifyUserInfo(PurpleConnection *gc, const char *who,
                          PurpleNotifyUserInfo *user_info);
     GList* ReposterName(PurpleBuddy* pb);

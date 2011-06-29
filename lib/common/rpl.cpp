@@ -48,13 +48,14 @@ void rePoster::init()
 
 void rePoster::startRepost(){
 
-    Account bacct;
+    /* Start the networks */
+    pnet->go();
+
     /* lets create bonjour user here */
+    Account bacct;
     bacct.set_user("reposter");
     bacct.set_type("Bonjour");
     pnet->addAccount(bacct);
-
-    pnet->go();
 
     /* Create storage class here */
     rpl_storage::init(pnet->get_userdir());

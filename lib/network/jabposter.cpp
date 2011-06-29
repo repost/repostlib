@@ -26,36 +26,35 @@
 
 static JabPoster *jabint = NULL;
 
-static PurpleCoreUiOps jab_core_uiops = 
+PurpleCoreUiOps JabPoster::CoreUiOps =
 {
-    NULL,
-    NULL,
-    NULL,
-    &JabPoster::w_InitUI,
-    /* padding */
-    NULL,
-    NULL,
-    NULL,
-    NULL
+        NULL,
+        NULL,
+        NULL,
+        &JabPoster::w_InitUI,
+        /* padding */
+        NULL,
+        NULL,
+        NULL,
+        NULL
 };
 
-static PurpleNotifyUiOps JabPosterNotifyUiOps =
+PurpleNotifyUiOps JabPoster::NotifyUiOps =
 {
-    NULL, /* pidgin_notify_message, */
-    NULL, /* pidgin_notify_email, */
-    NULL, /* pidgin_notify_emails, */
-    NULL, /* pidgin_notify_formatted, */
-    NULL, /* pidgin_notify_searchresults, */
-    NULL, /* pidgin_notify_searchresults_new_rows, */
-    &JabPoster::w_NotifyUserInfo, /* pidgin_notify_userinfo, */
-    NULL, /* pidgin_notify_uri, */
-    NULL, /* pidgin_close_notify, */
-    NULL,
-    NULL,
-    NULL,
-    NULL 
+        NULL, /* pidgin_notify_message, */
+        NULL, /* pidgin_notify_email, */
+        NULL, /* pidgin_notify_emails, */
+        NULL, /* pidgin_notify_formatted, */
+        NULL, /* pidgin_notify_searchresults, */
+        NULL, /* pidgin_notify_searchresults_new_rows, */
+        &JabPoster::w_NotifyUserInfo, /* pidgin_notify_userinfo, */
+        NULL, /* pidgin_notify_uri, */
+        NULL, /* pidgin_close_notify, */
+        NULL,
+        NULL,
+        NULL,
+        NULL 
 };
-
 #if OS_MACOSX
 void query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
 {
@@ -98,7 +97,7 @@ void JabPoster::InitUI(void)
 #endif
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
-    purple_notify_set_ui_ops(&JabPosterNotifyUiOps);
+    purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
     this->RetrieveUserInfo(NULL);
 }
 
@@ -724,7 +723,7 @@ JabPoster::JabPoster(rpqueue* rq)
     purple_debug_set_enabled(FALSE);
 #endif
 
-    purple_core_set_ui_ops(&jab_core_uiops);
+    purple_core_set_ui_ops(&JabPoster::CoreUiOps);
     purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
 
     /* set the users directory to live inside the repost settings dir */
@@ -750,11 +749,11 @@ JabPoster::JabPoster(rpqueue* rq)
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
     purple_pounces_load();
 #ifdef DEBUG
-    libpurpleDiag();
+    PrintSupportedProtocols();
 #endif
     this->InitUI();
     this->ConnectToSignals();
-    purple_notify_set_ui_ops(&JabPosterNotifyUiOps);
+    purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
     g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
     g_timeout_add(30000, &JabPoster::w_CheckForLock, NULL);
 }
