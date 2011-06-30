@@ -14,13 +14,10 @@ LockStep::LockStep()
     char name[32];
     long now;
     now = (long) time(0);
-
-    snprintf(name, 32, "/%s-%10d-%10ld", "lock", getpid(), now);
+    snprintf(name, 32, "/%s-%10d-%10ld", "boss", getpid(), now);
     this->boss = sem_open(name, O_CREAT, 0, 0);
-
-    snprintf(name, 32, "/%s-%10d-%10ld", "usd", getpid(), now);
-    this->spinner = sem_open(name, O_CREAT, 0, 0);
-
+    snprintf(name, 32, "/%s-%10d-%10ld", "spinner", getpid(), now);
+    this->spinner = sem_open(name, O_CREAT, 0, 1);
 #else
     this->boss = new sem_t;
     this->spinner = new sem_t;

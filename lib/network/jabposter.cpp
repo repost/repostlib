@@ -519,7 +519,7 @@ int JabPoster::GetLinks(Link* links, int num)
     GList* reposters = NULL;
     
     START_THREADSAFE
-
+    
     bnode = purple_blist_get_root();
     while((bnode != NULL) && (x < num))
     {
@@ -815,14 +815,13 @@ void JabPoster::UnlockSpinner(void)
     this->lock->UnlockSpinner();
 }
 
-
 gboolean JabPoster::w_CheckForLock(void *unused)
 {
     if( jabint )
     {
         jabint->CheckForLock();
     }
-		return false;
+		return true;
 }
 
 void JabPoster::CheckForLock(void)

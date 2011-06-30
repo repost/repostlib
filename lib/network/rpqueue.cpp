@@ -13,15 +13,11 @@ rpqueue::rpqueue()
 #ifdef NAMED_SEMAPHORE
     char name[32];
     long now;
-
     now = (long) time(0);
-
     snprintf(name, 32, "/%s-%10d-%10ld", "lock", getpid(), now);
     this->lock = sem_open(name, O_CREAT, 0, 1);
-
     snprintf(name, 32, "/%s-%10d-%10ld", "usd", getpid(), now);
     this->usd = sem_open(name, O_CREAT, 0, 0);
-
     snprintf(name, 32, "/%s-%10d-%10ld", "empty", getpid(), now);
     this->empty = sem_open(name, O_CREAT, 0, QUEUE_SIZE);
 #else
