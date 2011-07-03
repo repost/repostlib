@@ -18,7 +18,7 @@ class LockStep;
 class JabPoster : public slavenet
 {
 public:
-    JabPoster(rpqueue* rq);
+    JabPoster(rpqueue<Post*>* rq);
     ~JabPoster();
 
     /* External Thread-safe Interface */
@@ -39,7 +39,7 @@ public:
 
 private:
     jabconnections *jabconn; /* Connection handlers */
-    rpqueue *in_queue;      /* Post message in queue */
+    rpqueue<Post*> *in_queue;      /* Post message in queue */
     std::string repostdir;  /* .repost directory */
     GHashTable* resMap;     /* Map of users XMPP resources */
     GMainLoop *loop;        /* LibpurpleLoop glib loop */
@@ -58,7 +58,6 @@ private:
     static void *StartThread(void* obj);
     void LockSpinner(void);
     void UnlockSpinner(void);
-    static gboolean w_CheckForLock(void *unused);
     void CheckForLock(void);
     static GSourceFuncs lockevent;
     static gboolean w_prepare(GSource *source, gint *timeout_);

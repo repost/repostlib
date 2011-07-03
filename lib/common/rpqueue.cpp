@@ -8,7 +8,8 @@
 #include <time.h>
 #endif
 
-rpqueue::rpqueue()
+template <class obj>
+rpqueue<obj>::rpqueue()
 {
 #ifdef NAMED_SEMAPHORE
     char name[32];
@@ -31,7 +32,8 @@ rpqueue::rpqueue()
     this->semval = 0;
 }  
 
-rpqueue::~rpqueue()
+template <class obj>
+rpqueue<obj>::~rpqueue()
 {
 #ifdef NAMED_SEMAPHORE
     sem_close(empty);
@@ -44,25 +46,30 @@ rpqueue::~rpqueue()
 #endif
 }
 
-void rpqueue::add(Post *post)
+template <class obj>
+void rpqueue<obj>::add(obj newobj)
 {
     sem_wait(empty);
     sem_wait(lock);
-    postq[this->semval] = post;
+    rpq[this->semval] = newobj;
     this->semval += 1;
     sem_post(usd);
     sem_post(lock);
 }
 
-Post * rpqueue::get()
+template <class obj>
+obj rpqueue<obj>::get()
 {
-    Post *ret = NULL;
+    obj ret;
     sem_wait(usd);
     sem_wait(lock);
-    ret = postq[this->semval-1];
-    postq[this->semval-1] = NULL;
+    ret = rpq[this->semval-1];
+    rpq[this->semval-1] = NULL;
     this->semval -= 1;
     sem_post(empty);
     sem_post(lock);
     return ret;
 }
+
+template class rpqueue<Post*>;
+

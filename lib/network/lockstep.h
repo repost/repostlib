@@ -15,6 +15,7 @@ public:
     ~LockStep();
     GSource* GlibEventSource();
     void CheckSpinner();
+    void CheckBoss();
     void UnlockSpinner();
     void LockSpinner();
 

@@ -58,6 +58,12 @@ void LockStep::LockSpinner()
 {	
     printf("locking spinner\n");
     sem_trywait(spinner);
-    sem_wait(boss);
     printf("finsihed locking spinner\n");
+}
+
+void LockStep::CheckBoss()
+{	
+    printf("checking boss\n");
+    sem_wait(boss);
+    printf("finsihed checking boss\n");
 }

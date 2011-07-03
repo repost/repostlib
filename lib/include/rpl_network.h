@@ -6,8 +6,9 @@
 
 #include "rpl.h"
 
-class rpqueue;
+template <class> class rpqueue;
 class JabPoster;
+class Post;
 
 class rpl_network 
 {
@@ -29,8 +30,8 @@ public:
     void go();
     void stop();
 private:
-    rpqueue *out_queue;
-    rpqueue *in_queue;
+    rpqueue<Post*> *out_queue;
+    rpqueue<Post*> *in_queue;
     JabPoster *jbp;
 };
 

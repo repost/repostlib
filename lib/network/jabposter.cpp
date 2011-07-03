@@ -5,9 +5,7 @@
 #include "defines.h"
 #include "jabposter.h"
 #include "jabconnections.h"
-#include "rpqueue.h"
 #include "lockstep.h"
-#include "rpl.h"
 
 #ifndef WIN32 /* Always last include */
 #include <unistd.h>
@@ -15,8 +13,13 @@
 #include "win32/win32dep.h"
 #endif
 
+#ifdef RPTHREAD_SAFE
 #define START_THREADSAFE LockSpinner();
 #define END_THREADSAFE   UnlockSpinner();
+#else
+#define START_THREADSAFE do{}while(0);
+#define END_THREADSAFE   do{}while(0);
+#endif
 
 #define IDENTIFY_STRING "reposter"
 
@@ -56,7 +59,6 @@ PurpleNotifyUiOps JabPoster::NotifyUiOps =
         NULL 
 };
 
-
 GSourceFuncs JabPoster::lockevent =
 {
     &JabPoster::w_prepare,
@@ -66,9 +68,15 @@ GSourceFuncs JabPoster::lockevent =
 };
 
 #if OS_MACOSX
-void query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
+void query_cert_chain(
+                        PurpleSslConnection *gsc,
+                        const char *hostname, 
+                        void* certs, 
+                        void (*query_cert_cb)(gboolean trusted, void *userdata), 
+                        void *userdata
+                    ) 
 {
-  // only the jabber service supports this right now
+  /* only the jabber service supports this right now */
   query_cert_cb(true, userdata);
 }
 
@@ -79,7 +87,7 @@ extern gboolean purple_init_ssl_cdsa_plugin(void);
 
 void init_ssl_plugins()
 {
-  //First, initialize our built-in plugins
+  /* First, initialize our built-in plugins */
   purple_init_ssl_plugin();
   purple_init_ssl_cdsa_plugin();
   PurplePlugin *cdsa_plugin = purple_plugins_find_with_name("CDSA");
@@ -163,7 +171,6 @@ int JabPoster::AuthorizationRequested(PurpleAccount *account, const char *user)
     return 1;
 } 
 
-
 void JabPoster::PrintSupportedProtocols(void)
 {
     GList *iter;
@@ -185,7 +192,6 @@ std::string JabPoster::GetRepostDir(void)
 {
   return repostdir;
 }
-
 
 /**
  * Some accounts are just for reposting! Ouuuttrraageoouss!
@@ -697,7 +703,7 @@ static void ZombieKiller_Signal(int i)
 }
 #endif
 
-JabPoster::JabPoster(rpqueue* rq)
+JabPoster::JabPoster(rpqueue<Post*>* rq)
 {
     jabint = this;
     lock = new LockStep();
@@ -765,9 +771,10 @@ JabPoster::JabPoster(rpqueue* rq)
     this->ConnectToSignals();
     purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
     g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
-    //g_timeout_add(3000, &JabPoster::w_CheckForLock, NULL);
+#ifdef RPTHREAD_SAFE
     GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
     g_source_attach(lockeventsource, this->con);
+#endif
 }
 
 JabPoster::~JabPoster()
@@ -820,20 +827,13 @@ void JabPoster::LibpurpleLoop()
 void JabPoster::LockSpinner(void)
 {
     this->lock->LockSpinner();
+    g_main_context_wakeup(this->con);
+    this->lock->CheckBoss();
 }
 
 void JabPoster::UnlockSpinner(void)
 {
     this->lock->UnlockSpinner();
-}
-
-gboolean JabPoster::w_CheckForLock(void *unused)
-{
-    if( jabint )
-    {
-        jabint->CheckForLock();
-    }
-		return true;
 }
 
 void JabPoster::CheckForLock(void)
@@ -848,7 +848,7 @@ gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
         jabint->CheckForLock();
     }
     printf("Prepare\n");
-    *timeout_ = 0; /* ensure that this idle event isn't blocked by poll */
+    *timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
     return true;
 }
 

@@ -9,7 +9,7 @@
 
 rpl_network::rpl_network()
 {
-    in_queue = new rpqueue();
+    in_queue = new rpqueue<Post*>();
     jbp = new JabPoster(in_queue);
 }
 
