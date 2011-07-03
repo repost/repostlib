@@ -46,8 +46,8 @@ void rePoster::init()
     rpl_storage::INSTANCE = new rpl_storage();
 }
 
-void rePoster::startRepost(){
-
+void rePoster::startRepost()
+{
     /* Start the networks */
     pnet->go();
 
@@ -64,7 +64,6 @@ void rePoster::startRepost(){
     /* Create consumer here */
     pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
     pcon->go();
-
 }
 
 void rePoster::stopRepost()
@@ -152,10 +151,13 @@ void rePoster::downboat(std::string uuid) {
 rePoster::~rePoster()
 {
     if(pnet)
+    {
         pnet->stop();
-    //pstore->stop();
+    }
     if(pcon)
+    {
         pcon->stop();
+    }
     delete pnet;
     delete pstore;
     delete pcon;

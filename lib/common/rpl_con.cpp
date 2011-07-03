@@ -20,7 +20,8 @@ rpl_con::~rpl_con()
 
 void rpl_con::stop()
 {
-    if(running==true){
+    if(running==true)
+    {
          running=false;
          pthread_join(m_thread,0);
     }
@@ -43,7 +44,6 @@ void *rpl_con::start_thread(void *obj)
 
 void rpl_con::consume()
 {
-	// want a timed semwait 
 	while(running == true)
 	{
 		Post *p = pnet->getpost();
@@ -58,5 +58,10 @@ void rpl_con::consume()
 				cout << "got it"  << endl;
 			}
 		}
+        else
+        {
+            cout <<  "Consumer shutting down\n" << endl;
+            return;
+        }
 	}
 }

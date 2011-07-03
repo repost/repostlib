@@ -782,7 +782,6 @@ JabPoster::~JabPoster()
     delete jabconn;
     uninit_xml();
     g_hash_table_destroy(this->resMap);
-    g_main_loop_quit(this->loop);
 }
 
 void JabPoster::Go()
@@ -799,8 +798,9 @@ void JabPoster::Stop()
     if(running == true)
     {
         running = false;
-        purple_core_quit();
-        this->in_queue->add(NULL); // we going down
+        this->in_queue->add(NULL); /* we going down */
+        g_main_loop_quit(this->loop);
+        pthread_join(m_thread,0);
     }
 }
 
@@ -812,6 +812,7 @@ void *JabPoster::StartThread(void *obj)
 
 void JabPoster::LibpurpleLoop()
 {
+    g_thread_init(NULL);
     this->con = NULL;
 #ifdef LINUX
     con = g_main_context_new();
@@ -822,6 +823,7 @@ void JabPoster::LibpurpleLoop()
       printf("GLOOP FAIL WE IN DA SHIT\n");
     }
     g_main_loop_run(loop);
+    purple_core_quit();
 }
 
 void JabPoster::LockSpinner(void)
