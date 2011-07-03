@@ -24,7 +24,6 @@ LockStep::LockStep()
     sem_init(this->boss, 0, 0);
     sem_init(this->spinner, 0, 1);
 #endif
-    this->semval = 0;
 }  
 
 LockStep::~LockStep()
@@ -36,21 +35,6 @@ LockStep::~LockStep()
     sem_destroy(boss);
     sem_destroy(spinner);
 #endif
-}
-
-void LockStep::UnlockBoss()
-{
-    sem_post(boss);
-}
-
-void LockStep::CheckBoss()
-{
-    sem_wait(boss);
-}
-
-void LockStep::LockBoss()
-{
-    sem_post(spinner);
 }
 
 void LockStep::UnlockSpinner()

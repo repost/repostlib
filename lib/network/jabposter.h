@@ -43,6 +43,7 @@ private:
     std::string repostdir;  /* .repost directory */
     GHashTable* resMap;     /* Map of users XMPP resources */
     GMainLoop *loop;        /* LibpurpleLoop glib loop */
+    GMainContext* con;      /* Libpurple loop context. Null on everything but linux */
     LockStep *lock;         /* Lock for sync between lploop and extern interfaces */
 
     void ConnectToSignals();
@@ -59,6 +60,10 @@ private:
     void UnlockSpinner(void);
     static gboolean w_CheckForLock(void *unused);
     void CheckForLock(void);
+    static GSourceFuncs lockevent;
+    static gboolean w_prepare(GSource *source, gint *timeout_);
+    static gboolean w_check(GSource *source);
+    static gboolean w_dispatch(GSource *source, GSourceFunc callback, gpointer user_data);
 
     /* C Style callbacks and wrappers */
     static PurpleNotifyUiOps NotifyUiOps;

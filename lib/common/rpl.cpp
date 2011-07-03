@@ -55,7 +55,7 @@ void rePoster::startRepost(){
     Account bacct;
     bacct.set_user("reposter");
     bacct.set_type("Bonjour");
-    pnet->addAccount(bacct);
+    //pnet->addAccount(bacct);
 
     /* Create storage class here */
     rpl_storage::init(pnet->get_userdir());

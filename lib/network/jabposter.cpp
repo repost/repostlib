@@ -55,6 +55,16 @@ PurpleNotifyUiOps JabPoster::NotifyUiOps =
         NULL,
         NULL 
 };
+
+
+GSourceFuncs JabPoster::lockevent =
+{
+    &JabPoster::w_prepare,
+    &JabPoster::w_check,
+    &JabPoster::w_dispatch,
+    NULL
+};
+
 #if OS_MACOSX
 void query_cert_chain(PurpleSslConnection *gsc, const char *hostname, void* certs, void (*query_cert_cb)(gboolean trusted, void *userdata), void *userdata) 
 {
@@ -755,7 +765,9 @@ JabPoster::JabPoster(rpqueue* rq)
     this->ConnectToSignals();
     purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
     g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
-    g_timeout_add(30000, &JabPoster::w_CheckForLock, NULL);
+    //g_timeout_add(3000, &JabPoster::w_CheckForLock, NULL);
+    GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
+    g_source_attach(lockeventsource, this->con);
 }
 
 JabPoster::~JabPoster()
@@ -793,7 +805,7 @@ void *JabPoster::StartThread(void *obj)
 
 void JabPoster::LibpurpleLoop()
 {
-    GMainContext *con = NULL;
+    this->con = NULL;
 #ifdef LINUX
     con = g_main_context_new();
 #endif
@@ -829,4 +841,24 @@ void JabPoster::CheckForLock(void)
     this->lock->CheckSpinner();
 }
 
+gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
+{ 
+    if( jabint )
+    {
+        jabint->CheckForLock();
+    }
+    printf("Prepare\n");
+    *timeout_ = 0; /* ensure that this idle event isn't blocked by poll */
+    return true;
+}
 
+gboolean JabPoster::w_check(GSource *source)
+{
+    printf("Checking\n");
+    return false;
+}
+gboolean JabPoster::w_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+{
+    printf("Dispatch\n");
+    return true;
+}
