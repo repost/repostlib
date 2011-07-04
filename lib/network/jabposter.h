@@ -38,13 +38,13 @@ public:
     void Stop();
 
 private:
-    jabconnections *jabconn; /* Connection handlers */
-    rpqueue<Post*> *in_queue;      /* Post message in queue */
-    std::string repostdir;  /* .repost directory */
-    GHashTable* resMap;     /* Map of users XMPP resources */
-    GMainLoop *loop;        /* LibpurpleLoop glib loop */
-    GMainContext* con;      /* Libpurple loop context. Null on everything but linux */
-    LockStep *lock;         /* Lock for sync between lploop and extern interfaces */
+    jabconnections *jabconn;  /* Connection handlers */
+    rpqueue<Post*> *in_queue; /* Post message in queue */
+    std::string repostdir;    /* .repost directory */
+    GHashTable* resMap;       /* Map of users XMPP resources */
+    GMainLoop *loop;          /* LibpurpleLoop glib loop */
+    GMainContext* con;        /* Libpurple loop context. Null on everything but linux */
+    LockStep *lock;           /* Lock for sync between lploop and extern interfaces */
 
     void ConnectToSignals();
     static void w_InitUI();

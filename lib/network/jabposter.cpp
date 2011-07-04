@@ -29,6 +29,38 @@
 
 static JabPoster *jabint = NULL;
 
+#if OS_MACOSX
+void query_cert_chain(
+                        PurpleSslConnection *gsc,
+                        const char *hostname, 
+                        void* certs, 
+                        void (*query_cert_cb)(gboolean trusted, void *userdata), 
+                        void *userdata
+                    ) 
+{
+  /* only the jabber service supports this right now */
+  query_cert_cb(true, userdata);
+}
+
+extern "C" {
+    extern gboolean purple_init_ssl_plugin(void);
+    extern gboolean purple_init_ssl_cdsa_plugin(void);
+}
+
+void init_ssl_plugins()
+{
+  /* First, initialize our built-in plugins */
+  purple_init_ssl_plugin();
+  purple_init_ssl_cdsa_plugin();
+  PurplePlugin *cdsa_plugin = purple_plugins_find_with_name("CDSA");
+  if(cdsa_plugin) 
+  {
+    gboolean ok = false; 
+    purple_plugin_ipc_call(cdsa_plugin, "register_certificate_ui_cb", &ok, query_cert_chain);
+  }   
+}
+#endif
+
 PurpleCoreUiOps JabPoster::CoreUiOps =
 {
         NULL,
@@ -67,37 +99,14 @@ GSourceFuncs JabPoster::lockevent =
     NULL
 };
 
-#if OS_MACOSX
-void query_cert_chain(
-                        PurpleSslConnection *gsc,
-                        const char *hostname, 
-                        void* certs, 
-                        void (*query_cert_cb)(gboolean trusted, void *userdata), 
-                        void *userdata
-                    ) 
+void JabPoster::ConnectToSignals(void)
 {
-  /* only the jabber service supports this right now */
-  query_cert_cb(true, userdata);
+    static int handle;
+    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
+            PURPLE_CALLBACK(&JabPoster::w_ReceivedIm), NULL);
+    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
+            PURPLE_CALLBACK(&JabPoster::AuthorizationRequested), NULL);
 }
-
-extern "C" {
-extern gboolean purple_init_ssl_plugin(void);
-extern gboolean purple_init_ssl_cdsa_plugin(void);
-}
-
-void init_ssl_plugins()
-{
-  /* First, initialize our built-in plugins */
-  purple_init_ssl_plugin();
-  purple_init_ssl_cdsa_plugin();
-  PurplePlugin *cdsa_plugin = purple_plugins_find_with_name("CDSA");
-  if(cdsa_plugin) 
-  {
-    gboolean ok = false; 
-    purple_plugin_ipc_call(cdsa_plugin, "register_certificate_ui_cb", &ok, query_cert_chain);
-  }   
-}
-#endif
 
 void JabPoster::w_InitUI(void)
 {
@@ -116,16 +125,6 @@ void JabPoster::InitUI(void)
     this->jabconn = new jabconnections();
     purple_connections_set_ui_ops(this->jabconn->getUiOps());
     purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
-    this->RetrieveUserInfo(NULL);
-}
-
-void JabPoster::ConnectToSignals(void)
-{
-    static int handle;
-    purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
-            PURPLE_CALLBACK(&JabPoster::w_ReceivedIm), NULL);
-    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
-            PURPLE_CALLBACK(&JabPoster::AuthorizationRequested), NULL);
 }
 
 void JabPoster::w_ReceivedIm(PurpleAccount *account, char *sender, char *message,
@@ -706,9 +705,9 @@ static void ZombieKiller_Signal(int i)
 JabPoster::JabPoster(rpqueue<Post*>* rq)
 {
     jabint = this;
-    lock = new LockStep();
     this->in_queue = rq;
     this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &JabPoster::w_ResFree);
+    this->lock = NULL;
 
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
@@ -740,7 +739,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
 #endif
 
     purple_core_set_ui_ops(&JabPoster::CoreUiOps);
-    purple_eventloop_set_ui_ops(repost_purple_eventloop_get_ui_ops());
+    purple_eventloop_set_ui_ops(RepostEventloopUiOps());
 
     /* set the users directory to live inside the repost settings dir */
     repostdir.assign(purple_home_dir());
@@ -751,7 +750,8 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
      * Now that all the essential stuff has been set, let's try to init the core. It's
      * necessary to provide a non-NULL name for the current ui to the core. This name
      * is used by stuff that depends on this ui, for example the ui-specific plugins. */
-    if (!purple_core_init(UI_ID)) {
+    if(!purple_core_init(UI_ID)) 
+    {
         /* Initializing the core failed. Terminate. */
         fprintf(stderr,
                 "libpurple initialization failed. Dumping core.\n"
@@ -764,14 +764,16 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_prefs_load();
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
     purple_pounces_load();
+    this->ConnectToSignals();
+
 #ifdef DEBUG
     PrintSupportedProtocols();
 #endif
-    this->InitUI();
-    this->ConnectToSignals();
-    purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
+
     g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
+
 #ifdef RPTHREAD_SAFE
+    lock = new LockStep();
     GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
     g_source_attach(lockeventsource, this->con);
 #endif
@@ -812,7 +814,6 @@ void *JabPoster::StartThread(void *obj)
 
 void JabPoster::LibpurpleLoop()
 {
-    g_thread_init(NULL);
     this->con = NULL;
 #ifdef LINUX
     con = g_main_context_new();
@@ -829,7 +830,6 @@ void JabPoster::LibpurpleLoop()
 void JabPoster::LockSpinner(void)
 {
     this->lock->LockSpinner();
-    g_main_context_wakeup(this->con);
     this->lock->CheckBoss();
 }
 

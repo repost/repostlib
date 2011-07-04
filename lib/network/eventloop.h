@@ -6,6 +6,6 @@ extern "C" {
 #include "glib.h"
 }
 
-PurpleEventLoopUiOps *repost_purple_eventloop_get_ui_ops(void);
+PurpleEventLoopUiOps *RepostEventloopUiOps(void);
 
 #endif
