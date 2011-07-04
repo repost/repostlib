@@ -9,8 +9,8 @@
 
 rpl_network::rpl_network()
 {
-    in_queue = new rpqueue();
-    jbp = new jabposter(in_queue);
+    in_queue = new rpqueue<Post*>();
+    jbp = new JabPoster(in_queue);
 }
 
 rpl_network::~rpl_network()
@@ -26,7 +26,7 @@ Post *rpl_network::getpost()
 
 void rpl_network::post(Post &post)
 {
-    jbp->sendpost(&post);
+    jbp->SendPost(&post);
 }
 
 std::vector<Link> rpl_network::getLinks()
@@ -35,7 +35,7 @@ std::vector<Link> rpl_network::getLinks()
     std::vector<Link> links;
     int numret = 0, x = 0;
 
-    numret = jbp->getlinks(arr_link, MAXLINKS);
+    numret = jbp->GetLinks(arr_link, MAXLINKS);
     for( x = 0; x<numret; x++)
     {
         links.push_back(arr_link[x]);
@@ -45,12 +45,12 @@ std::vector<Link> rpl_network::getLinks()
 
 void rpl_network::addLink(Link& link)
 {
-    jbp->addlink(link);
+    jbp->AddLink(link);
 }
 
 void rpl_network::rmLink(Link& link)
 {
-    jbp->rmlink(link);
+    jbp->RmLink(link);
 }
 
 std::vector<Account> rpl_network::getAccounts()
@@ -59,7 +59,7 @@ std::vector<Account> rpl_network::getAccounts()
     std::vector<Account> accts;
     int numret = 0, x = 0;
 
-    numret = jbp->getaccounts(arr_acc, MAXACCS);
+    numret = jbp->GetAccounts(arr_acc, MAXACCS);
     for( x = 0; x<numret; x++)
     {
         accts.push_back(arr_acc[x]);
@@ -71,35 +71,38 @@ void rpl_network::addAccount(Account& acct)
 {
     if(acct.type() == "XMPP")
     {
-        this->jbp->addJabber(acct.user(),acct.pass());
+        this->jbp->AddJabber(acct.user(),acct.pass());
     }
     else if(acct.type() == "Gtalk")
     {
-        this->jbp->addGtalk(acct.user(),acct.pass());
+        this->jbp->AddGtalk(acct.user(),acct.pass());
     }
     else if(acct.type() == "Bonjour")
     {
-        this->jbp->addBonjour(acct.user());
+        this->jbp->AddBonjour(acct.user());
     }
 }
 
 void rpl_network::rmAccount(Account& acct)
 {
-    this->jbp->rmAccount(acct);
+    this->jbp->RmAccount(acct);
 }
 
 std::string rpl_network::get_userdir()
 {
-    return this->jbp->get_repostdir();
+    string rpdir = this->jbp->GetRepostDir();
+    return rpdir;
 }
 
 void rpl_network::go()
 {
-    this->jbp->go();
+    this->jbp->Go();
 }
 
 void rpl_network::stop()
 {
     if(this->jbp)
-        this->jbp->stop();
+    {
+        this->jbp->Stop();
+    }
 }

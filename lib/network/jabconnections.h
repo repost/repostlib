@@ -13,17 +13,18 @@ public:
   jabconnections();
   ~jabconnections();
   PurpleConnectionUiOps* getUiOps();
-  static void w_networkConnected (void);
-  static void w_startReconn(PurpleConnection *gc, 
-                        PurpleConnectionError reason, const char *text);
-  static gboolean w_signon(gpointer data);
 
 private:
   GHashTable *timeoutSignons;
+  static PurpleConnectionUiOps ConnectionUiOps;
 
+  static gboolean w_signon(gpointer data);
   gboolean signon(gpointer data);
+  static void w_startReconn(PurpleConnection *gc, 
+                        PurpleConnectionError reason, const char *text);
   void startReconn(PurpleConnection *gc,
                         PurpleConnectionError reason, const char *text);
+  static void w_networkConnected (void);
   void networkConnected (void);
   static void w_accountRemoved(PurpleAccount *account, gpointer user_data);
   void accountRemoved(PurpleAccount *account, gpointer user_data);

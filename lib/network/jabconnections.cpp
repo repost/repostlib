@@ -94,7 +94,7 @@ void jabconnections::networkConnected(void)
   g_list_free(list);
 }
 
-static PurpleConnectionUiOps jab_conn_ui_ops =
+PurpleConnectionUiOps jabconnections::ConnectionUiOps =
 {
   NULL, /* connection_connect_progress, */
   NULL, /* connection_connected, */
@@ -111,7 +111,7 @@ static PurpleConnectionUiOps jab_conn_ui_ops =
 
 PurpleConnectionUiOps* jabconnections::getUiOps()
 {
-  return &jab_conn_ui_ops;
+  return &jabconnections::ConnectionUiOps;
 }
 
 jabconnections::jabconnections()

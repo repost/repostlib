@@ -3,25 +3,24 @@
 
 #include <pthread.h>
 #include <semaphore.h>
-#include "post.h"
 
 #define QUEUE_SIZE 64
 
+template <class obj>
 class rpqueue
 {
 public:
     rpqueue();
     ~rpqueue();
-    void add(Post *post);
-    Post *get();
+    void add(obj newobj);
+    obj get();
 
 private:
     sem_t* empty;
     sem_t* usd;
     sem_t* lock;
     int semval;
-    Post *postq[QUEUE_SIZE];
+    obj rpq[QUEUE_SIZE];
 };
-
 
 #endif

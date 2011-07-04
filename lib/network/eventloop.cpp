@@ -33,10 +33,14 @@ static gboolean purple_glib_io_invoke(GIOChannel *source, GIOCondition condition
     PurpleGLibIOClosure *closure = (PurpleGLibIOClosure *) data;
     int purple_cond = 0;
 
-    if (condition & PURPLE_GLIB_READ_COND)
+    if(condition & PURPLE_GLIB_READ_COND)
+    {
         purple_cond |= PURPLE_INPUT_READ;
-    if (condition & PURPLE_GLIB_WRITE_COND)
+    }
+    if(condition & PURPLE_GLIB_WRITE_COND)
+    {
         purple_cond |= PURPLE_INPUT_WRITE;
+    }
 
     closure->function(closure->data, g_io_channel_unix_get_fd(source),
             (PurpleInputCondition)purple_cond);
@@ -55,9 +59,13 @@ static guint glib_input_add(gint fd, PurpleInputCondition condition, PurpleInput
     closure->data = data;
 
     if (condition & PURPLE_INPUT_READ)
+    {
         cond |= PURPLE_GLIB_READ_COND;
+    }
     if (condition & PURPLE_INPUT_WRITE)
+    {
         cond |= PURPLE_GLIB_WRITE_COND;
+    }
 
 #if defined _WIN32 && !defined WINPIDGIN_USE_GLIB_IO_CHANNEL
     channel = wpurple_g_io_channel_win32_new_socket(fd);
@@ -90,7 +98,7 @@ static PurpleEventLoopUiOps glib_eventloops =
     NULL
 };
 
-PurpleEventLoopUiOps *repost_purple_eventloop_get_ui_ops(void)
+PurpleEventLoopUiOps *RepostEventloopUiOps(void)
 {
     return &glib_eventloops;
 }
