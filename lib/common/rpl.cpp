@@ -118,8 +118,10 @@ void rePoster::rmAccount(Account account)
 
 std::vector<Link> rePoster::getLinks()
 {
-    //LOG(INFO);
-    LogMessage(__FILE__, __LINE__, INFO);
+    LOG(INFO) << "info";
+    LOG(WARNING) << "warning";
+    LOG(ERROR) << "error";
+    LOG(FATAL) << "fatal";
     return pnet->getLinks();
 }
 

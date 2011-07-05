@@ -15,42 +15,29 @@
 
 #if REPOST_STRIP_LOG == 0
 #define COMPACT_REPOST_LOG_INFO LogMessage( \
-      __FILE__, __LINE__, INFO)
-#define LOG_TO_STRING_INFO(message) LogMessage( \
-      __FILE__, __LINE__, INFO, message)
+      __FILE__, __FUNCTION__,  __LINE__, INFO)
 #else
 #define COMPACT_REPOST_LOG_INFO NullStream()
-#define LOG_TO_STRING_INFO(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 1
 #define COMPACT_REPOST_LOG_WARNING LogMessage( \
-      __FILE__, __LINE__, WARNING)
-#define LOG_TO_STRING_WARNING(message) LogMessage( \
-      __FILE__, __LINE__, WARNING, message)
+      __FILE__, __FUNCTION__, __LINE__, WARNING)
 #else
 #define COMPACT_REPOST_LOG_WARNING NullStream()
-#define LOG_TO_STRING_WARNING(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 2
 #define COMPACT_REPOST_LOG_ERROR LogMessage( \
-      __FILE__, __LINE__, ERROR)
-#define LOG_TO_STRING_ERROR(message) LogMessage( \
-      __FILE__, __LINE__, ERROR, message)
+      __FILE__, __FUNCTION__, __LINE__, ERROR)
 #else
-#define COMPACT_REPOST_LOG_ERROR NullStream()
-#define LOG_TO_STRING_ERROR(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 3
-#define COMPACT_REPOST_LOG_FATAL LogMessageFatal( \
-      __FILE__, __LINE__)
-#define LOG_TO_STRING_FATAL(message) LogMessage( \
-      __FILE__, __LINE__, FATAL, message)
+#define COMPACT_REPOST_LOG_FATAL LogMessage( \
+      __FILE__, __FUNCTION__, __LINE__, FATAL)
 #else
 #define COMPACT_REPOST_LOG_FATAL NullStreamFatal()
-#define LOG_TO_STRING_FATAL(message) NullStreamFatal()
 #endif
 
 #define LOG_IF(severity, condition) \
@@ -106,7 +93,7 @@ public:
   // icc 8 requires this typedef to avoid an internal compiler error.
   typedef void (LogMessage::*SendMethod)();
 
-  LogMessage(const char* file, int line, LogSeverity severity);
+  LogMessage(const char* file, const char* func, int line, LogSeverity severity);
   ~LogMessage();
   
   // Flush a buffered message to the sink set in the constructor.  Always
@@ -117,7 +104,7 @@ public:
   std::ostringstream& stream() { return *(data_->stream_); }
 
 private:
-  void Init(const char* file, int line, LogSeverity severity);//,
+  void Init(const char* file, const char* func, int line, LogSeverity severity);//,
             //void (LogMessage::*send_method)());
 
   void SendToLog();  // Actually dispatch to the logs
@@ -144,6 +131,7 @@ private:
     size_t num_chars_to_syslog_;  // # of chars of msg to send to syslog
     const char* basename_;        // basename of file that called LOG
     const char* fullname_;        // fullname of file that called LOG
+    const char* func_;        // fullname of file that called LOG
     bool has_been_flushed_;       // false => data has not been flushed
     bool first_fatal_;            // true => this was first fatal msg
 
@@ -159,5 +147,27 @@ private:
   LogMessage(const LogMessage&);
   void operator=(const LogMessage&);
 };
+
+class NullStream : public LogMessage::LogStream {
+ public:
+  // Initialize the LogStream so the messages can be written somewhere
+  // (they'll never be actually displayed). This will be needed if a
+  // NullStream& is implicitly converted to LogStream&, in which case
+  // the overloaded NullStream::operator<< will not be invoked.
+  NullStream() : LogMessage::LogStream(0) { }
+  NullStream &stream() { return *this; }
+ private:
+};
+
+// Do nothing. This operator is inline, allowing the message to be
+// compiled away. The message will not be compiled away if we do
+// something like (flag ? LOG(INFO) : LOG(ERROR)) << message; when
+// SKIP_LOG=WARNING. In those cases, NullStream will be implicitly
+// converted to LogStream and the message will be computed and then
+// quietly discarded.
+template<class T>
+inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
+
+
 
 #endif
