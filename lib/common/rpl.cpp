@@ -3,6 +3,7 @@
 #include "rpl_network.h"
 #include "rpl_storage.h"
 #include "rpl_con.h"
+#include "rpdebug.h"
 #include <string>
 #include <iostream>
 
@@ -41,7 +42,7 @@ void rePoster::init()
     g_set_print_handler(p);
 #endif
 #endif
-
+    
     pnet = new rpl_network();
     rpl_storage::INSTANCE = new rpl_storage();
 }
@@ -117,6 +118,8 @@ void rePoster::rmAccount(Account account)
 
 std::vector<Link> rePoster::getLinks()
 {
+    //LOG(INFO);
+    LogMessage(__FILE__, __LINE__, INFO);
     return pnet->getLinks();
 }
 

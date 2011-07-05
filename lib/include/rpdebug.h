@@ -14,47 +14,47 @@
 #include <vector>
 
 #if REPOST_STRIP_LOG == 0
-#define COMPACT_REPOST_LOG_INFO repost::LogMessage( \
-      __FILE__, __LINE__)
-#define LOG_TO_STRING_INFO(message) repost::LogMessage( \
-      __FILE__, __LINE__, repost::INFO, message)
+#define COMPACT_REPOST_LOG_INFO LogMessage( \
+      __FILE__, __LINE__, INFO)
+#define LOG_TO_STRING_INFO(message) LogMessage( \
+      __FILE__, __LINE__, INFO, message)
 #else
-#define COMPACT_REPOST_LOG_INFO repost::NullStream()
-#define LOG_TO_STRING_INFO(message) repost::NullStream()
+#define COMPACT_REPOST_LOG_INFO NullStream()
+#define LOG_TO_STRING_INFO(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 1
-#define COMPACT_REPOST_LOG_WARNING repost::LogMessage( \
-      __FILE__, __LINE__, repost::WARNING)
-#define LOG_TO_STRING_WARNING(message) repost::LogMessage( \
-      __FILE__, __LINE__, repost::WARNING, message)
+#define COMPACT_REPOST_LOG_WARNING LogMessage( \
+      __FILE__, __LINE__, WARNING)
+#define LOG_TO_STRING_WARNING(message) LogMessage( \
+      __FILE__, __LINE__, WARNING, message)
 #else
-#define COMPACT_REPOST_LOG_WARNING repost::NullStream()
-#define LOG_TO_STRING_WARNING(message) repost::NullStream()
+#define COMPACT_REPOST_LOG_WARNING NullStream()
+#define LOG_TO_STRING_WARNING(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 2
-#define COMPACT_REPOST_LOG_ERROR repost::LogMessage( \
-      __FILE__, __LINE__, repost::ERROR)
-#define LOG_TO_STRING_ERROR(message) repost::LogMessage( \
-      __FILE__, __LINE__, repost::ERROR, message)
+#define COMPACT_REPOST_LOG_ERROR LogMessage( \
+      __FILE__, __LINE__, ERROR)
+#define LOG_TO_STRING_ERROR(message) LogMessage( \
+      __FILE__, __LINE__, ERROR, message)
 #else
-#define COMPACT_REPOST_LOG_ERROR repost::NullStream()
-#define LOG_TO_STRING_ERROR(message) repost::NullStream()
+#define COMPACT_REPOST_LOG_ERROR NullStream()
+#define LOG_TO_STRING_ERROR(message) NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 3
-#define COMPACT_REPOST_LOG_FATAL repost::LogMessageFatal( \
+#define COMPACT_REPOST_LOG_FATAL LogMessageFatal( \
       __FILE__, __LINE__)
-#define LOG_TO_STRING_FATAL(message) repost::LogMessage( \
-      __FILE__, __LINE__, repost::FATAL, message)
+#define LOG_TO_STRING_FATAL(message) LogMessage( \
+      __FILE__, __LINE__, FATAL, message)
 #else
-#define COMPACT_REPOST_LOG_FATAL repost::NullStreamFatal()
-#define LOG_TO_STRING_FATAL(message) repost::NullStreamFatal()
+#define COMPACT_REPOST_LOG_FATAL NullStreamFatal()
+#define LOG_TO_STRING_FATAL(message) NullStreamFatal()
 #endif
 
 #define LOG_IF(severity, condition) \
-  !(condition) ? (void) 0 : repost::LogMessageVoidify() & LOG(severity)
+  !(condition) ? (void) 0 : LogMessageVoidify() & LOG(severity)
 
 #define LOG(severity) COMPACT_REPOST_LOG_ ## severity.stream()
 
@@ -85,20 +85,7 @@ class LogMessageVoidify {
 
 class LogMessage {
 public:
-  /* LogStream inherit from non-DLL-exported class (std::ostrstream)
-  ** and VC++ produces a warning for this situation.
-  ** However, MSDN says "C4275 can be ignored in Microsoft Visual C++
-  ** 2005 if you are deriving from a type in the Standard C++ Library"
-  ** http://msdn.microsoft.com/en-us/library/3tdb471s(VS.80).aspx
-  ** Let's just ignore the warning.
-  */
-#ifdef _MSC_VER
-# pragma warning(disable: 4275)
-#endif
   class LogStream : public std::ostringstream {
-#ifdef _MSC_VER
-# pragma warning(default: 4275)
-#endif
   public:
     LogStream(int ctr)
       : std::ostringstream(std::ostringstream::out),
@@ -130,8 +117,8 @@ public:
   std::ostringstream& stream() { return *(data_->stream_); }
 
 private:
-  void Init(const char* file, int line, LogSeverity severity,
-            void (LogMessage::*send_method)());
+  void Init(const char* file, int line, LogSeverity severity);//,
+            //void (LogMessage::*send_method)());
 
   void SendToLog();  // Actually dispatch to the logs
 
@@ -165,9 +152,6 @@ private:
     LogMessageData(const LogMessageData&);
     void operator=(const LogMessageData&);
   };
-
-  static LogMessageData fatal_msg_data_exclusive_;
-  static LogMessageData fatal_msg_data_shared_;
 
   LogMessageData* allocated_;
   LogMessageData* data_;
