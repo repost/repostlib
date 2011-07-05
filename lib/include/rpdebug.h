@@ -101,7 +101,7 @@ public:
 #endif
   public:
     LogStream(int ctr)
-      : ostringstream(std::ostringstream::out),
+      : std::ostringstream(std::ostringstream::out),
         ctr_(ctr) {
       self_ = this;
     }
@@ -127,12 +127,13 @@ public:
   // needed.  Only the first call is actioned; any later ones are ignored.
   void Flush();
 
-
   std::ostringstream& stream() { return *(data_->stream_); }
 
 private:
   void Init(const char* file, int line, LogSeverity severity,
             void (LogMessage::*send_method)());
+
+  void SendToLog();  // Actually dispatch to the logs
 
   // We keep the data in a separate struct so that each instance of
   // LogMessage uses less stack space.
