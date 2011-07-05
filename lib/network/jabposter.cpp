@@ -232,7 +232,7 @@ gboolean JabPoster::w_RetrieveUserInfo(gpointer data)
     {
         return jabint->RetrieveUserInfo(data);
     }
-    return false;
+    return true;
 }
 
 gboolean JabPoster::RetrieveUserInfo(gpointer data)
@@ -765,7 +765,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
     purple_pounces_load();
     this->ConnectToSignals();
-
+		this->InitUI();
 #ifdef DEBUG
     PrintSupportedProtocols();
 #endif
