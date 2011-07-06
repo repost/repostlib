@@ -42,7 +42,7 @@ void rePoster::init()
     g_set_print_handler(p);
 #endif
 #endif
-    
+    InitRepostLogging();
     pnet = new rpl_network();
     rpl_storage::INSTANCE = new rpl_storage();
 }

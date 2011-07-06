@@ -1,8 +1,11 @@
 
+#include "rpversion.h"
 #include "rpdebug.h"
 #include <iomanip>
 
 using namespace std;
+
+static bool IsRepostLoggingRunning = false;
 
 const char*const LogSeverityNames[NUM_SEVERITIES] = {
   "INFO", "WARNING", "ERROR", "FATAL"
@@ -77,3 +80,24 @@ void LogMessage::Flush()
     cout << stream().str() << endl;
     data_->has_been_flushed_ = true;
 }
+
+void InitRepostLogging(void)
+{
+    if(IsRepostLoggingRunning == false)
+    {
+        /* initialisation here */
+        LOG(INFO) <<"\n"
+                    "                           _   \n"  
+                    "                          | |  \n"  
+                    "  _ __ ___ _ __   ___  ___| |_ \n"
+                    " | '__/ _ \\ '_ \\ / _ \\/ __| __|\n"
+                    " | | |  __/ |_) | (_) \\__ \\ |_ \n"
+                    " |_|  \\___| .__/ \\___/|___/\\__|\n"
+                    "          | |                  \n"
+                    "          |_|                  \n"
+                    " " RP_VERSION_STRING "\n"
+                    " " RP_RELEASE_TAGLINE "\n";
+    }
+}
+
+

@@ -156,4 +156,10 @@ public:
 template<class T>
 inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
 
+/*
+** Initialise and close the debug library and print out a version header
+*/
+void InitRepostLogging(void);
+void ShutdownRepostLogging(void);
+
 #endif
