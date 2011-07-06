@@ -7,6 +7,7 @@
 
 #include "rpl.h"
 #include "rpl_storage.h"
+#include "rpdebug.h"
 
 using namespace std;
 
@@ -33,91 +34,91 @@ void print_error ( int err )
     switch (err)
     {
         case SQLITE_OK:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_OK";
             break;
         case SQLITE_ERROR:
-            cout << "SQLITE_ERROR" << endl;
+            LOG(INFO) << "SQLITE_ERROR";
             break;
         case SQLITE_INTERNAL:
-            cout << "SQLITE_INTERNAL" << endl;
+            LOG(INFO) << "SQLITE_INTERNAL";
             break;
         case SQLITE_PERM:
-            cout << "SQLITE_PERM" << endl;
+            LOG(INFO) << "SQLITE_PERM";
             break;
         case SQLITE_ABORT:
-            cout << "SQLITE_ABORT" << endl;
+            LOG(INFO) << "SQLITE_ABORT";
             break;
         case SQLITE_BUSY:
-            cout << "SQLITE_BUSY" << endl;
+            LOG(INFO) << "SQLITE_BUSY";
             break;
         case SQLITE_LOCKED:
-            cout << "SQLITE_LOCKED" << endl;
+            LOG(INFO) << "SQLITE_LOCKED";
             break;
         case SQLITE_NOMEM:
-            cout << "SQLITE_NOMEM" << endl;
+            LOG(INFO) << "SQLITE_NOMEM";
             break;
         case SQLITE_READONLY:
-            cout << "SQLITE_READONLY" << endl;
+            LOG(INFO) << "SQLITE_READONLY";
             break;
         case SQLITE_INTERRUPT:
-            cout << "SQLITE_INTERRUPT" << endl;
+            LOG(INFO) << "SQLITE_INTERRUPT";
             break;
         case SQLITE_IOERR:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_IOERR";
             break;
         case SQLITE_CORRUPT:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_CORRUPT";
             break;
         case SQLITE_NOTFOUND:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_NOTFOUND";
             break;
         case SQLITE_FULL:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_FULL";
             break;
         case SQLITE_CANTOPEN:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_CANTOPEN";
             break;
         case SQLITE_PROTOCOL:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_PROTOCOL";
             break;
         case SQLITE_EMPTY:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_EMPTY";
             break;
         case SQLITE_SCHEMA:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_SCHEMA";
             break;
         case SQLITE_TOOBIG:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_TOOBIG";
             break;
         case SQLITE_CONSTRAINT:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_CONSTRAINT";
             break;
         case SQLITE_MISMATCH:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_MISMATCH";
             break;
         case SQLITE_MISUSE:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_MISUSE";
            break;
         case SQLITE_NOLFS:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_NOLFS";
             break;
         case SQLITE_AUTH:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_AUTH";
             break;
         case SQLITE_FORMAT:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_FORMAT";
             break;
         case SQLITE_RANGE:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_RANGE";
             break;
         case SQLITE_NOTADB:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_NOTADB";
             break;
         case SQLITE_ROW:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_ROW";
             break;
         case SQLITE_DONE:
-            cout << "SQLITE_OK" << endl;
+            LOG(INFO) << "SQLITE_DONE";
             break;
     }
 }
@@ -129,12 +130,11 @@ rpl_storage::rpl_storage()
 {
     int rc = 0;
 
-    printf( "> rpl_storage\n" );
+    LOG(DEBUG) << "> rpl_storage";
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
     }
     else
     {
@@ -143,7 +143,7 @@ rpl_storage::rpl_storage()
     }
 
     sqlite3_close( this->db );
-    printf( "< rpl_storage\n" );
+    LOG(DEBUG) << "< rpl_storage";
 }
 
 rpl_storage::~rpl_storage()
@@ -186,16 +186,15 @@ bool rpl_storage::add_post (Post *post)
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-                this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return ret;
     }
 
     rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
     if ( rc )
     {
-        fprintf( stderr, "Couldn't prepare insert statement err = %d, "
-                "db = 0x%x'%s'\n", rc, this->db, post_insert);
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
         return ret;
     }
 
@@ -205,8 +204,7 @@ bool rpl_storage::add_post (Post *post)
     rc += sqlite3_bind_text(sql_stmt, 4, post->uuid().c_str(), post->uuid().length(), SQLITE_TRANSIENT);
     if ( rc )
     {
-        fprintf( stderr, "Couldn't bind text and int accumlative err = %d",
-                rc);
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
         return ret;
     }
 
@@ -214,13 +212,13 @@ bool rpl_storage::add_post (Post *post)
     rc = sqlite3_step( sql_stmt );
     if ( rc != SQLITE_DONE )
     {
-        printf( "error insert: %d\n", rc );
+        LOG(WARNING) << "error insert: " << rc;
     }
 
     rc = sqlite3_finalize( sql_stmt );
     if ( rc != SQLITE_OK )
     {
-        printf( "error insert: %d\n", rc );
+        LOG(WARNING) << "error insert: " << rc;
     }
 
     if( sqlite3_changes(this->db) > 0 )
@@ -267,105 +265,101 @@ int rpl_storage::get_post ( Post **post, string uuid )
 {
     int rc = 0;
     int rowsReturned = 0;
-		sqlite3_stmt *sql_stmt = NULL;
-		const char* get_post = "SELECT * FROM posts WHERE posts.uuid = ?;";
+    sqlite3_stmt *sql_stmt = NULL;
+    const char* get_post = "SELECT * FROM posts WHERE posts.uuid = ?;";
 
-    cout << "> get_post single" << endl;
+    LOG(DEBUG) << "> get_post single";
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return rowsReturned;
     }
 
-	
-		rc = sqlite3_prepare_v2( this->db, get_post, -1, &sql_stmt, NULL);
-		if ( rc )
+
+    rc = sqlite3_prepare_v2( this->db, get_post, -1, &sql_stmt, NULL);
+    if ( rc )
     {
-        fprintf( stderr, "Couldn't prepare select statement err = %d,"
-									" db = 0x%x'%s'\n", rc, this->db, get_post);
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+            << " db = " << this->db << " " << get_post;
         return rowsReturned;
     }
-		
-		rc = sqlite3_bind_text(sql_stmt, 1, uuid.c_str(), uuid.length(), SQLITE_TRANSIENT);
-		if ( rc )
+
+    rc = sqlite3_bind_text(sql_stmt, 1, uuid.c_str(), uuid.length(), SQLITE_TRANSIENT);
+    if ( rc )
     {
-        fprintf( stderr, "Couldn't bind text and int accumlative err = %d",
-								rc);
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
         return rowsReturned;
     }
-		
-		rowsReturned = this->postSelectArray(sql_stmt, post);
-   
+
+    rowsReturned = this->postSelectArray(sql_stmt, post);
+
     rc = sqlite3_finalize( sql_stmt );
     if ( rc != SQLITE_OK )
     {
-        printf( "error get_post: %d\n", rc );
+        LOG(WARNING) << "error get_post: " <<  rc;
     }
     else
     {
-        cout << "sqlite ok!" << endl;
+        LOG(DEBUG) << "sqlite ok!";
     }
 
     sqlite3_close( this->db );
 
-    cout << "< get_post" << endl;
+    LOG(DEBUG) << "< get_post";
 
     return rowsReturned;
 }
 
 int rpl_storage::get_post ( Post **post, int from, int count )
 {
-		int rc = 0 ;
+    int rc = 0 ;
     int rowsReturned = 0;
-		sqlite3_stmt *sql_stmt = NULL;
-		const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? "
-														"OFFSET ?;" ;
+    sqlite3_stmt *sql_stmt = NULL;
+    const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? "
+        "OFFSET ?;" ;
 
     cout << "> get_post " << endl;
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return rowsReturned;
     }
-	
-		rc = sqlite3_prepare_v2( this->db, get_post, -1, &sql_stmt, NULL);
-		if ( rc )
+
+    rc = sqlite3_prepare_v2( this->db, get_post, -1, &sql_stmt, NULL);
+    if ( rc )
     {
-        fprintf( stderr, "Couldn't prepare select statement err = %d,"
-									" db = 0x%x'%s'\n", rc, this->db, get_post);
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+            << " db = " << this->db << " " << get_post;
         return rowsReturned;
     }
-		
-		rc = sqlite3_bind_int(sql_stmt, 1, count);
-		rc += sqlite3_bind_int(sql_stmt, 2, from);
-		if ( rc )
+
+    rc = sqlite3_bind_int(sql_stmt, 1, count);
+    rc += sqlite3_bind_int(sql_stmt, 2, from);
+    if ( rc )
     {
-        fprintf( stderr, "Couldn't bind text and int accumlative err = %d",
-								rc);
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
         return rowsReturned;
     }
-		
-		rowsReturned = this->postSelectArray(sql_stmt, post);
-   
+
+    rowsReturned = this->postSelectArray(sql_stmt, post);
+
     rc = sqlite3_finalize( sql_stmt );
     if ( rc != SQLITE_OK )
     {
-        printf( "error get_post: %d\n", rc );
+        LOG(WARNING) << "error insert: " << rc;
     }
     else
     {
-        cout << "sqlite ok!" << endl;
+        LOG(DEBUG) << "sqlite ok!";
     }
 
     sqlite3_close( this->db );
 
-    cout << "< get_post" << endl;
+    LOG(DEBUG) << "< get_post";
 
     return rowsReturned;
 }
@@ -379,7 +373,7 @@ int rpl_storage::check_version_number (void * id, int columns, char **column_tex
         {
             // get version number 
             *version = atoi(column_text[i]);
-            printf ( "%s = %s\n", column_name[i], column_text[i] );
+            LOG(INFO) <<  column_name[i] << " = " << column_text[i];
         }
     }
     return 0;
@@ -391,13 +385,12 @@ void rpl_storage::update_table ( )
     int version = -1;
     char *errmsg = NULL;
 
-    cout << "> " << __FUNCTION__ << endl;
+    LOG(DEBUG) << "> " << __FUNCTION__;
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return;
     }
 
@@ -411,7 +404,7 @@ void rpl_storage::update_table ( )
 
     if ( errmsg != NULL )
     {
-        printf( "error read version table: %s\n", errmsg );
+        LOG(WARNING) << "error read version table: " <<  errmsg;
         sqlite3_free ( errmsg );
     }
 
@@ -430,7 +423,7 @@ void rpl_storage::update_table ( )
 
         if ( errmsg != NULL )
         {
-            printf( "error drop post table: %s\n", errmsg );
+            LOG(WARNING) << "error drop post table: " << errmsg;
             sqlite3_free ( errmsg );
         }
 
@@ -443,7 +436,7 @@ void rpl_storage::update_table ( )
 
         if ( errmsg != NULL )
         {
-            printf( "error create post table: %s\n", errmsg );
+            LOG(WARNING) << "error create post table: " << errmsg;
             sqlite3_free ( errmsg );
         }
 
@@ -457,12 +450,12 @@ void rpl_storage::update_table ( )
 
         if ( errmsg != NULL )
         {
-            printf( "error update version table: %s\n", errmsg );
+            LOG(WARNING) << "error update version table: " <<  errmsg;
             sqlite3_free ( errmsg );
         }
     }
 
-    cout << "< " << __FUNCTION__ << endl;
+    LOG(DEBUG) << "< " << __FUNCTION__;
     sqlite3_close( this->db );
 }
 
@@ -472,7 +465,7 @@ bool rpl_storage::setup_tables ()
     char *errmsg = NULL;
     bool ret = true;
 
-    printf( "> %s\n", __FUNCTION__);
+    LOG(DEBUG) << ">", __FUNCTION__;
 
     rc = sqlite3_exec ( this->db, 
             CREATE_POST_TABLE, 
@@ -482,7 +475,7 @@ bool rpl_storage::setup_tables ()
 
     if ( errmsg != NULL )
     {
-        printf( "error create post table: %s\n", errmsg );
+        LOG(WARNING) << "error create post table: " << errmsg;
         sqlite3_free ( errmsg );
         ret = false;
     }
@@ -490,7 +483,7 @@ bool rpl_storage::setup_tables ()
     // check version numbers and stuff
     this->update_table( );
 
-    printf( "< %s\n", __FUNCTION__ );
+    LOG(DEBUG) << "< " <<  __FUNCTION__;
 
     return true;
 }
@@ -500,14 +493,13 @@ void rpl_storage::delete_post ( string uuid )
     int rc;
     char *errmsg;
 
-    cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
+    LOG(DEBUG) << __FUNCTION__ << " do some shit here with uuid " << uuid;
     stringstream sql_stmt;
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return;
     }
     
@@ -521,11 +513,11 @@ void rpl_storage::delete_post ( string uuid )
 
     if ( rc != SQLITE_OK )
     {
-        cout << "sqlite error! error number " << rc << endl;
+        LOG(WARNING) << "sqlite error! error number " << rc;
     }
     else
     {
-        cout << "sqlite ok!" << endl;
+        LOG(DEBUG) << "sqlite ok!";
     }
     sqlite3_close( this->db );
 }
@@ -536,12 +528,11 @@ void rpl_storage::update_metric ( string uuid )
     char *errmsg;
     stringstream sql_stmt;
 
-    cout << __FUNCTION__ << " do some shit here with uuid " << uuid  << endl;
+    LOG(DEBUG) << __FUNCTION__ << " do some shit here with uuid " << uuid;
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
-        fprintf( stderr, "Couldn't open db %s\n", 
-            this->db_location() );
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
         return;
     }
 
@@ -555,11 +546,11 @@ void rpl_storage::update_metric ( string uuid )
 
     if ( rc != SQLITE_OK )
     {
-        cout << "sqlite error! error number " << rc << endl;
+        LOG(WARNING) << "sqlite error! error number " << rc;
     }
     else
     {
-        cout << "sqlite ok!" << endl;
+        LOG(DEBUG) << "sqlite ok!";
     }
     sqlite3_close( this->db );
 }

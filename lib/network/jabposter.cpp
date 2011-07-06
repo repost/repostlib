@@ -6,6 +6,7 @@
 #include "jabposter.h"
 #include "jabconnections.h"
 #include "lockstep.h"
+#include "rpdebug.h"
 
 #ifndef WIN32 /* Always last include */
 #include <unistd.h>
@@ -118,7 +119,7 @@ void JabPoster::w_InitUI(void)
 
 void JabPoster::InitUI(void)
 { 
-    printf("initialise UI\n");
+    LOG(INFO) << "initialise UI";
 #if OS_MACOSX
     init_ssl_plugins();
 #endif
@@ -175,14 +176,14 @@ void JabPoster::PrintSupportedProtocols(void)
     GList *iter;
     int i;
     iter = purple_plugins_get_protocols();
-    printf("Supported Protocols\n");
+    LOG(DEBUG) << "Supported Protocols";
     for (i = 0; iter; iter = iter->next) 
     {
       PurplePlugin *plugin = (PurplePlugin *)iter->data;
       PurplePluginInfo *info = plugin->info;
       if (info && info->name) 
       {
-        printf("\t%d: %s\n", i++, info->name);
+        LOG(DEBUG) << "\t" << i++ << info->name;
       }
     }
 }
@@ -247,7 +248,7 @@ gboolean JabPoster::RetrieveUserInfo(gpointer data)
             const char* name = purple_buddy_get_name(pb);
             if(purple_presence_is_online(pres))
             {
-                printf("requesting info for buddy %s\n",name);
+                LOG(DEBUG) << "requesting info for buddy " << name;
                 PurpleConnection* conn = purple_account_get_connection(purple_buddy_get_account(pb));
                 PurpleNotifyUserInfo *info = purple_notify_user_info_new(); 
                 purple_notify_userinfo(conn, name, info, NULL, NULL);
@@ -256,7 +257,7 @@ gboolean JabPoster::RetrieveUserInfo(gpointer data)
             }
             else /* signed off remove resources */
             {
-                printf("buddy is offline %s\n", name);
+                LOG(DEBUG) << "buddy is offline " << name;
                 g_hash_table_remove(resMap, name); 
             }
         }
@@ -294,7 +295,7 @@ void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
         {
             if(!strncmp(label,"Resource",sizeof("Resource")))
             {
-                printf("Info from buddy %s res %s\n",who, value);
+                LOG(DEBUG) << "Info from buddy " << who << " res " << value;
                 char* resname = (char*)g_malloc(strlen(who)+strlen(value)+2); 
                 strncpy(resname, who, strlen(who)+1);
                 strncat(resname, "/", 1);
@@ -325,11 +326,11 @@ GList* JabPoster::ReposterName(PurpleBuddy* pb)
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
         GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
-        printf("prpl-jabber looking up %s\n",bname);
+        LOG(DEBUG) << "prpl-jabber looking up " << bname;
         for(resources = g_list_first(resources);resources; resources = g_list_next(resources))
         {
             char* resname = (char*) resources->data;
-            printf("resource %s\n",resname);
+            LOG(DEBUG) << "resource " << resname;
             if(strstr(resname, IDENTIFY_STRING))
             {
                 char* resname_cpy = (char*) g_malloc(strlen(resname)+1);
@@ -340,10 +341,10 @@ GList* JabPoster::ReposterName(PurpleBuddy* pb)
     }
     else if(!strncmp(proto_id, "prpl-bonjour", sizeof("prpl-bonjour")))
     {
-        printf("prpl-bonjour looking up %s\n",bname);
+        LOG(DEBUG) << "prpl-bonjour looking up " << bname;
         if(strstr(purple_buddy_get_name(pb), IDENTIFY_STRING))
         {
-            printf("get bonny\n",purple_buddy_get_name(pb));
+            LOG(DEBUG) << "get buddy " << purple_buddy_get_name(pb);
             char* bname = (char*) g_malloc(strlen(purple_buddy_get_name(pb))+1);
             strncpy(bname, purple_buddy_get_name(pb), strlen(purple_buddy_get_name(pb)));
             reposters = g_list_prepend(reposters, bname);
@@ -381,7 +382,7 @@ void JabPoster::SendPost(Post *post)
 
     if(!post)
     {
-        printf("post is null :'(. All your bases belong to us\n");
+        LOG(INFO) << "post is null :'(. All your bases belong to us";
     }
     else
     {
@@ -399,7 +400,7 @@ void JabPoster::SendPost(Post *post)
                     GList* rnames = NULL;
                     for(rnames = reposters; rnames; rnames = g_list_next(rnames))
                     {
-                        printf("sending to %s\n",(const char*)rnames->data);
+                        LOG(INFO) << "sending to " << (const char*)rnames->data;
                         conv = purple_conversation_new(PURPLE_CONV_TYPE_IM,
                                 purple_buddy_get_account(pb),
                                 (const char*) rnames->data);
@@ -409,19 +410,19 @@ void JabPoster::SendPost(Post *post)
                             nomarkup =  g_markup_escape_text(strpost.c_str(), -1);
                             if(PURPLE_CONV_IM(conv))
                             {
-                                printf("send im\n");
+                                LOG(DEBUG) << "send im";
                                 purple_conv_im_send_with_flags(PURPLE_CONV_IM(conv), 
                                         nomarkup,flag);
                             }
                             else if(PURPLE_CONV_CHAT(conv))
                             {
-                                printf("send chat\n");
+                                LOG(DEBUG) << "send chat";
                                 purple_conv_chat_send_with_flags(PURPLE_CONV_CHAT(conv), 
                                         nomarkup,flag);
                             }
                             else
                             {
-                                printf("Other unexpected convo type\n");
+                                LOG(WARNING) << "Other unexpected convo type";
                             }
                             g_free(nomarkup);
                             purple_conversation_destroy(conv); /* have to destroy each convo so we 
@@ -753,9 +754,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     if(!purple_core_init(UI_ID)) 
     {
         /* Initializing the core failed. Terminate. */
-        fprintf(stderr,
-                "libpurple initialization failed. Dumping core.\n"
-                "Please report this!\n");
+        LOG(FATAL) << "libpurple initialization failed. Dumping core.";
         abort();
     }
 
@@ -766,7 +765,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_pounces_load();
     this->ConnectToSignals();
 
-#ifdef DEBUG
+#ifdef DEBUG_ON
     PrintSupportedProtocols();
 #endif
 
@@ -821,7 +820,7 @@ void JabPoster::LibpurpleLoop()
     this->loop = g_main_loop_new(con, FALSE);
     if(loop == NULL)
     {
-      printf("GLOOP FAIL WE IN DA SHIT\n");
+      LOG(FATAL) << "GLOOP FAIL WE IN DA SHIT";
     }
     g_main_loop_run(loop);
     purple_core_quit();
@@ -849,18 +848,18 @@ gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
     {
         jabint->CheckForLock();
     }
-    printf("Prepare\n");
+    LOG(DEBUG) << "Prepare";
     *timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
     return true;
 }
 
 gboolean JabPoster::w_check(GSource *source)
 {
-    printf("Checking\n");
+    LOG(DEBUG) << "Checking";
     return false;
 }
 gboolean JabPoster::w_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
-    printf("Dispatch\n");
+    LOG(DEBUG) << "Dispatch";
     return true;
 }

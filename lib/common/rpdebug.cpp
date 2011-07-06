@@ -8,7 +8,7 @@ using namespace std;
 static bool IsRepostLoggingRunning = false;
 
 const char*const LogSeverityNames[NUM_SEVERITIES] = {
-  "INFO", "WARNING", "ERROR", "FATAL"
+    "DEBUG", "INFO", "WARNING", "ERROR", "FATAL"
 };
 
 LogMessage::LogMessage(const char* file, const char* func, int line, LogSeverity severity) 

@@ -12,26 +12,33 @@
 #include <iostream>
 
 #if REPOST_STRIP_LOG == 0
+#define COMPACT_REPOST_LOG_DEBUG LogMessage( \
+      __FILE__, __FUNCTION__,  __LINE__, DEBUG)
+#else
+#define COMPACT_REPOST_LOG_INFO NullStream()
+#endif
+
+#if REPOST_STRIP_LOG == 1
 #define COMPACT_REPOST_LOG_INFO LogMessage( \
       __FILE__, __FUNCTION__,  __LINE__, INFO)
 #else
 #define COMPACT_REPOST_LOG_INFO NullStream()
 #endif
 
-#if REPOST_STRIP_LOG <= 1
+#if REPOST_STRIP_LOG <= 2
 #define COMPACT_REPOST_LOG_WARNING LogMessage( \
       __FILE__, __FUNCTION__, __LINE__, WARNING)
 #else
 #define COMPACT_REPOST_LOG_WARNING NullStream()
 #endif
 
-#if REPOST_STRIP_LOG <= 2
+#if REPOST_STRIP_LOG <= 3
 #define COMPACT_REPOST_LOG_ERROR LogMessage( \
       __FILE__, __FUNCTION__, __LINE__, ERROR)
 #else
 #endif
 
-#if REPOST_STRIP_LOG <= 3
+#if REPOST_STRIP_LOG <= 4
 #define COMPACT_REPOST_LOG_FATAL LogMessage( \
       __FILE__, __FUNCTION__, __LINE__, FATAL)
 #else
@@ -44,7 +51,8 @@
 #define LOG(severity) COMPACT_REPOST_LOG_ ## severity.stream()
 
 typedef int LogSeverity;
-const int INFO = 0, WARNING = 1, ERROR = 2, FATAL = 3, NUM_SEVERITIES = 4;
+const int DEBUG = 0, INFO = 1, WARNING = 2, ERROR = 3, FATAL = 4, NUM_SEVERITIES = 5;
+
 extern const char* const LogSeverityNames[NUM_SEVERITIES];
 
 /* This class is used to explicitly ignore values in the conditional

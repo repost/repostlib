@@ -16,7 +16,7 @@ env = Environment(
 
 # optional flags
 if int(ARGUMENTS.get('debug', 0)):
-    env.Append(CCFLAGS='-DDEBUG')
+    env.Append(CCFLAGS='-DDEBUG_ON')
     if (platform =='win'):
       env.Append(CCFLAGS='/Zi')
     else:

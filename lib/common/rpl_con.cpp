@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include "rpl_con.h"
+#include "rpdebug.h"
 
 using namespace std;
 
@@ -55,12 +56,12 @@ void rpl_con::consume()
 			}
 			else
 			{
-				cout << "got it"  << endl;
+				LOG(INFO) << "Already received UUID " << p->uuid();
 			}
 		}
         else
         {
-            cout <<  "Consumer shutting down\n" << endl;
+            LOG(INFO) <<  "Consumer shutting down";
             return;
         }
 	}
