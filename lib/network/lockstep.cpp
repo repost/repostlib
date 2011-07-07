@@ -2,6 +2,7 @@
 #include "lockstep.h"
 #include <string.h>
 #include "stdio.h"
+#include "rpdebug.h"
 
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
@@ -39,31 +40,31 @@ LockStep::~LockStep()
 
 void LockStep::UnlockSpinner()
 {
-    printf("unlocking spinner\n");
+    LOG(DEBUG) << "unlocking spinner";
     sem_post(spinner);
 }
 
 void LockStep::CheckSpinner()
 {
-    printf("checking spinner\n");
+    LOG(DEBUG) << "checking spinner";
     sem_post(boss);
-    printf("waiting on spinner spinner\n");
+    LOG(DEBUG) << "waiting on spinner";
     sem_wait(spinner);
     sem_post(spinner);
     sem_trywait(boss);
-    printf("finished checking spinner\n");
+    LOG(DEBUG) << "finished checking spinner";
 }
 
 void LockStep::LockSpinner()
 {	
-    printf("locking spinner\n");
+    LOG(DEBUG) << "trywait locking spinner";
     sem_trywait(spinner);
-    printf("finsihed locking spinner\n");
+    LOG(DEBUG) << "finsihed locking spinner";
 }
 
 void LockStep::CheckBoss()
 {	
-    printf("checking boss\n");
+    LOG(DEBUG) << "checking boss";
     sem_wait(boss);
-    printf("finsihed checking boss\n");
+    LOG(DEBUG) << "finsihed checking boss";
 }

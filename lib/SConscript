@@ -65,6 +65,7 @@ env.Append(
     )
 
 # Build the components
+Touch('include/rpversion.h')
 buildscripts = '\n'.join("%s/build/%s/%s/SConscript" % ( env['ROOT'], env['PLATFORM'] , k) for k in Split(packages))
 env.VariantDir('$ROOT/build/$PLATFORM/', '.')
 objs = env.SConscript(Split(buildscripts),'env')

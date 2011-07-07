@@ -3,6 +3,7 @@
 #include "rpl_network.h"
 #include "rpl_storage.h"
 #include "rpl_con.h"
+#include "rpdebug.h"
 #include <string>
 #include <iostream>
 
@@ -11,7 +12,7 @@
 #endif
 
 using namespace std;
-#ifdef DEBUG
+#ifdef DEBUG_ON
 #ifdef WIN32
 #include "glib.h"
 #include "win32/win32dep.h"
@@ -29,7 +30,7 @@ void rePoster::init()
          do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
 #endif
-#ifdef DEBUG 
+#ifdef DEBUG_ON
 #ifdef WIN32
     if(AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
@@ -41,7 +42,7 @@ void rePoster::init()
     g_set_print_handler(p);
 #endif
 #endif
-
+    InitRepostLogging();
     pnet = new rpl_network();
     rpl_storage::INSTANCE = new rpl_storage();
 }
@@ -132,19 +133,18 @@ void rePoster::rmLink(Link link)
 
 void rePoster::upboat(string u) {
     Post *uppost = NULL;
-    std::cout << "upboated! update metric!" << std::endl;
     pstore->update_metric(u);
     pstore->get_post(&uppost, u);
     if(uppost)
     {
-      cout << "uuid " << uppost->uuid() << endl;
-      cout << "content " << uppost->content()<< endl;
+      LOG(INFO) << "Upboating post UUID " << uppost->uuid();
+      LOG(DEBUG) << "content " << uppost->content();
       pnet->post(*uppost);
     }
 }
 
 void rePoster::downboat(std::string uuid) {
-    std::cout << "downboated! delete that shit" << std::endl;
+    LOG(INFO) << "Downboating post UUID " << uuid;
     pstore->delete_post(uuid);
 }
 
