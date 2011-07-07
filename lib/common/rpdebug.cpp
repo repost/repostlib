@@ -60,7 +60,7 @@ void LogMessage::Init(const char* file,
             << setw(2) << data_->tm_time_.tm_hour  << ':'
             << setw(2) << data_->tm_time_.tm_min   << ':'
             << setw(2) << data_->tm_time_.tm_sec   << " "
-            << data_->func_ << ':' << data_->basename_ << ':' << data_->line_ << "] ";
+            << data_->basename_ << ':' << data_->line_ << "] ";
 }
 
 LogMessage::~LogMessage() 

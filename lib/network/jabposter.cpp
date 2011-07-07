@@ -183,7 +183,7 @@ void JabPoster::PrintSupportedProtocols(void)
       PurplePluginInfo *info = plugin->info;
       if (info && info->name) 
       {
-        LOG(DEBUG) << "\t" << i++ << info->name;
+        LOG(DEBUG) << "\t" << i++ << " " << info->name;
       }
     }
 }

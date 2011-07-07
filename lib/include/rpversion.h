@@ -7,6 +7,6 @@
 #define RP_RELEASE_NAME "Ricky Bobby"
 #define RP_RELEASE_TAGLINE "It's shake and bake time"
 
-#define RP_VERSION_STRING "Repost 0.3 - " RP_RELEASE_NAME " Built - "__DATE__ ", " __TIME__
+#define RP_VERSION_STRING "Repost 0.3 - " RP_RELEASE_NAME " - Built "__DATE__ ", " __TIME__
 
 #endif

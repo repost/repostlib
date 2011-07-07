@@ -18,7 +18,7 @@
 #define COMPACT_REPOST_LOG_INFO NullStream()
 #endif
 
-#if REPOST_STRIP_LOG == 1
+#if REPOST_STRIP_LOG <= 1
 #define COMPACT_REPOST_LOG_INFO LogMessage( \
       __FILE__, __FUNCTION__,  __LINE__, INFO)
 #else
