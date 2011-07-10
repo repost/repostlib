@@ -10,6 +10,8 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <pthread.h>
+#include <semaphore.h>
 
 #if REPOST_STRIP_LOG == 0
 #define COMPACT_REPOST_LOG_DEBUG LogMessage( \
@@ -66,6 +68,56 @@ public:
          ** higher than ?:
          */
         void operator&(std::ostringstream&) { }
+};
+class LogSink {
+public:
+    LogSink(){};
+    virtual ~LogSink(){};
+    virtual void send(LogSeverity severity, std::string msg) = 0;
+ private:
+ int i;
+};
+
+class LogStdoutSink : public LogSink {
+public:
+  LogStdoutSink(){};
+  ~LogStdoutSink(){};
+  void send(LogSeverity severity, std::string msg);
+};
+
+class LogFileSink : public LogSink {
+public:
+    LogFileSink(){};
+    ~LogFileSink(){};
+    void send(LogSeverity severity, std::string msg);
+
+    /* Configuration options */
+    void SetBasename(const char* basename);
+
+    int LogSize() {
+        MutexLock l(&lock_);
+        return file_length_;
+    }
+
+    void Flush();
+    /* Flush log without grabbing locks */
+    void FlushUnlocked();
+
+ private:
+    static const int kRolloverAttemptFrequency = 0x20;
+
+    sem_t* lock_;
+    bool base_filename_selected_;
+    string base_filename_;
+    FILE* file_;
+    LogSeverity severity_;
+    int bytes_since_flush_;
+    int file_length_;
+    unsigned int rollover_attempt_;
+    int next_flush_time_;         // cycle count at which to flush log
+
+    bool CreateLogfile(const char* time_pid_string);
+    void RotateLogs();
 };
 
 class LogMessage {
@@ -170,4 +222,13 @@ inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
 void InitRepostLogging(void);
 void ShutdownRepostLogging(void);
 
+/*
+** Not thread-safe for us from the top level thread only.
+** Intention here is to allow users to turn up the level
+** of debug
+*/
+void SetRepostLogLevel(LogSeverity severity);
+
+//void AddLogSink(LogSink *destination);
+//void RemoveLogSink(LogSink *destination);
 #endif

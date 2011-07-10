@@ -320,7 +320,7 @@ int rpl_storage::get_post ( Post **post, int from, int count )
     const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? "
         "OFFSET ?;" ;
 
-    cout << "> get_post " << endl;
+    LOG(DEBUG) << "> get_post";
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
