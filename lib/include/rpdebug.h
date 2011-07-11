@@ -10,8 +10,8 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <pthread.h>
-#include <semaphore.h>
+
+#include "rpsemaphore.h"
 
 #if REPOST_STRIP_LOG == 0
 #define COMPACT_REPOST_LOG_DEBUG LogMessage( \
@@ -73,7 +73,7 @@ class LogSink {
 public:
     LogSink(){};
     virtual ~LogSink(){};
-    virtual void send(LogSeverity severity, std::string msg) = 0;
+    virtual void Send(LogSeverity severity, std::string msg) = 0;
  private:
  int i;
 };
@@ -82,22 +82,23 @@ class LogStdoutSink : public LogSink {
 public:
   LogStdoutSink(){};
   ~LogStdoutSink(){};
-  void send(LogSeverity severity, std::string msg);
+  void Send(LogSeverity severity, std::string msg);
 };
 
 class LogFileSink : public LogSink {
 public:
-    LogFileSink(){};
-    ~LogFileSink(){};
-    void send(LogSeverity severity, std::string msg);
+    LogFileSink(LogSeverity severity, const char* base_filename);
+    ~LogFileSink();
+    void Send(LogSeverity severity, std::string msg);
+    void Write(bool force_flush, std::string msg);
 
     /* Configuration options */
     void SetBasename(const char* basename);
+    void SetFlushTime(int secs);
+    void SetFileExtension(const char* extension);
 
-    int LogSize() {
-        MutexLock l(&lock_);
-        return file_length_;
-    }
+    int LogSize();
+    int MaxLogSize();
 
     void Flush();
     /* Flush log without grabbing locks */
@@ -106,18 +107,20 @@ public:
  private:
     static const int kRolloverAttemptFrequency = 0x20;
 
-    sem_t* lock_;
+    RpSemaphore* lock_;
     bool base_filename_selected_;
-    string base_filename_;
+    std::string base_filename_;
+    std::string file_extension_;
     FILE* file_;
     LogSeverity severity_;
     int bytes_since_flush_;
+    int logbufsecs_;
     int file_length_;
+    int maxlogsize_;
     unsigned int rollover_attempt_;
-    int next_flush_time_;         // cycle count at which to flush log
+    int next_flush_time_; /* cycle count at which to flush log */
 
-    bool CreateLogfile(const char* time_pid_string);
-    void RotateLogs();
+    bool CreateLogfile(std::string time_pid_string);
 };
 
 class LogMessage {
