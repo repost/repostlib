@@ -101,13 +101,15 @@ void LogMessage::Flush()
     data_->has_been_flushed_ = true;
 }
 
-void InitRepostLogging(void)
+void InitRepostLogging(string userdir)
 {
     if(IsRepostLoggingRunning == false)
     {
         RepostLogSinks = new vector<LogSink*>;
         LogStdoutSink* StdoutSink = new LogStdoutSink();
         RepostLogSinks->push_back(StdoutSink);
+        LogFileSink* FileSink = new LogFileSink(userdir);
+        RepostLogSinks->push_back(FileSink);
 
         /* initialisation here */
         LOG(INFO) <<"\n"
@@ -135,13 +137,9 @@ void LogStdoutSink::Send(LogSeverity severity, std::string msg)
     cout << msg << endl;
 }
 
-LogFileSink::LogFileSink(LogSeverity severity,
-                             const char* base_filename)
-   :base_filename_selected_(base_filename != NULL),
-    base_filename_((base_filename != NULL) ? base_filename : ""),
-    file_extension_("log"),
+LogFileSink::LogFileSink(string base_filename)
+   :file_extension_(".log"),
     file_(NULL),
-    severity_(severity),
     bytes_since_flush_(0),
     file_length_(0),
     logbufsecs_(2),
@@ -150,6 +148,7 @@ LogFileSink::LogFileSink(LogSeverity severity,
     next_flush_time_(0) 
 {
     lock_ = new RpSemaphore(1);
+    SetBasename(base_filename.append("/repostlog"));
 }
 
 LogFileSink::~LogFileSink() 
@@ -169,10 +168,9 @@ int LogFileSink::LogSize()
     return file_length_;
 }
 
-void LogFileSink::SetBasename(const char* basename) 
+void LogFileSink::SetBasename(std::string basename) 
 {
     ContextLock l(lock_);
-    base_filename_selected_ = true;
     if (base_filename_ != basename) 
     {
         /* Get rid of old log file since we are changing names */
@@ -223,8 +221,8 @@ int LogFileSink::MaxLogSize()
 
 bool LogFileSink::CreateLogfile(std::string time_pid_string) 
 {
-    string string_filename = base_filename_+file_extension_+
-        time_pid_string;
+    string string_filename = base_filename_+time_pid_string
+                                +file_extension_;
     const char* filename = string_filename.c_str();
     int fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, 0664);
     if (fd == -1) return false;
@@ -240,12 +238,24 @@ bool LogFileSink::CreateLogfile(std::string time_pid_string)
     return true;  // Everything worked
 }
 
+void LogFileSink::Send(LogSeverity severity, std::string msg)
+{
+    if(severity < WARNING)
+    {
+        Write(false, msg.append("\n"));
+    }
+    else
+    {
+        Write(true, msg);
+    }
+}
+
 void LogFileSink::Write(bool force_flush, string msg)
 {
     ContextLock l(lock_);
     ::time_t seconds = time(NULL);
     /* We don't log if the base_name_ is "" (which means "don't write") */
-    if (base_filename_selected_ && base_filename_.empty()) 
+    if (base_filename_.empty()) 
     {
         return;
     }
@@ -275,36 +285,31 @@ void LogFileSink::Write(bool force_flush, string msg)
         /* The logfile's filename will have the date/time & pid in it */
         ostringstream time_pid_stream;
         time_pid_stream << 1900+tm_time.tm_year
-            << setw(2) << 1+tm_time.tm_mon
+            << setfill('0') << setw(2) << 1+tm_time.tm_mon
             << setw(2) << tm_time.tm_mday
             << '-'
             << setw(2) << tm_time.tm_hour
             << setw(2) << tm_time.tm_min
-            << setw(2) << tm_time.tm_sec
-            << '.'
-            << '\0';
+            << setw(2) << tm_time.tm_sec;
 
-        if (base_filename_selected_) 
+        if (!CreateLogfile(time_pid_stream.str())) 
         {
-            if (!CreateLogfile(time_pid_stream.str())) 
-            {
-                fprintf(stderr, "COULD NOT CREATE LOGFILE '%s'!\n", 
-                            time_pid_stream.str().c_str());
-                return;
-            }
-        } 
+            fprintf(stderr, "COULD NOT CREATE LOGFILE '%s'!\n", 
+                        time_pid_stream.str().c_str());
+            return;
+        }
 
         /* Write a header message into the log file */
         ostringstream file_header_stream;
         file_header_stream << "Log file created at: "
             << 1900+tm_time.tm_year << '/'
-            << setw(2) << 1+tm_time.tm_mon << '/'
+            << setfill('0') << setw(2) << 1+tm_time.tm_mon << '/'
             << setw(2) << tm_time.tm_mday
             << ' '
             << setw(2) << tm_time.tm_hour << ':'
             << setw(2) << tm_time.tm_min << ':'
-            << setw(2) << tm_time.tm_sec << '\n'
-            << '\0';
+            << setw(2) << tm_time.tm_sec << endl;
+
         int header_len = file_header_stream.str().length();
         const char* file_header_string = file_header_stream.str().c_str();
         fwrite(file_header_string, 1, header_len, file_);

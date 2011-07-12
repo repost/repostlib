@@ -87,13 +87,13 @@ public:
 
 class LogFileSink : public LogSink {
 public:
-    LogFileSink(LogSeverity severity, const char* base_filename);
+    LogFileSink(std::string base_filename);
     ~LogFileSink();
     void Send(LogSeverity severity, std::string msg);
     void Write(bool force_flush, std::string msg);
 
     /* Configuration options */
-    void SetBasename(const char* basename);
+    void SetBasename(std::string basename);
     void SetFlushTime(int secs);
     void SetFileExtension(const char* extension);
 
@@ -108,7 +108,6 @@ public:
     static const int kRolloverAttemptFrequency = 0x20;
 
     RpSemaphore* lock_;
-    bool base_filename_selected_;
     std::string base_filename_;
     std::string file_extension_;
     FILE* file_;
@@ -222,7 +221,7 @@ inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
 /*
 ** Initialise and close the debug library and print out a version header
 */
-void InitRepostLogging(void);
+void InitRepostLogging(std::string userdir);
 void ShutdownRepostLogging(void);
 
 /*
