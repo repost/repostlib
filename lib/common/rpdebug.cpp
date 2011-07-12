@@ -224,14 +224,8 @@ bool LogFileSink::CreateLogfile(std::string time_pid_string)
     string string_filename = base_filename_+time_pid_string
                                 +file_extension_;
     const char* filename = string_filename.c_str();
-    int fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, 0664);
-    if (fd == -1) return false;
-    /* Mark the file close-on-exec. We don't really care if this fails */
-    fcntl(fd, F_SETFD, FD_CLOEXEC);
-
-    file_ = fdopen(fd, "a");  /* Make a FILE*. */
+    file_ = fopen(filename, "a");  /* Make a FILE*. */
     if (file_ == NULL) {  /* Man, we're screwed! */
-        close(fd);
         unlink(filename);  /* Erase the half-baked evidence: an unusable log file */
         return false;
     }

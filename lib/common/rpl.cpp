@@ -102,13 +102,13 @@ std::string rePoster::GetUserDir()
 #ifndef WIN32
     return home.insert(0, g_get_home_dir());
 #else
-    gchar *retval = NULL;
+    char *retval = NULL;
     wchar_t utf_16_dir[MAX_PATH + 1];
 
     if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL,
                     SHGFP_TYPE_CURRENT, utf_16_dir))) 
     {
-        retval = g_utf16_to_utf8(utf_16_dir, -1, NULL, NULL, NULL);
+        retval = g_utf16_to_utf8((const gunichar2 *)utf_16_dir, -1, NULL, NULL, NULL);
     }
 
     return home.insert(0, retval);
