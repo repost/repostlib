@@ -1,8 +1,11 @@
 
 #include "rpsemaphore.h"
+#include "string.h"
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
 #include <time.h>
+#include <unistd.h>
+#include "stdio.h"
 #endif
 
 
@@ -14,9 +17,9 @@ RpSemaphore::RpSemaphore(int value)
     long now;
     now = (long) time(0);
     snprintf(name, 32, "/%s-%10d-%10ld", "rpsema", getpid(), now);
-    semaphore_ = sem_open(name, O_CREAT, 0, 0);
+    semaphore_ = sem_open(name, O_CREAT, 0, value);
     snprintf(name, 32, "/%s-%10d-%10ld", "valuelock", getpid(), now);
-    valsema_ = sem_open(name, O_CREAT, 0, 0);
+    valsema_ = sem_open(name, O_CREAT, 0, 1);
 #else
     semaphore_ = new sem_t;
     sem_init(semaphore_, 0, value_);
@@ -33,22 +36,24 @@ RpSemaphore::~RpSemaphore()
 #endif
 }
 
-void RpSemaphore::TryWait()
+bool RpSemaphore::TryWait()
 {
+#ifdef NAMED_SEMAPHORE
     if(sem_trywait(semaphore_))
     {
-#if NAMED_SEMAPHORE
         sem_wait(valsema_);
         value_ -= 1;
         sem_post(valsema_);
-#endif
     }
+#else
+    return sem_trywait(semaphore_);
+#endif
 }
 
 void RpSemaphore::Wait()
 {
     sem_wait(semaphore_);
-#if NAMED_SEMAPHORE
+#ifdef NAMED_SEMAPHORE
     sem_wait(valsema_);
     value_ -= 1;
     sem_post(valsema_);
@@ -58,20 +63,20 @@ void RpSemaphore::Wait()
 void RpSemaphore::Post()
 {
     sem_post(semaphore_);
-#if NAMED_SEMAPHORE
-    sem_wait(valsem_);
+#ifdef NAMED_SEMAPHORE
+    sem_wait(valsema_);
     value_ += 1;
-    sem_post(valsem_);
+    sem_post(valsema_);
 #endif
 }
 
 int RpSemaphore::GetValue()
 {
     int ret; 
-#if NAMED_SEMAPHORE
-    sem_wait(valsem_);
+#ifdef NAMED_SEMAPHORE
+    sem_wait(valsema_);
     ret = value_;
-    sem_post(valsem_);
+    sem_post(valsema_);
 #else
     ret = sem_getvalue(semaphore_, &ret);
 #endif

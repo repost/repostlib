@@ -9,13 +9,14 @@ class RpSemaphore
 public:
     RpSemaphore(int value);
     ~RpSemaphore();
-    void TryWait();
+    bool TryWait();
     void Wait();
     void Post();
     int GetValue();
 
 private:
     sem_t* semaphore_;
+    sem_t* valsema_;
     int value_;
 };
 
