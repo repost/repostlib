@@ -39,6 +39,7 @@ public:
     void rmLink(Link link);
 
     void getInitialPosts(NewPostCB *newPostCB);
+    std::string GetUserDir(void);
 
     void upboat(std::string uuid);
     void downboat(std::string uuid);

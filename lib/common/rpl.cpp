@@ -6,6 +6,7 @@
 #include "rpdebug.h"
 #include <string>
 #include <iostream>
+#include "glib.h"
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -14,7 +15,6 @@
 using namespace std;
 #ifdef DEBUG_ON
 #ifdef WIN32
-#include "glib.h"
 #include "win32/win32dep.h"
 void p(const gchar * str)
 {
@@ -42,7 +42,8 @@ void rePoster::init()
     g_set_print_handler(p);
 #endif
 #endif
-    InitRepostLogging();
+    InitRepostLogging(GetUserDir());
+    LOG(INFO) << "Repost home directory - " << GetUserDir();
     pnet = new rpl_network();
     rpl_storage::INSTANCE = new rpl_storage();
 }
@@ -59,7 +60,7 @@ void rePoster::startRepost()
     pnet->addAccount(bacct);
 
     /* Create storage class here */
-    rpl_storage::init(pnet->get_userdir());
+    rpl_storage::init(GetUserDir());
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
@@ -93,6 +94,25 @@ void rePoster::cb_wrap(void *reposter, Post *p, int rank)
 std::vector<Account> rePoster::getAccounts()
 {
     return pnet->getAccounts();
+}
+
+std::string rePoster::GetUserDir()
+{
+    string home("/.repost");
+#ifndef WIN32
+    return home.insert(0, g_get_home_dir());
+#else
+    char *retval = NULL;
+    wchar_t utf_16_dir[MAX_PATH + 1];
+
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL,
+                    SHGFP_TYPE_CURRENT, utf_16_dir))) 
+    {
+        retval = g_utf16_to_utf8((const gunichar2 *)utf_16_dir, -1, NULL, NULL, NULL);
+    }
+
+    return home.insert(0, retval);
+#endif
 }
 
 void rePoster::addAccount(Account newaccount)
@@ -161,4 +181,5 @@ rePoster::~rePoster()
     delete pnet;
     delete pstore;
     delete pcon;
+    ShutdownRepostLogging();
 }

@@ -34,6 +34,8 @@ if( env['PLATFORM'] == 'win' ):
     deplibs += '\n'
     deplibs += 'Rpcrt4'
     deplibs += '\n'
+    deplibs += 'Shell32'
+    deplibs += '\n'
     env.Append(
         CPPPATH=['.','$ROOT/lib/include',
                      '$ROOT/third_party/sqlite3/include/',

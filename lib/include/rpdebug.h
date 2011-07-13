@@ -11,11 +11,13 @@
 #include <sstream>
 #include <iostream>
 
+#include "rpsemaphore.h"
+
 #if REPOST_STRIP_LOG == 0
 #define COMPACT_REPOST_LOG_DEBUG LogMessage( \
       __FILE__, __FUNCTION__,  __LINE__, DEBUG)
 #else
-#define COMPACT_REPOST_LOG_INFO NullStream()
+#define COMPACT_REPOST_LOG_DEBUG NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 1
@@ -36,6 +38,7 @@
 #define COMPACT_REPOST_LOG_ERROR LogMessage( \
       __FILE__, __FUNCTION__, __LINE__, ERROR)
 #else
+#define COMPACT_REPOST_LOG_ERROR NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 4
@@ -66,6 +69,68 @@ public:
          ** higher than ?:
          */
         void operator&(std::ostringstream&) { }
+};
+
+/*
+** Prototype for log sink. Send it messages and it sinks em.
+*/
+class LogSink {
+public:
+    LogSink(){};
+    virtual ~LogSink(){};
+    virtual void Send(LogSeverity severity, std::string msg) = 0;
+ private:
+ int i;
+};
+
+/*
+** Stdout sink. Sends debug to stdout.
+*/
+class LogStdoutSink : public LogSink {
+public:
+  LogStdoutSink(){};
+  ~LogStdoutSink(){};
+  void Send(LogSeverity severity, std::string msg);
+};
+
+/*
+** Sends debug to file for analysis later
+*/
+class LogFileSink : public LogSink {
+public:
+    LogFileSink(std::string base_filename);
+    ~LogFileSink();
+    void Send(LogSeverity severity, std::string msg);
+    void Write(bool force_flush, std::string msg);
+
+    /* Configuration options */
+    void SetBasename(std::string basename);
+    void SetFlushTime(int secs);
+    void SetFileExtension(const char* extension);
+
+    int LogSize();
+    int MaxLogSize();
+
+    void Flush();
+    /* Flush log without grabbing locks */
+    void FlushUnlocked();
+
+ private:
+    static const int kRolloverAttemptFrequency = 0x20;
+
+    RpSemaphore* lock_;
+    std::string base_filename_;
+    std::string file_extension_;
+    FILE* file_;
+    LogSeverity severity_;
+    int bytes_since_flush_;
+    int logbufsecs_;
+    int file_length_;
+    int maxlogsize_;
+    unsigned int rollover_attempt_;
+    int next_flush_time_; /* cycle count at which to flush log */
+
+    bool CreateLogfile(std::string time_pid_string);
 };
 
 class LogMessage {
@@ -167,7 +232,14 @@ inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
 /*
 ** Initialise and close the debug library and print out a version header
 */
-void InitRepostLogging(void);
+void InitRepostLogging(std::string userdir);
 void ShutdownRepostLogging(void);
+
+/*
+** Not thread-safe for us from the top level thread only.
+** Intention here is to allow users to turn up the level
+** of debug
+*/
+void SetRepostLogLevel(LogSeverity severity);
 
 #endif
