@@ -17,7 +17,7 @@
 #define COMPACT_REPOST_LOG_DEBUG LogMessage( \
       __FILE__, __FUNCTION__,  __LINE__, DEBUG)
 #else
-#define COMPACT_REPOST_LOG_INFO NullStream()
+#define COMPACT_REPOST_LOG_DEBUG NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 1
@@ -38,6 +38,7 @@
 #define COMPACT_REPOST_LOG_ERROR LogMessage( \
       __FILE__, __FUNCTION__, __LINE__, ERROR)
 #else
+#define COMPACT_REPOST_LOG_ERROR NullStream()
 #endif
 
 #if REPOST_STRIP_LOG <= 4
