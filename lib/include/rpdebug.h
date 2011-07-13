@@ -69,6 +69,10 @@ public:
          */
         void operator&(std::ostringstream&) { }
 };
+
+/*
+** Prototype for log sink. Send it messages and it sinks em.
+*/
 class LogSink {
 public:
     LogSink(){};
@@ -78,6 +82,9 @@ public:
  int i;
 };
 
+/*
+** Stdout sink. Sends debug to stdout.
+*/
 class LogStdoutSink : public LogSink {
 public:
   LogStdoutSink(){};
@@ -85,6 +92,9 @@ public:
   void Send(LogSeverity severity, std::string msg);
 };
 
+/*
+** Sends debug to file for analysis later
+*/
 class LogFileSink : public LogSink {
 public:
     LogFileSink(std::string base_filename);
@@ -231,6 +241,4 @@ void ShutdownRepostLogging(void);
 */
 void SetRepostLogLevel(LogSeverity severity);
 
-//void AddLogSink(LogSink *destination);
-//void RemoveLogSink(LogSink *destination);
 #endif

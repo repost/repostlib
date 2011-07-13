@@ -127,6 +127,16 @@ void InitRepostLogging(string userdir)
     }
 }
 
+void ShutdownRepostLogging(void)
+{
+    if(IsRepostLoggingRunning == true)
+    {
+        LOG(WARNING) << "Logging finished.";
+        RepostLogSinks->clear();
+        IsRepostLoggingRunning = false;
+    }
+}
+
 void SetRepostLogLevel(LogSeverity severity)
 {
     RepostLoggingLevel = severity;
@@ -143,7 +153,7 @@ LogFileSink::LogFileSink(string base_filename)
     bytes_since_flush_(0),
     file_length_(0),
     logbufsecs_(2),
-    maxlogsize_(500e3),
+    maxlogsize_(1),
     rollover_attempt_(kRolloverAttemptFrequency-1),
     next_flush_time_(0) 
 {
@@ -240,7 +250,7 @@ void LogFileSink::Send(LogSeverity severity, std::string msg)
     }
     else
     {
-        Write(true, msg);
+        Write(true, msg.append("\n"));
     }
 }
 
@@ -254,6 +264,7 @@ void LogFileSink::Write(bool force_flush, string msg)
         return;
     }
 
+    /* >> 20 converts to mb */
     if (static_cast<int>(file_length_ >> 20) >= MaxLogSize()) 
     {
         if (file_ != NULL) fclose(file_);

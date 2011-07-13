@@ -181,4 +181,5 @@ rePoster::~rePoster()
     delete pnet;
     delete pstore;
     delete pcon;
+    ShutdownRepostLogging();
 }
