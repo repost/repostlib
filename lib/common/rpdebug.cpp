@@ -7,12 +7,15 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
+#include <stdlib.h>
 
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
 #include <time.h>
 #endif
+
 #define RPLOG_BASENAME "repostlog"
+#define RPLOG_BASENAME_SIZE sizeof(RPLOG_BASENAME)
 
 using namespace std;
 
@@ -146,11 +149,21 @@ bool IsLogOld(const char* logname)
     const time_t twodaysago = now - 60*60*24; /* Give us two days ago */
     struct tm *logtime;
     logtime = localtime(&now);
-    if(strptime(&logname[sizeof(RPLOG_BASENAME)-1], "%Y%m%d", logtime))
-    {
-        return (mktime(logtime) < twodaysago);
-    }
-    return false;
+    char year[5];
+    char month[3];
+    char day[3];
+    
+    strncpy(year, &logname[RPLOG_BASENAME_SIZE-1], 4);
+    strncpy(month, &logname[RPLOG_BASENAME_SIZE-1 + 4], 2);
+    strncpy(year, &logname[RPLOG_BASENAME_SIZE-1 + 4 +2], 2);
+    year[5] = '\0';
+    month[3] = '\0';
+    day[3] = '\0';
+    
+    logtime->tm_year = atoi(year);
+    logtime->tm_mon = atoi(month);
+    logtime->tm_mday = atoi(day);
+    return (mktime(logtime) < twodaysago);
 }
 
 #ifdef WIN32
