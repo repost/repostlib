@@ -78,7 +78,8 @@ int RpSemaphore::GetValue()
     ret = value_;
     sem_post(valsema_);
 #else
-    ret = sem_getvalue(semaphore_, &ret);
+    sem_getvalue(semaphore_, &ret);
+    ret = ret < 0 ? 0 : ret;
 #endif
     return ret;
 }
