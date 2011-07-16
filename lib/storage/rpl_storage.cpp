@@ -317,7 +317,7 @@ int rpl_storage::get_post ( Post **post, int from, int count )
     int rc = 0 ;
     int rowsReturned = 0;
     sqlite3_stmt *sql_stmt = NULL;
-    const char* get_post = "SELECT * FROM posts ORDER BY time ASC LIMIT ? "
+    const char* get_post = "SELECT * FROM posts ORDER BY time DESC LIMIT ? "
         "OFFSET ?;" ;
 
     LOG(DEBUG) << "> get_post";
