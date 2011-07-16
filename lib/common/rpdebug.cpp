@@ -6,12 +6,11 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <errno.h>
-#include <dirent.h>
 #include <stdlib.h>
-
-#ifdef OS_MACOSX
-#define NAMED_SEMAPHORE
-#include <time.h>
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
 #endif
 
 #define RPLOG_BASENAME "repostlog"
@@ -155,11 +154,11 @@ bool IsLogOld(const char* logname)
     
     strncpy(year, &logname[RPLOG_BASENAME_SIZE-1], 4);
     strncpy(month, &logname[RPLOG_BASENAME_SIZE-1 + 4], 2);
-    strncpy(year, &logname[RPLOG_BASENAME_SIZE-1 + 4 +2], 2);
-    year[5] = '\0';
-    month[3] = '\0';
-    day[3] = '\0';
-    
+    strncpy(day, &logname[RPLOG_BASENAME_SIZE-1 + 4 +2], 2);
+    year[4] = '\0';
+    month[2] = '\0';
+    day[2] = '\0';
+    LOG(DEBUG) "Extracted date" << year << month << day;
     logtime->tm_year = atoi(year);
     logtime->tm_mon = atoi(month);
     logtime->tm_mday = atoi(day);
@@ -171,27 +170,26 @@ void CleanUpOldLogs(string logdirectory)
 {
     HANDLE hFind;
     WIN32_FIND_DATA direntry;
-
-    if((hFind = FindFirstFile(logdirectory.c_str(), &direntry)) != INVALID_HANDLE_VALUE)
+    string logsearchpath(logdirectory);
+    logsearchpath.append(PATH_SEPARATOR RPLOG_BASENAME "*");
+    
+    if((hFind = FindFirstFile(logsearchpath.c_str(), &direntry)) != INVALID_HANDLE_VALUE)
     {
         do{
-            if(strncmp(direntry.cFileName, RPLOG_BASENAME, sizeof(RPLOG_BASENAME)-1) == 0)
+            LOG(INFO) << "Repost log file found " << direntry.cFileName;  
+            if(IsLogOld(direntry.cFileName))
             {
-                LOG(INFO) << "Repost log file found " << direntry->d_name;  
-                if(IsLogOld(direntry.cFileName))
+                string logtodelete(logdirectory);
+                logtodelete.append(PATH_SEPARATOR);
+                logtodelete.append(direntry.cFileName);
+                if( remove(logtodelete.c_str()) != 0 )
                 {
-                    string logtodelete(logdirectory);
-                    logtodelete.append(PATH_SEPARATOR);
-                    logtodelete.append(direntry.cFileName);
-                    if( remove(logtodelete.c_str()) != 0 )
-                    {
-                        LOG(WARNING) << "Failed to delete log file " << 
-                            direntry.cFileName;
-                    }
-                    else
-                    {
-                        LOG(INFO) << "Removed old log file";
-                    }
+                    LOG(WARNING) << "Failed to delete log file " << 
+                        logtodelete;
+                }
+                else
+                {
+                    LOG(INFO) << "Removed old log file";
                 }
             }
         }while(FindNextFile(hFind, &direntry));
@@ -220,7 +218,7 @@ void CleanUpOldLogs(string logdirectory)
                 if( remove(logtodelete.c_str()) != 0 )
                 {
                     LOG(WARNING) << "Failed to delete log file " << 
-                        direntry->d_name;
+                        logtodelete;
                 }
                 else
                 {
