@@ -234,6 +234,7 @@ inline NullStream& operator<<(NullStream &str, const T &value) { return str; }
 */
 void InitRepostLogging(std::string userdir);
 void ShutdownRepostLogging(void);
+void CleanUpOldLogs(std::string logdirectory);
 
 /*
 ** Not thread-safe for us from the top level thread only.

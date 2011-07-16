@@ -102,7 +102,7 @@ std::vector<Account> rePoster::getAccounts()
 
 std::string rePoster::GetUserDir()
 {
-    string home("/.repost");
+    string home(PATH_SEPARATOR ".repost");
 #ifndef WIN32
     return home.insert(0, g_get_home_dir());
 #else

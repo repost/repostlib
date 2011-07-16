@@ -1,4 +1,4 @@
-
+#include "rpl.h"
 #include "rpversion.h"
 #include "rpdebug.h"
 #include <iomanip>
@@ -6,11 +6,15 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <errno.h>
-
-#ifdef OS_MACOSX
-#define NAMED_SEMAPHORE
-#include <time.h>
+#include <stdlib.h>
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
 #endif
+
+#define RPLOG_BASENAME "repostlog"
+#define RPLOG_BASENAME_SIZE sizeof(RPLOG_BASENAME)
 
 using namespace std;
 
@@ -123,6 +127,7 @@ void InitRepostLogging(string userdir)
                     "          |_|                  \n"
                     " " RP_VERSION_STRING "\n"
                     " " RP_RELEASE_TAGLINE "\n";
+        CleanUpOldLogs(userdir);
         IsRepostLoggingRunning = true;
     }
 }
@@ -136,6 +141,94 @@ void ShutdownRepostLogging(void)
         IsRepostLoggingRunning = false;
     }
 }
+
+bool IsLogOld(const char* logname)
+{
+    const time_t now = time(NULL);
+    const time_t twodaysago = now - 60*60*24; /* Give us two days ago */
+    struct tm *logtime;
+    logtime = localtime(&now);
+    char year[5];
+    char month[3];
+    char day[3];
+    
+    strncpy(year, &logname[RPLOG_BASENAME_SIZE-1], 4);
+    strncpy(month, &logname[RPLOG_BASENAME_SIZE-1 + 4], 2);
+    strncpy(day, &logname[RPLOG_BASENAME_SIZE-1 + 4 +2], 2);
+    year[4] = '\0';
+    month[2] = '\0';
+    day[2] = '\0';
+    LOG(DEBUG) << "Extracted date" << year << month << day;
+    logtime->tm_year = atoi(year);
+    logtime->tm_mon = atoi(month);
+    logtime->tm_mday = atoi(day);
+    return (mktime(logtime) < twodaysago);
+}
+
+#ifdef WIN32
+void CleanUpOldLogs(string logdirectory)
+{
+    HANDLE hFind;
+    WIN32_FIND_DATA direntry;
+    string logsearchpath(logdirectory);
+    logsearchpath.append(PATH_SEPARATOR RPLOG_BASENAME "*");
+    
+    if((hFind = FindFirstFile(logsearchpath.c_str(), &direntry)) != INVALID_HANDLE_VALUE)
+    {
+        do{
+            LOG(INFO) << "Repost log file found " << direntry.cFileName;  
+            if(IsLogOld(direntry.cFileName))
+            {
+                string logtodelete(logdirectory);
+                logtodelete.append(PATH_SEPARATOR);
+                logtodelete.append(direntry.cFileName);
+                if( remove(logtodelete.c_str()) != 0 )
+                {
+                    LOG(WARNING) << "Failed to delete log file " << 
+                        logtodelete;
+                }
+                else
+                {
+                    LOG(INFO) << "Removed old log file";
+                }
+            }
+        }while(FindNextFile(hFind, &direntry));
+        FindClose(hFind);
+    }
+}
+#else
+void CleanUpOldLogs(string logdirectory)
+{
+    unsigned char isFile =0x8;
+    DIR *dir;
+    struct dirent *direntry;
+
+    dir = opendir(logdirectory.c_str());
+    while(direntry=readdir(dir))
+    {   
+        if( (direntry->d_type == isFile) && 
+                strncmp(direntry->d_name, RPLOG_BASENAME, sizeof(RPLOG_BASENAME)-1) == 0)
+        {
+            LOG(INFO) << "Repost log file found " << direntry->d_name;  
+            if(IsLogOld(direntry->d_name))
+            {
+                string logtodelete(logdirectory);
+                logtodelete.append(PATH_SEPARATOR);
+                logtodelete.append(direntry->d_name);
+                if( remove(logtodelete.c_str()) != 0 )
+                {
+                    LOG(WARNING) << "Failed to delete log file " << 
+                        logtodelete;
+                }
+                else
+                {
+                    LOG(INFO) << "Removed old log file";
+                }
+            }
+        }
+    }
+}
+#endif
 
 void SetRepostLogLevel(LogSeverity severity)
 {
@@ -158,7 +251,7 @@ LogFileSink::LogFileSink(string base_filename)
     next_flush_time_(0) 
 {
     lock_ = new RpSemaphore(1);
-    SetBasename(base_filename.append("/repostlog"));
+    SetBasename(base_filename.append(PATH_SEPARATOR RPLOG_BASENAME));
 }
 
 LogFileSink::~LogFileSink() 
