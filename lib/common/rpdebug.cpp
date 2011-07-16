@@ -6,11 +6,13 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <errno.h>
+#include <dirent.h>
 
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
 #include <time.h>
 #endif
+#define RPLOG_BASENAME "repostlog"
 
 using namespace std;
 
@@ -123,6 +125,7 @@ void InitRepostLogging(string userdir)
                     "          |_|                  \n"
                     " " RP_VERSION_STRING "\n"
                     " " RP_RELEASE_TAGLINE "\n";
+        CleanUpOldLogs(userdir);
         IsRepostLoggingRunning = true;
     }
 }
@@ -134,6 +137,51 @@ void ShutdownRepostLogging(void)
         LOG(WARNING) << "Logging finished.";
         RepostLogSinks->clear();
         IsRepostLoggingRunning = false;
+    }
+}
+
+bool IsLogOld(const char* logname)
+{
+    const time_t now = time(NULL);
+    const time_t twodaysago = now - 60*60*24; /* Give us two days ago */
+    struct tm *logtime;
+    logtime = localtime(&now);
+    if(strptime(&logname[sizeof(RPLOG_BASENAME)-1], "%Y%m%d", logtime))
+    {
+        return (mktime(logtime) < twodaysago);
+    }
+    return false;
+}
+
+void CleanUpOldLogs(string logdirectory)
+{
+    unsigned char isFile =0x8;
+    DIR *dir;
+    struct dirent *direntry;
+
+    dir = opendir(logdirectory.c_str());
+    while(direntry=readdir(dir))
+    {   
+        if ( (direntry->d_type == isFile) && 
+                strncmp(direntry->d_name, RPLOG_BASENAME, sizeof(RPLOG_BASENAME)-1) == 0)
+        {
+            LOG(INFO) << "Repost log file found " << direntry->d_name;  
+            if(IsLogOld(direntry->d_name))
+            {
+                string logtodelete(logdirectory);
+                logtodelete.append("/");
+                logtodelete.append(direntry->d_name);
+                if( remove(logtodelete.c_str()) != 0 )
+                {
+                    LOG(WARNING) << "Failed to delete log file " << 
+                        direntry->d_name;
+                }
+                else
+                {
+                    LOG(INFO) << "Removed old log file";
+                }
+            }
+        }
     }
 }
 
@@ -158,7 +206,7 @@ LogFileSink::LogFileSink(string base_filename)
     next_flush_time_(0) 
 {
     lock_ = new RpSemaphore(1);
-    SetBasename(base_filename.append("/repostlog"));
+    SetBasename(base_filename.append("/"RPLOG_BASENAME));
 }
 
 LogFileSink::~LogFileSink() 
