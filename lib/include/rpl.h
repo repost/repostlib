@@ -8,6 +8,12 @@
 #include "post.h"
 #include "acct.h"
 
+#ifdef WIN32
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
 class rpl_network;
 class rpl_storage;
 class rpl_con;

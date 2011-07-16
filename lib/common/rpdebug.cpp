@@ -1,4 +1,4 @@
-
+#include "rpl.h"
 #include "rpversion.h"
 #include "rpdebug.h"
 #include <iomanip>
@@ -181,7 +181,7 @@ void CleanUpOldLogs(string logdirectory)
                 if(IsLogOld(direntry.cFileName))
                 {
                     string logtodelete(logdirectory);
-                    logtodelete.append("/");
+                    logtodelete.append(PATH_SEPARATOR);
                     logtodelete.append(direntry.cFileName);
                     if( remove(logtodelete.c_str()) != 0 )
                     {
@@ -215,7 +215,7 @@ void CleanUpOldLogs(string logdirectory)
             if(IsLogOld(direntry->d_name))
             {
                 string logtodelete(logdirectory);
-                logtodelete.append("/");
+                logtodelete.append(PATH_SEPARATOR);
                 logtodelete.append(direntry->d_name);
                 if( remove(logtodelete.c_str()) != 0 )
                 {
@@ -253,7 +253,7 @@ LogFileSink::LogFileSink(string base_filename)
     next_flush_time_(0) 
 {
     lock_ = new RpSemaphore(1);
-    SetBasename(base_filename.append("/"RPLOG_BASENAME));
+    SetBasename(base_filename.append(PATH_SEPARATOR RPLOG_BASENAME));
 }
 
 LogFileSink::~LogFileSink() 
