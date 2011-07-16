@@ -153,6 +153,39 @@ bool IsLogOld(const char* logname)
     return false;
 }
 
+#ifdef WIN32
+void CleanUpOldLogs(string logdirectory)
+{
+    HANDLE hFind;
+    WIN32_FIND_DATA direntry;
+
+    if((hFind = FindFirstFile(logdirectory.c_str(), &direntry)) != INVALID_HANDLE_VALUE)
+    {
+        do{
+            if(strncmp(direntry.cFileName, RPLOG_BASENAME, sizeof(RPLOG_BASENAME)-1) == 0)
+            {
+                LOG(INFO) << "Repost log file found " << direntry->d_name;  
+                if(IsLogOld(direntry.cFileName))
+                {
+                    string logtodelete(logdirectory);
+                    logtodelete.append("/");
+                    logtodelete.append(direntry.cFileName);
+                    if( remove(logtodelete.c_str()) != 0 )
+                    {
+                        LOG(WARNING) << "Failed to delete log file " << 
+                            direntry.cFileName;
+                    }
+                    else
+                    {
+                        LOG(INFO) << "Removed old log file";
+                    }
+                }
+            }
+        }while(FindNextFile(hFind, &direntry));
+        FindClose(hFind);
+    }
+}
+#else
 void CleanUpOldLogs(string logdirectory)
 {
     unsigned char isFile =0x8;
@@ -162,7 +195,7 @@ void CleanUpOldLogs(string logdirectory)
     dir = opendir(logdirectory.c_str());
     while(direntry=readdir(dir))
     {   
-        if ( (direntry->d_type == isFile) && 
+        if( (direntry->d_type == isFile) && 
                 strncmp(direntry->d_name, RPLOG_BASENAME, sizeof(RPLOG_BASENAME)-1) == 0)
         {
             LOG(INFO) << "Repost log file found " << direntry->d_name;  
@@ -184,6 +217,7 @@ void CleanUpOldLogs(string logdirectory)
         }
     }
 }
+#endif
 
 void SetRepostLogLevel(LogSeverity severity)
 {
