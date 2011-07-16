@@ -50,6 +50,7 @@ void rePoster::init()
 
 void rePoster::startRepost()
 {
+    LOG(INFO) << "Starting repost...";
     /* Start the networks */
     pnet->go();
 
@@ -70,12 +71,14 @@ void rePoster::startRepost()
 
 void rePoster::stopRepost()
 {
+    LOG(INFO) << "Stopping repost";
     pnet->stop();
     pcon->stop();
 }
 
 void rePoster::sendPost(Post p)
 {
+    LOG(INFO) << "Sending Post UUID " << p.uuid();
     pnet->post(p);
     pstore->add_post(&p);
 }
@@ -93,6 +96,7 @@ void rePoster::cb_wrap(void *reposter, Post *p, int rank)
 
 std::vector<Account> rePoster::getAccounts()
 {
+    LOG(INFO) << "Get Accounts";
     return pnet->getAccounts();
 }
 
@@ -117,14 +121,16 @@ std::string rePoster::GetUserDir()
 
 void rePoster::addAccount(Account newaccount)
 {
+    LOG(INFO) << "Add Account " << newaccount.user();
     pnet->addAccount(newaccount);
 }   
 
 void rePoster::getInitialPosts(NewPostCB* newPostCB)
 {
+    LOG(INFO) << "Get Initial Posts";
     int i = 0;
-    Post *post[10];
-    int rowsReturned = this->pstore->get_post( post, 0, 10 );
+    Post *post[16];
+    int rowsReturned = this->pstore->get_post( post, 0, 16 );
     for ( int i = 0; i < rowsReturned; i++ )
     {
         newPostCB->Run(*post[i],0);
@@ -133,37 +139,43 @@ void rePoster::getInitialPosts(NewPostCB* newPostCB)
 
 void rePoster::rmAccount(Account account)
 {
+    LOG(INFO) << "Remove Account " << account.user();
     pnet->rmAccount(account);
 }
 
 std::vector<Link> rePoster::getLinks()
 {
+    LOG(INFO) << "Get Links";
     return pnet->getLinks();
 }
 
 void rePoster::addLink(Link newlink)
 {
+    LOG(INFO) << "Add Link " << newlink.name();
     pnet->addLink(newlink);
 }
 
 void rePoster::rmLink(Link link)
 {
+    LOG(INFO) << "Remove Link " << link.name();
     pnet->rmLink(link);
 }
 
-void rePoster::upboat(string u) {
+void rePoster::upboat(string u) 
+{
+    LOG(INFO) << "Upboating post " << u;
     Post *uppost = NULL;
     pstore->update_metric(u);
     pstore->get_post(&uppost, u);
     if(uppost)
     {
-      LOG(INFO) << "Upboating post UUID " << uppost->uuid();
       LOG(DEBUG) << "content " << uppost->content();
       pnet->post(*uppost);
     }
 }
 
-void rePoster::downboat(std::string uuid) {
+void rePoster::downboat(std::string uuid) 
+{
     LOG(INFO) << "Downboating post UUID " << uuid;
     pstore->delete_post(uuid);
 }
