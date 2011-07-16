@@ -158,7 +158,7 @@ bool IsLogOld(const char* logname)
     year[4] = '\0';
     month[2] = '\0';
     day[2] = '\0';
-    LOG(DEBUG) "Extracted date" << year << month << day;
+    LOG(DEBUG) << "Extracted date" << year << month << day;
     logtime->tm_year = atoi(year);
     logtime->tm_mon = atoi(month);
     logtime->tm_mday = atoi(day);
