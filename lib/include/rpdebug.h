@@ -64,11 +64,11 @@ extern const char* const LogSeverityNames[NUM_SEVERITIES];
 */
 class LogMessageVoidify {
 public:
-        LogMessageVoidify() { }
+        LogMessageVoidify() { };
         /* This has to be an operator with a precedence lower than << but
          ** higher than ?:
          */
-        void operator&(std::ostringstream&) { }
+        void operator&(std::ostringstream&) { };
 };
 
 /*

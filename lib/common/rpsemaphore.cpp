@@ -1,10 +1,12 @@
 
 #include "rpsemaphore.h"
+#include "rpdebug.h"
 #include "string.h"
 #ifdef OS_MACOSX
 #define NAMED_SEMAPHORE
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 #include "stdio.h"
 #endif
 
@@ -16,10 +18,19 @@ RpSemaphore::RpSemaphore(int value)
     char name[32];
     long now;
     now = (long) time(0);
-    snprintf(name, 32, "/%s-%10d-%10ld", "rpsema", getpid(), now);
+    srand(clock());
+    snprintf(name, 32, "/%s-%04d-%10ld", "rpsema", rand(), now);
     semaphore_ = sem_open(name, O_CREAT, 0, value);
-    snprintf(name, 32, "/%s-%10d-%10ld", "valuelock", getpid(), now);
+    if( semaphore_ == SEM_FAILED)
+    {
+      printf("SEMAPHORE FAILED TO BE CREATED err %s\n", strerror(errno));
+    }
+    snprintf(name, 32, "/%s-%04d-%10ld", "value", rand(), now);
     valsema_ = sem_open(name, O_CREAT, 0, 1);
+    if( semaphore_ == SEM_FAILED)
+    {
+      printf("SEMAPHORE VALUE FAILED TO BE CREATED err %d\n",errno);
+    }
 #else
     semaphore_ = new sem_t;
     sem_init(semaphore_, 0, value_);
