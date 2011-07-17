@@ -158,10 +158,12 @@ bool IsLogOld(const char* logname)
     year[4] = '\0';
     month[2] = '\0';
     day[2] = '\0';
-    LOG(DEBUG) << "Extracted date" << year << month << day;
-    logtime->tm_year = atoi(year);
-    logtime->tm_mon = atoi(month);
+    LOG(DEBUG) << "Extracted date " << year << month << day;
+    logtime->tm_year = atoi(year) - 1900;
+    logtime->tm_mon = atoi(month) - 1;
     logtime->tm_mday = atoi(day);
+    LOG(DEBUG) << "Time of log " << mktime(logtime) 
+      << "Time two days ago " << twodaysago;
     return (mktime(logtime) < twodaysago);
 }
 
