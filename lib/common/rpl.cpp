@@ -13,9 +13,9 @@
 #endif
 
 using namespace std;
-#ifdef DEBUG_ON
 #ifdef WIN32
 #include "win32/win32dep.h"
+#ifdef DEBUG_ON
 void p(const gchar * str)
 {
     printf(str);
