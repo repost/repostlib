@@ -21,12 +21,16 @@ class rpl_storage
     void delete_post ( std::string uuid );
     void update_metric ( std::string uuid );
     static rpl_storage *INSTANCE;
+    bool update_account ( Account *olddetails, Account *newdetails );
+    bool delete_account ( Account *account);
+    bool add_account ( Account *account);
   private:
     sqlite3 *db;
     static std::string _db_location;
     static const char DATABASE_NAME[];
     static const char DROP_POST_TABLE[];
     static const char CREATE_POST_TABLE[];
+    static const char CREATE_ACCOUNT_TABLE[];
     static const char CREATE_VERSION_TABLE[];
     const char *db_location(void);
     bool initialised;

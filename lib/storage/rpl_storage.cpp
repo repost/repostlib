@@ -17,6 +17,9 @@ const char rpl_storage::DROP_POST_TABLE[] =
 const char rpl_storage::CREATE_POST_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, author TEXT, \
     uuid TEXT, content TEXT, upvotes INTEGER, time INTEGER);";
+const char rpl_storage::CREATE_ACCOUNT_TABLE[] = 
+    "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, username TEXT, \
+    password TEXT, type TEXT, enabled BOOLEAN);";
 const char rpl_storage::CREATE_VERSION_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS version (version INTEGER);";
 bool initialised = false;
@@ -233,6 +236,177 @@ bool rpl_storage::add_post (Post *post)
 void rpl_storage::get_link (Link *link)
 {
 
+}
+
+bool rpl_storage::update_account ( Account *olddetails, Account *newdetails )
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "UPDATE accounts SET password = ?, "
+        "enabled = ? WHERE username = ? AND type = ?";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, newdetails->pass().c_str(), 
+                            newdetails->pass().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_int(sql_stmt, 2, newdetails->enabled());
+    rc += sqlite3_bind_text(sql_stmt, 3, olddetails->user().c_str(), 
+                            newdetails->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 4, olddetails->type().c_str(), 
+                            newdetails->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+}
+
+bool rpl_storage::delete_account ( Account *account)
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "DELETE FROM accounts WHERE username = ? "
+        "AND type = ?";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 2, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+}
+
+bool rpl_storage::add_account ( Account *account)
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "INSERT INTO accounts ( username, password, "
+        "type, enabled) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT * FROM "
+        "accounts WHERE accounts.username = ? and type = ?);";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 2, account->pass().c_str(), account->pass().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 3, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_int(sql_stmt, 4, account->enabled());
+    rc += sqlite3_bind_text(sql_stmt, 5, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 6, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+
+    return ret;
 }
 
 int rpl_storage::postSelectArray(sqlite3_stmt* sql_stmt, Post** post)
@@ -476,6 +650,19 @@ bool rpl_storage::setup_tables ()
     if ( errmsg != NULL )
     {
         LOG(WARNING) << "error create post table: " << errmsg;
+        sqlite3_free ( errmsg );
+        ret = false;
+    }
+
+    rc = sqlite3_exec ( this->db, 
+            CREATE_ACCOUNT_TABLE, 
+            NULL,
+            NULL,
+            &errmsg);
+
+    if ( errmsg != NULL )
+    {
+        LOG(WARNING) << "error create accounts table: " << errmsg;
         sqlite3_free ( errmsg );
         ret = false;
     }
