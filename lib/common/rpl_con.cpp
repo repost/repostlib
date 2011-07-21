@@ -25,6 +25,7 @@ void rpl_con::stop()
     {
          running=false;
          pthread_join(m_thread,0);
+         LOG(DEBUG) << "Consumer thread joined";
     }
 }   
 
@@ -45,24 +46,24 @@ void *rpl_con::start_thread(void *obj)
 
 void rpl_con::consume()
 {
-	while(running == true)
-	{
-		Post *p = pnet->getpost();
-		if(p)
-		{
-			if(this->pstore->add_post(p))
-			{
-				npCB(reposter,p,0);
-			}
-			else
-			{
-				LOG(INFO) << "Already received UUID " << p->uuid();
-			}
-		}
+    while(running == true)
+    {
+        Post *p = pnet->getpost();
+        if(p)
+        {
+            if(this->pstore->add_post(p))
+            {
+                npCB(reposter,p,0);
+            }
+            else
+            {
+                LOG(INFO) << "Already received UUID " << p->uuid();
+            }
+        }
         else
         {
             LOG(INFO) <<  "Consumer shutting down";
             return;
         }
-	}
+    }
 }

@@ -26,8 +26,8 @@ void rePoster::init()
 
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
+    rpl_storage::init(GetUserDir());
     pnet = new rpl_network();
-    rpl_storage::INSTANCE = new rpl_storage();
 }
 
 void rePoster::startRepost()
@@ -43,7 +43,6 @@ void rePoster::startRepost()
     pnet->addAccount(bacct);
 
     /* Create storage class here */
-    rpl_storage::init(GetUserDir());
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
@@ -56,6 +55,7 @@ void rePoster::stopRepost()
     LOG(INFO) << "Stopping repost";
     pnet->stop();
     pcon->stop();
+    pstore->uninit();
 }
 
 void rePoster::sendPost(Post p)
@@ -113,6 +113,7 @@ void rePoster::getInitialPosts(NewPostCB* newPostCB)
     int i = 0;
     Post *post[16];
     int rowsReturned = this->pstore->get_post( post, 0, 16 );
+    LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
         newPostCB->Run(*post[i],0);

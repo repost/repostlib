@@ -66,8 +66,8 @@ PurpleCoreUiOps JabPoster::CoreUiOps =
 {
         NULL,
         NULL,
-        NULL,
         &JabPoster::w_InitUI,
+        NULL,
         /* padding */
         NULL,
         NULL,
@@ -764,7 +764,6 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
     purple_pounces_load();
     this->ConnectToSignals();
-		this->InitUI();
 #ifdef DEBUG_ON
     PrintSupportedProtocols();
 #endif
@@ -802,6 +801,7 @@ void JabPoster::Stop()
         this->in_queue->add(NULL); /* we going down */
         g_main_loop_quit(this->loop);
         pthread_join(m_thread,0);
+        LOG(DEBUG) << "Jabposter thread joined";
     }
 }
 
@@ -823,6 +823,7 @@ void JabPoster::LibpurpleLoop()
       LOG(FATAL) << "GLOOP FAIL WE IN DA SHIT";
     }
     g_main_loop_run(loop);
+    LOG(DEBUG) << "Quiting Libpurple core";
     purple_core_quit();
 }
 
