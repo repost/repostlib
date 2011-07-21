@@ -465,7 +465,7 @@ bool rpl_storage::setup_tables ()
     char *errmsg = NULL;
     bool ret = true;
 
-    LOG(DEBUG) << ">", __FUNCTION__;
+    LOG(DEBUG) << ">" << __FUNCTION__;
 
     rc = sqlite3_exec ( this->db, 
             CREATE_POST_TABLE, 

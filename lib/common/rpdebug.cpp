@@ -109,7 +109,9 @@ void LogMessage::Flush()
 
 void GLibPrintRedirect(const gchar* str)
 {
-    LOG(DEBUG) << str;
+    char *editstr = (char*)str;
+    editstr[strlen(editstr)-1] = '\0';
+    LOG(DEBUG) << editstr;
 }
 
 void InitRepostLogging(string userdir)
