@@ -255,6 +255,18 @@ int rpl_storage::postSelectArray(sqlite3_stmt* sql_stmt, Post** post)
 				post[rowsReturned]->set_content(
 						reinterpret_cast<const char*>(sqlite3_column_text(sql_stmt, i)));
 			}
+            else if ( strstr(sqlite3_column_name(sql_stmt, i), "upvotes") 
+					!= NULL )
+			{
+				post[rowsReturned]->set_metric((sqlite3_column_int(sql_stmt, i)));
+			}
+            else if ( strstr(sqlite3_column_name(sql_stmt, i), "time") != NULL);
+            else if ( strstr(sqlite3_column_name(sql_stmt, i), "author") != NULL);
+            else if ( strstr(sqlite3_column_name(sql_stmt, i), "id") != NULL);
+            else
+            {
+                LOG(INFO) << "Missed column " << sqlite3_column_name(sql_stmt , i);
+            }
 		}
 		rowsReturned++;
 	}
