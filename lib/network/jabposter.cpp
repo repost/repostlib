@@ -67,7 +67,7 @@ PurpleCoreUiOps JabPoster::CoreUiOps =
         NULL,
         NULL,
         NULL,
-        &JabPoster::w_InitUI,
+        NULL, //&JabPoster::w_InitUI,
         /* padding */
         NULL,
         NULL,
@@ -764,7 +764,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_plugins_load_saved(PLUGIN_SAVE_PREF);
     purple_pounces_load();
     this->ConnectToSignals();
-		this->InitUI();
+    this->InitUI();
 #ifdef DEBUG_ON
     PrintSupportedProtocols();
 #endif

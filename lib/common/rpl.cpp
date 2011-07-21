@@ -113,6 +113,7 @@ void rePoster::getInitialPosts(NewPostCB* newPostCB)
     int i = 0;
     Post *post[16];
     int rowsReturned = this->pstore->get_post( post, 0, 16 );
+    LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
         newPostCB->Run(*post[i],0);
