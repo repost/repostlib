@@ -26,8 +26,8 @@ void rePoster::init()
 
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
+    rpl_storage::init(GetUserDir());
     pnet = new rpl_network();
-    rpl_storage::INSTANCE = new rpl_storage();
 }
 
 void rePoster::startRepost()
@@ -43,7 +43,6 @@ void rePoster::startRepost()
     pnet->addAccount(bacct);
 
     /* Create storage class here */
-    rpl_storage::init(GetUserDir());
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
