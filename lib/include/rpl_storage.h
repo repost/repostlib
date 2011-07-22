@@ -13,6 +13,7 @@ class rpl_storage
     ~rpl_storage();
     static rpl_storage *get_instance ();
     static void init (std::string dir);
+    static void uninit ();
     void add_link(Link &link);
     bool add_post (Post *post); /* return true if new */
     void get_link(Link *link);

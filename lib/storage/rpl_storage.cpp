@@ -148,7 +148,7 @@ rpl_storage::rpl_storage()
 
 rpl_storage::~rpl_storage()
 {
-   
+	LOG(INFO) << "Destroying rpl_storage";  
 }
 
 void rpl_storage::init(string dir)
@@ -156,6 +156,11 @@ void rpl_storage::init(string dir)
     _db_location = dir.append("/");
     _db_location = dir.append(rpl_storage::DATABASE_NAME);
     INSTANCE = new rpl_storage();
+}
+
+void rpl_storage::uninit()
+{
+    delete INSTANCE;
 }
 
 rpl_storage *rpl_storage::get_instance(void)

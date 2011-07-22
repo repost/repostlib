@@ -55,6 +55,7 @@ void rePoster::stopRepost()
     LOG(INFO) << "Stopping repost";
     pnet->stop();
     pcon->stop();
+    pstore->uninit();
 }
 
 void rePoster::sendPost(Post p)
