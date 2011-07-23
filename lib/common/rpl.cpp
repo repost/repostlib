@@ -10,18 +10,11 @@
 
 #ifndef WIN32
 #include <dlfcn.h>
+#else
+#include "win32/win32dep.h"
 #endif
 
 using namespace std;
-#ifdef WIN32
-#include "win32/win32dep.h"
-#ifdef DEBUG_ON
-void p(const gchar * str)
-{
-    printf(str);
-}
-#endif
-#endif
 
 void rePoster::init() 
 {
@@ -30,18 +23,7 @@ void rePoster::init()
          do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
 #endif
-#ifdef DEBUG_ON
-#ifdef WIN32
-    if(AllocConsole()) {
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-        SetConsoleTitle("Debug Console");
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 
-                FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
-    }
-    g_set_print_handler(p);
-#endif
-#endif
+
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
     pnet = new rpl_network();

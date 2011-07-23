@@ -1,6 +1,7 @@
 #include "rpl.h"
 #include "rpversion.h"
 #include "rpdebug.h"
+#include "glib.h"
 #include <iomanip>
 #include <vector>
 #include <cstdio>
@@ -15,6 +16,7 @@
 
 #define RPLOG_BASENAME "repostlog"
 #define RPLOG_BASENAME_SIZE sizeof(RPLOG_BASENAME)
+#define MAXLOGSIZE 10 /* size in MB */
 
 using namespace std;
 
@@ -105,10 +107,29 @@ void LogMessage::Flush()
     data_->has_been_flushed_ = true;
 }
 
+void GLibPrintRedirect(const gchar* str)
+{
+    LOG(DEBUG) << str;
+}
+
 void InitRepostLogging(string userdir)
 {
     if(IsRepostLoggingRunning == false)
     {
+        /* Open a windows console so we can see the stdout */
+#ifdef DEBUG_ON
+#ifdef WIN32
+        if(AllocConsole()) 
+        {
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
+            SetConsoleTitle("Debug Console");
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 
+                    FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);  
+        }
+#endif
+#endif
+        g_set_print_handler(GLibPrintRedirect);
         RepostLogSinks = new vector<LogSink*>;
         LogStdoutSink* StdoutSink = new LogStdoutSink();
         RepostLogSinks->push_back(StdoutSink);
@@ -117,16 +138,16 @@ void InitRepostLogging(string userdir)
 
         /* initialisation here */
         LOG(INFO) <<"\n"
-                    "                           _   \n"  
-                    "                          | |  \n"  
-                    "  _ __ ___ _ __   ___  ___| |_ \n"
-                    " | '__/ _ \\ '_ \\ / _ \\/ __| __|\n"
-                    " | | |  __/ |_) | (_) \\__ \\ |_ \n"
-                    " |_|  \\___| .__/ \\___/|___/\\__|\n"
-                    "          | |                  \n"
-                    "          |_|                  \n"
-                    " " RP_VERSION_STRING "\n"
-                    " " RP_RELEASE_TAGLINE "\n";
+            "                           _   \n"  
+            "                          | |  \n"  
+            "  _ __ ___ _ __   ___  ___| |_ \n"
+            " | '__/ _ \\ '_ \\ / _ \\/ __| __|\n"
+            " | | |  __/ |_) | (_) \\__ \\ |_ \n"
+            " |_|  \\___| .__/ \\___/|___/\\__|\n"
+            "          | |                  \n"
+            "          |_|                  \n"
+            " " RP_VERSION_STRING "\n"
+            " " RP_RELEASE_TAGLINE "\n";
         CleanUpOldLogs(userdir);
         IsRepostLoggingRunning = true;
     }
@@ -248,7 +269,7 @@ LogFileSink::LogFileSink(string base_filename)
     bytes_since_flush_(0),
     file_length_(0),
     logbufsecs_(2),
-    maxlogsize_(1),
+    maxlogsize_(MAXLOGSIZE),
     rollover_attempt_(kRolloverAttemptFrequency-1),
     next_flush_time_(0) 
 {
