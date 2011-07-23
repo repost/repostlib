@@ -14,6 +14,8 @@ using namespace std;
 const char rpl_storage::DATABASE_NAME[] = "repost.db";
 const char rpl_storage::DROP_POST_TABLE[] = 
     "DROP TABLE posts;";
+const char rpl_storage::DROP_ACCOUNT_TABLE[] = 
+    "DROP TABLE accounts;";
 const char rpl_storage::CREATE_POST_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, author TEXT, \
     uuid TEXT, content TEXT, upvotes INTEGER, time INTEGER);";
@@ -24,7 +26,6 @@ const char rpl_storage::CREATE_VERSION_TABLE[] =
     "CREATE TABLE IF NOT EXISTS version (version INTEGER);";
 bool initialised = false;
 int iRowsReturned = 0;
-
 const int rpl_storage::CURRENT_VERSION_NUMBER = 3;
 int db_version_number = -1;
 
@@ -588,7 +589,7 @@ void rpl_storage::update_table ( )
     {
         stringstream sql_stmt;
 
-        // create new posts table
+        // drop posts table
         rc = sqlite3_exec ( this->db, 
                 this->DROP_POST_TABLE, 
                 NULL,
