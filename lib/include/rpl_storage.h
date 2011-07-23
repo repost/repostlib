@@ -30,6 +30,7 @@ class rpl_storage
     static std::string _db_location;
     static const char DATABASE_NAME[];
     static const char DROP_POST_TABLE[];
+    static const char DROP_ACCOUNT_TABLE[];
     static const char CREATE_POST_TABLE[];
     static const char CREATE_ACCOUNT_TABLE[];
     static const char CREATE_VERSION_TABLE[];
