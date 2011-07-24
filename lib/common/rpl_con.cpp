@@ -5,12 +5,10 @@
 
 using namespace std;
 
-rpl_con::rpl_con(rpl_network *net, rpl_storage *store,
-    void (*cb)(void *rp, Post *p, int rank), void *rp)
+rpl_con::rpl_con(rpl_network *net, rpl_storage *store, void *rp)
 {
 	this->running = false;
     this->reposter = rp;
-    this->npCB = cb;
     this->pnet = net;
     this->pstore = store;
 }
@@ -53,7 +51,7 @@ void rpl_con::consume()
         {
             if(this->pstore->add_post(p))
             {
-                npCB(reposter,p,0);
+               // npCB(reposter,p,0);
             }
             else
             {

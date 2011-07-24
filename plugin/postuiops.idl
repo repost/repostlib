@@ -3,6 +3,6 @@
     PostUiOps();
 
     callback void NewPostCB(Post p, int rank);
-    [getter,setter] NewPostCB newpost_;
+    void setNewPostCB(NewPostCB? newpostcb);
 };
 

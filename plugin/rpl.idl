@@ -7,6 +7,8 @@
 
     void sendPost(Post p);
 
+    void setPostUiOps(PostUiOps postuiops);
+
     Account[] getAccounts();
     void addAccount(Account newaccount);
     void rmAccount(Account account);

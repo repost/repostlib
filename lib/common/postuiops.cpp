@@ -2,6 +2,6 @@
 
 void PostUiOps::NewPost(Post *p, int rank)
 {
-    this->newpost_->Run(*p, rank);
+    this->newpostcb_->Run(*p, rank);
 }
 

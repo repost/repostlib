@@ -46,7 +46,7 @@ void rePoster::startRepost()
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
-    pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
+    pcon = new rpl_con(pnet, pstore, this);
     pcon->go();
 }
 
@@ -96,7 +96,7 @@ void rePoster::addAccount(Account newaccount)
     pnet->addAccount(newaccount);
 }   
 
-void rePoster::getInitialPosts(NewPostCB* newPostCB)
+void rePoster::getInitialPosts()
 {
     LOG(INFO) << "Get Initial Posts";
     int i = 0;
@@ -105,7 +105,7 @@ void rePoster::getInitialPosts(NewPostCB* newPostCB)
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
-        newPostCB->Run(*post[i],0);
+        postuiops_->NewPost(post[i],0);
     }
 }
 
