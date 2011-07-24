@@ -49,7 +49,7 @@
 #endif
 
 #define LOG_IF(severity, condition) \
-  !(condition) ? (void) 0 : LogMessageVoidify() & LOG(severity)
+    if (!(condition)) LOG(severity)
 
 #define LOG(severity) COMPACT_REPOST_LOG_ ## severity.stream()
 
@@ -57,19 +57,6 @@ typedef int LogSeverity;
 const int DEBUG = 0, INFO = 1, WARNING = 2, ERROR = 3, FATAL = 4, NUM_SEVERITIES = 5;
 
 extern const char* const LogSeverityNames[NUM_SEVERITIES];
-
-/* This class is used to explicitly ignore values in the conditional
-** logging macros.  This avoids compiler warnings like "value computed
-** is not used" and "statement has no effect".
-*/
-class LogMessageVoidify {
-public:
-        LogMessageVoidify() { };
-        /* This has to be an operator with a precedence lower than << but
-         ** higher than ?:
-         */
-        void operator&(std::ostringstream&) { };
-};
 
 /*
 ** Prototype for log sink. Send it messages and it sinks em.

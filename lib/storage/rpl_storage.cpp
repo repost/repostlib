@@ -14,14 +14,18 @@ using namespace std;
 const char rpl_storage::DATABASE_NAME[] = "repost.db";
 const char rpl_storage::DROP_POST_TABLE[] = 
     "DROP TABLE posts;";
+const char rpl_storage::DROP_ACCOUNT_TABLE[] = 
+    "DROP TABLE accounts;";
 const char rpl_storage::CREATE_POST_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY, author TEXT, \
     uuid TEXT, content TEXT, upvotes INTEGER, time INTEGER);";
+const char rpl_storage::CREATE_ACCOUNT_TABLE[] = 
+    "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, username TEXT, \
+    password TEXT, type TEXT, enabled BOOLEAN);";
 const char rpl_storage::CREATE_VERSION_TABLE[] = 
     "CREATE TABLE IF NOT EXISTS version (version INTEGER);";
 bool initialised = false;
 int iRowsReturned = 0;
-
 const int rpl_storage::CURRENT_VERSION_NUMBER = 3;
 int db_version_number = -1;
 
@@ -240,6 +244,177 @@ void rpl_storage::get_link (Link *link)
 
 }
 
+bool rpl_storage::update_account ( Account *olddetails, Account *newdetails )
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "UPDATE accounts SET password = ?, "
+        "enabled = ? WHERE username = ? AND type = ?";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, newdetails->pass().c_str(), 
+                            newdetails->pass().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_int(sql_stmt, 2, newdetails->enabled());
+    rc += sqlite3_bind_text(sql_stmt, 3, olddetails->user().c_str(), 
+                            newdetails->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 4, olddetails->type().c_str(), 
+                            newdetails->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+}
+
+bool rpl_storage::delete_account ( Account *account)
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "DELETE FROM accounts WHERE username = ? "
+        "AND type = ?";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 2, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error delete: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+}
+
+bool rpl_storage::add_account ( Account *account)
+{
+    int rc = 0;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    time_t now = time ( NULL );
+    const char * post_insert = "INSERT INTO accounts ( username, password, "
+        "type, enabled) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT * FROM "
+        "accounts WHERE accounts.username = ? and type = ?);";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 2, account->pass().c_str(), account->pass().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 3, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_int(sql_stmt, 4, account->enabled());
+    rc += sqlite3_bind_text(sql_stmt, 5, account->user().c_str(), account->user().length(), SQLITE_TRANSIENT);
+    rc += sqlite3_bind_text(sql_stmt, 6, account->type().c_str(), account->type().length(), SQLITE_TRANSIENT);
+
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    if( sqlite3_changes(this->db) > 0 )
+    {
+        ret = true;
+    }
+    sqlite3_close( this->db );
+
+    return ret;
+}
+
 int rpl_storage::postSelectArray(sqlite3_stmt* sql_stmt, Post** post)
 {
 	int rowsReturned = 0;
@@ -259,6 +434,7 @@ int rpl_storage::postSelectArray(sqlite3_stmt* sql_stmt, Post** post)
 			{
 				post[rowsReturned]->set_content(
 						reinterpret_cast<const char*>(sqlite3_column_text(sql_stmt, i)));
+                LOG_IF(WARNING, post[rowsReturned]->content().length()  == 0) << "Empty content?";
 			}
             else if ( strstr(sqlite3_column_name(sql_stmt, i), "upvotes") 
 					!= NULL )
@@ -431,7 +607,7 @@ void rpl_storage::update_table ( )
     {
         stringstream sql_stmt;
 
-        // create new posts table
+        // drop posts table
         rc = sqlite3_exec ( this->db, 
                 this->DROP_POST_TABLE, 
                 NULL,
@@ -497,8 +673,22 @@ bool rpl_storage::setup_tables ()
         ret = false;
     }
 
+    rc = sqlite3_exec ( this->db, 
+            CREATE_ACCOUNT_TABLE, 
+            NULL,
+            NULL,
+            &errmsg);
+
+    if ( errmsg != NULL )
+    {
+        LOG(WARNING) << "error create accounts table: " << errmsg;
+        sqlite3_free ( errmsg );
+        ret = false;
+    }
+
     // check version numbers and stuff
-    this->update_table( );
+    this->update_table();
+    this->db_check(); /* if its broken here we might want to do something */
 
     LOG(DEBUG) << "< " <<  __FUNCTION__;
 
@@ -570,4 +760,45 @@ void rpl_storage::update_metric ( string uuid )
         LOG(DEBUG) << "sqlite ok!";
     }
     sqlite3_close( this->db );
+}
+
+bool rpl_storage::db_check()
+{
+    int rc;
+    char *errmsg;
+    bool ret = false;
+    sqlite3_stmt *sql_stmt = NULL;
+    const char* int_check = "PRAGMA integrity_check;";
+
+    LOG(DEBUG) << ">" << __FUNCTION__;
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, int_check, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare integrity  statement err = " << rc 
+            << " db = " << this->db << " " << int_check;
+        return ret;
+    }
+
+	while( sqlite3_step( sql_stmt ) == SQLITE_ROW)
+	{
+		int columns = sqlite3_column_count(sql_stmt);
+		for ( int i = 0; i < columns; i ++ )
+		{
+            LOG(INFO) << "Integrity Result: " << sqlite3_column_name(sql_stmt , i)
+                << reinterpret_cast<const char*>(sqlite3_column_text(sql_stmt, i));
+		}
+    }
+	
+    rc = sqlite3_finalize( sql_stmt );
+    LOG_IF(WARNING,( rc != SQLITE_OK )) << "error finalising: " << rc;
+    sqlite3_close( this->db );
+
+    return ret;
 }

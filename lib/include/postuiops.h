@@ -1,11 +1,12 @@
 #ifndef POSTUIOPS_H_
 #define POSTUIOPS_H_
 
+#include <stddef.h>
 class Post;
 
 class PostUiOps{
 public:
-    PostUiOps(): newpostcb_() {};
+    PostUiOps(): newpostcb_(NULL){};
 
 /* Callbacks */
     class NewPostCB{
