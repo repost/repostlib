@@ -65,17 +65,6 @@ void rePoster::sendPost(Post p)
     pstore->add_post(&p);
 }
 
-void rePoster::cb(Post *p, int rank)
-{
-    this->newPostCB->Run(*p, rank);
-}
-
-void rePoster::cb_wrap(void *reposter, Post *p, int rank)
-{    
-    rePoster *rp = (rePoster*)reposter;
-    rp->cb(p, rank);
-}
-
 std::vector<Account> rePoster::getAccounts()
 {
     LOG(INFO) << "Get Accounts";

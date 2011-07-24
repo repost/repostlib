@@ -148,7 +148,7 @@ rpl_storage::rpl_storage()
 
 rpl_storage::~rpl_storage()
 {
-	LOG(INFO) << "Destroying rpl_storage";  
+    LOG(INFO) << "Destroying rpl_storage";  
 }
 
 void rpl_storage::init(string dir)
