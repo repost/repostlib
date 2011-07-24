@@ -49,7 +49,7 @@ private:
     rpl_network *pnet;
     rpl_storage *pstore;
     rpl_con *pcon;
-    PostUiOps *postuiops_;
+    PostUiOps postuiops_;
 };
 
 #endif

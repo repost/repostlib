@@ -65,6 +65,11 @@ void rePoster::sendPost(Post p)
     pstore->add_post(&p);
 }
 
+void rePoster::setPostUiOps(PostUiOps postuiops)
+{
+    postuiops_ = postuiops;
+}
+
 std::vector<Account> rePoster::getAccounts()
 {
     LOG(INFO) << "Get Accounts";
@@ -105,7 +110,7 @@ void rePoster::getInitialPosts()
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
-        postuiops_->NewPost(post[i],0);
+        postuiops_.NewPost(post[i],0);
     }
 }
 
