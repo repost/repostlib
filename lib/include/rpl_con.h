@@ -6,16 +6,19 @@
 #include "rpl_storage.h"
 #include "pthread.h"
 
+class PostUiOps;
+
 class rpl_con 
 {
 public:
-    rpl_con(rpl_network *net, rpl_storage *store);
+    rpl_con(rpl_network *net, rpl_storage *store, PostUiOps postuiops);
     ~rpl_con();
     void go();
     void stop();
 private:
     rpl_network *pnet_;
     rpl_storage *pstore_;
+    PostUiOps postuiops_;
     bool running_;
     pthread_t m_thread;
     static void *start_thread(void *obj);

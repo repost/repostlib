@@ -2,11 +2,12 @@
 #include <iostream>
 #include "rpl_con.h"
 #include "rpdebug.h"
+#include "postuiops.h"
 
 using namespace std;
 
-rpl_con::rpl_con(rpl_network *net, rpl_storage *store):
-	pnet_(net), pstore_(store), running_(false)
+rpl_con::rpl_con(rpl_network *net, rpl_storage *store, PostUiOps postuiops):
+	pnet_(net), pstore_(store), postuiops_(postuiops), running_(false)
 {
 }
 
@@ -46,16 +47,14 @@ void rpl_con::consume()
         Post *p = pnet_->getpost();
         if(p)
         {
-						//LOG(DEBUG) << p->uuid();
-						//LOG(DEBUG) << p->content();
-            //if(pstore_->add_post(p))
-						if(0)
+            if(pstore_->add_post(p))
             {
-             //   LOG(INFO) << "Sending post to UI UUID = " << p->uuid();
+                LOG(INFO) << "Sending post to UI UUID = " << p->uuid();
+                postuiops_.NewPost(p, 0);
             }
             else
             {
-               // LOG(INFO) << "Already received UUID " << p->uuid();
+                LOG(INFO) << "Already received UUID " << p->uuid();
             }
         }
         else
