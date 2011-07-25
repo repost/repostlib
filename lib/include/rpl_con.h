@@ -9,15 +9,14 @@
 class rpl_con 
 {
 public:
-    rpl_con(rpl_network *net, rpl_storage *store, void *rp);
+    rpl_con(rpl_network *net, rpl_storage *store);
     ~rpl_con();
     void go();
     void stop();
 private:
-    rpl_network *pnet;
-    rpl_storage *pstore;
-    void *reposter;
-    bool running;
+    rpl_network *pnet_;
+    rpl_storage *pstore_;
+    bool running_;
     pthread_t m_thread;
     static void *start_thread(void *obj);
     void consume();

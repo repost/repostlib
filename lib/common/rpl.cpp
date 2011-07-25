@@ -46,7 +46,7 @@ void rePoster::startRepost()
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
-    pcon = new rpl_con(pnet, pstore, this);
+    pcon = new rpl_con(pnet, pstore);
     pcon->go();
 }
 
