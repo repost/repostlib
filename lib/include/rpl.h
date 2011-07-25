@@ -50,6 +50,8 @@ private:
     rpl_storage *pstore;
     rpl_con *pcon;
     PostUiOps postuiops_;
+    
+    void InitUserDir();
 };
 
 #endif

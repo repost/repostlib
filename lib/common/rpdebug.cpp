@@ -229,6 +229,11 @@ void CleanUpOldLogs(string logdirectory)
     struct dirent *direntry;
 
     dir = opendir(logdirectory.c_str());
+    if(!dir)
+    {
+        LOG(WARNING) << "Can't open folder to cleanup log files";
+        return;
+    }
     while(direntry=readdir(dir))
     {   
         if( (direntry->d_type == isFile) && 
