@@ -49,7 +49,7 @@
 #endif
 
 #define LOG_IF(severity, condition) \
-    if (!(condition)) LOG(severity)
+    if (condition) LOG(severity)
 
 #define LOG(severity) COMPACT_REPOST_LOG_ ## severity.stream()
 

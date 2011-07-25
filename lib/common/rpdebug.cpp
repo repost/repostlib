@@ -186,7 +186,7 @@ bool IsLogOld(const char* logname)
     logtime->tm_mon = atoi(month) - 1;
     logtime->tm_mday = atoi(day);
     LOG(DEBUG) << "Time of log " << mktime(logtime) 
-      << "Time two days ago " << twodaysago;
+      << " Time two days ago " << twodaysago;
     return (mktime(logtime) < twodaysago);
 }
 

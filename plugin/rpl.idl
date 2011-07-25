@@ -7,9 +7,7 @@
 
     void sendPost(Post p);
 
-    /* Call back so when new posts come in we call */
-    callback void NewPostCB(Post p, int rank);
-    void setNewPostCB(NewPostCB? newPostCB);
+    void setPostUiOps(PostUiOps postuiops);
 
     Account[] getAccounts();
     void addAccount(Account newaccount);
@@ -19,7 +17,7 @@
     void addLink(Link newlink);
     void rmLink(Link link);
 
-    void getInitialPosts(NewPostCB? newPostCB);
+    void getInitialPosts();
 
     void upboat(std::string u);
     void downboat(std::string u);

@@ -46,7 +46,7 @@ void rePoster::startRepost()
     pstore = rpl_storage::get_instance();
 
     /* Create consumer here */
-    pcon = new rpl_con(pnet, pstore, rePoster::cb_wrap, this);
+    pcon = new rpl_con(pnet, pstore, postuiops_);
     pcon->go();
 }
 
@@ -65,15 +65,9 @@ void rePoster::sendPost(Post p)
     pstore->add_post(&p);
 }
 
-void rePoster::cb(Post *p, int rank)
+void rePoster::setPostUiOps(PostUiOps postuiops)
 {
-    this->newPostCB->Run(*p, rank);
-}
-
-void rePoster::cb_wrap(void *reposter, Post *p, int rank)
-{    
-    rePoster *rp = (rePoster*)reposter;
-    rp->cb(p, rank);
+    postuiops_ = postuiops;
 }
 
 std::vector<Account> rePoster::getAccounts()
@@ -103,11 +97,12 @@ std::string rePoster::GetUserDir()
 
 void rePoster::addAccount(Account newaccount)
 {
-    LOG(INFO) << "Add Account " << newaccount.user();
+    LOG(INFO) << "Add Account " << newaccount.user()
+        << " Type " << newaccount.type();
     pnet->addAccount(newaccount);
 }   
 
-void rePoster::getInitialPosts(NewPostCB* newPostCB)
+void rePoster::getInitialPosts()
 {
     LOG(INFO) << "Get Initial Posts";
     int i = 0;
@@ -116,7 +111,7 @@ void rePoster::getInitialPosts(NewPostCB* newPostCB)
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
-        newPostCB->Run(*post[i],0);
+        postuiops_.NewPost(post[i],0);
     }
 }
 

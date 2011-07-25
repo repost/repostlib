@@ -40,13 +40,10 @@ void slavenet::xml2post(string *spost, Post *post)
         {
             post->set_content(string((char *)child->content));
         }
-        else if(!strncmp(name,"certs", sizeof("certs")) && child)
-        {
-            post->set_certs(string((char *)child->content));
-        }
+        else if(!strncmp(name,"certs", sizeof("certs"))){}
         else
         {
-            LOG(WARNING) << "Unexpected XML section";
+            LOG(WARNING) << "Unexpected XML section: " << name;
         }
         n = n->next;
     }

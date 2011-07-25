@@ -3,6 +3,7 @@
 #include "rpl_network.h"
 #include "rpqueue.h"
 #include "jabposter.h"
+#include "rpdebug.h"
 
 #define MAXLINKS 100
 #define MAXACCS  100
