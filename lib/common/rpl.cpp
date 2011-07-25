@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include "glib.h"
+#include <sys/stat.h>
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -23,7 +24,7 @@ void rePoster::init()
          do it properly */
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
 #endif
-
+    InitUserDir();
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
     rpl_storage::init(GetUserDir());
@@ -74,6 +75,19 @@ std::vector<Account> rePoster::getAccounts()
 {
     LOG(INFO) << "Get Accounts";
     return pnet->getAccounts();
+}
+
+void rePoster::InitUserDir()
+{
+    string home(GetUserDir());
+	if (!g_file_test(home.c_str(), G_FILE_TEST_EXISTS))
+	{
+		/* Folder doesn't exist so lets create it */
+        if(g_mkdir_with_parents(home.c_str(), S_IRUSR | S_IWUSR | S_IXUSR) < 0)
+        {
+            fprintf(stderr, "COULD NOT CREATE HOME FOLDER"); /* Logging not avail yet */
+        }
+	}
 }
 
 std::string rePoster::GetUserDir()
