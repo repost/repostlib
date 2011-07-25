@@ -163,7 +163,9 @@ void JabPoster::ReceivedIm(PurpleAccount *account, char *sender, char *message,
         xml2post(&content, post);
         if(post->content().length() == 0)
         {
-            LOG(WARNING) << "Post with empty content. Dropping post";
+            LOG(WARNING) << "Post with empty content. Dropping post: " 
+							<< post->uuid() << " Sent from: " << sender;
+						LOG(DEBUG) << "Message content: " << message;
             delete post;
         }
         else

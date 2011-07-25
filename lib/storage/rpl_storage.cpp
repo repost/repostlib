@@ -191,6 +191,7 @@ bool rpl_storage::add_post (Post *post)
     const char * post_insert = "INSERT INTO posts ( uuid, content, time, "
         "upvotes) SELECT ?, ?, ?, 0 WHERE NOT EXISTS (SELECT * FROM posts "
         "WHERE posts.uuid = ?);";
+		
 
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
