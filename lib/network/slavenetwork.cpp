@@ -1,5 +1,6 @@
 
 #include "rpl.h"
+#include "rpdebug.h"
 #include "slavenetwork.h"
 #include <string.h>
 extern "C" {
@@ -43,6 +44,10 @@ void slavenet::xml2post(string *spost, Post *post)
         {
             post->set_certs(string((char *)child->content));
         }
+        else
+        {
+            LOG(WARNING) << "Unexpected XML section";
+        }
         n = n->next;
     }
     xmlFreeDoc(doc);
@@ -78,15 +83,7 @@ void slavenet::post2xml(string *spost, Post *post)
 
     c = xmlNewNode(NULL, BAD_CAST "certs");
     xmlAddChild(r,c);
-/*
-    for(x=0; x < post->get_numcerts(); x++)
-    {
-        /* Need to do allocation checks here as cert lists could get massive 
-        n = xmlNewNode(NULL, BAD_CAST "cert");
-        xmlNodeSetContent(n, BAD_CAST post->certs(x).c_str());
-        xmlAddChild(c,n);
-    }
-*/
+
     xmlDocSetRootElement(doc, r);
     xmlDocDumpFormatMemoryEnc(doc, &xmlbuff, &buffersize,"ASCII", 1);
 
