@@ -18,7 +18,8 @@ env = Environment(
 if int(ARGUMENTS.get('debug', 0)):
     env.Append(CCFLAGS='-DDEBUG_ON -DREPOST_STRIP_LOG=0')
     if (platform =='win'):
-      env.Append(CCFLAGS='/Zi')
+      env.Append(CCFLAGS=['/Zi'],
+          LINKFLAGS=['/INCREMENTAL:NO','/DEBUG','/OPT:REF','/OPT:ICF'])
     else:
       env.Append(CCFLAGS='-g')
 else:
@@ -43,7 +44,7 @@ if (platform =='darwin'):
 elif platform =='linux':
     env.Append(CCFLAGS="-DLINUX")
 elif platform =='win':
-    env.Append(CCFLAGS=['/DWIN32=1','/D_X86_','/EHsc','/Zi']) 
+    env.Append(CCFLAGS=['/DWIN32=1','/D_X86_','/EHsc']) 
 
 Export('env')
 
