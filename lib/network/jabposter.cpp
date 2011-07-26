@@ -713,13 +713,12 @@ static void ZombieKiller_Signal(int i)
 }
 #endif
 
-JabPoster::JabPoster(rpqueue<Post*>* rq)
+JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir):
+    lock(NULL), in_queue(rq)
 {
     jabint = this;
-    this->in_queue = rq;
     this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &JabPoster::w_ResFree);
-    this->lock = NULL;
-
+    
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
      * blocking lookups without blocking the main process.  It does not
@@ -753,8 +752,6 @@ JabPoster::JabPoster(rpqueue<Post*>* rq)
     purple_eventloop_set_ui_ops(RepostEventloopUiOps());
 
     /* set the users directory to live inside the repost settings dir */
-    repostdir.assign(purple_home_dir());
-    repostdir.append("/.repost");
     purple_util_set_user_dir(repostdir.c_str());
 
     /* Set 

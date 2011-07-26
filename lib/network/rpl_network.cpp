@@ -8,10 +8,10 @@
 #define MAXLINKS 100
 #define MAXACCS  100
 
-rpl_network::rpl_network()
+rpl_network::rpl_network(std::string repostdir)
 {
     in_queue = new rpqueue<Post*>();
-    jbp = new JabPoster(in_queue);
+    jbp = new JabPoster(in_queue, repostdir);
 }
 
 rpl_network::~rpl_network()

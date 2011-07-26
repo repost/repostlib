@@ -13,7 +13,7 @@ class Post;
 class rpl_network 
 {
 public:
-    rpl_network();
+    rpl_network(std::string repostdir);
     ~rpl_network();
     Post *getpost(); /* Blocking call */
     void post(Post &post);

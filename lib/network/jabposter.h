@@ -18,7 +18,7 @@ class LockStep;
 class JabPoster : public slavenet
 {
 public:
-    JabPoster(rpqueue<Post*>* rq);
+    JabPoster(rpqueue<Post*>* rq, string repostdir);
     ~JabPoster();
 
     /* External Thread-safe Interface */

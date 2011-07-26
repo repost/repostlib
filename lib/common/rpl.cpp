@@ -28,12 +28,13 @@ void rePoster::init()
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
     rpl_storage::init(GetUserDir());
-    pnet = new rpl_network();
+    pnet = new rpl_network(GetUserDir());
 }
 
 void rePoster::startRepost()
 {
     LOG(INFO) << "Starting repost...";
+
     /* Start the networks */
     pnet->go();
 
