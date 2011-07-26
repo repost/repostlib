@@ -618,7 +618,7 @@ void JabPoster::AddGtalk(string user, string pass)
     purple_account_set_password(jabacct, pass.c_str());
 
     /* For gtalk account as we have special settings */
-    purple_account_set_bool(jabacct,"old_ssl", TRUE);
+    purple_account_set_string(jabacct,"connection_security", "old_ssl");
     purple_account_set_int(jabacct,"port", 443);
     purple_account_set_string(jabacct,"connect_server", "talk.google.com");
 
