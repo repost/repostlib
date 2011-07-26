@@ -300,6 +300,7 @@ bool rpl_storage::update_account ( Account *olddetails, Account *newdetails )
         ret = true;
     }
     sqlite3_close( this->db );
+    return ret;
 }
 
 bool rpl_storage::delete_account ( Account *account)
@@ -353,6 +354,7 @@ bool rpl_storage::delete_account ( Account *account)
         ret = true;
     }
     sqlite3_close( this->db );
+    return ret;
 }
 
 bool rpl_storage::add_account ( Account *account)
