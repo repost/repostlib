@@ -8,6 +8,7 @@
 #include "post.h"
 #include "acct.h"
 #include "postuiops.h"
+#include "networkuiops.h"
 
 #ifdef WIN32
 #define PATH_SEPARATOR "\\"
@@ -21,7 +22,7 @@ class rpl_con;
 
 class rePoster{
 public:
-    rePoster(): pnet(NULL), pstore(NULL), pcon(NULL){};
+    rePoster(): pnet_(NULL), pstore_(NULL), pcon_(NULL){};
     ~rePoster();
     void init();
     void startRepost();
@@ -30,6 +31,7 @@ public:
     void sendPost(Post p);
     
     void setPostUiOps(PostUiOps postuiops); 
+    void setNetworkUiOps(NetworkUiOps networkuiops);
 
     std::vector<Account> getAccounts();
     void addAccount(Account newaccount);
@@ -46,10 +48,11 @@ public:
     void downboat(std::string uuid);
 
 private:
-    rpl_network *pnet;
-    rpl_storage *pstore;
-    rpl_con *pcon;
+    rpl_network *pnet_;
+    rpl_storage *pstore_;
+    rpl_con *pcon_;
     PostUiOps postuiops_;
+    NetworkUiOps networkuiops_;
 
     void InitUserDir();
 };

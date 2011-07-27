@@ -7,29 +7,36 @@ extern "C" {
 #include "purple.h"
 }
 
-class jabconnections 
+class NetworkUiOps;
+
+class JabConnections 
 {
 public:
-  jabconnections();
-  ~jabconnections();
-  PurpleConnectionUiOps* getUiOps();
+    JabConnections(NetworkUiOps networkuiops);
+    ~JabConnections();
+    PurpleConnectionUiOps* GetUiOps();
 
 private:
-  GHashTable *timeoutSignons;
-  static PurpleConnectionUiOps ConnectionUiOps;
+    GHashTable *timeout_signons_;
+    NetworkUiOps networkuiops_;
+    static PurpleConnectionUiOps connectionuiops_;
 
-  static gboolean w_signon(gpointer data);
-  gboolean signon(gpointer data);
-  static void w_startReconn(PurpleConnection *gc, 
-                        PurpleConnectionError reason, const char *text);
-  void startReconn(PurpleConnection *gc,
-                        PurpleConnectionError reason, const char *text);
-  static void w_networkConnected (void);
-  void networkConnected (void);
-  static void w_accountRemoved(PurpleAccount *account, gpointer user_data);
-  void accountRemoved(PurpleAccount *account, gpointer user_data);
-  static void w_freeTimeouts(gpointer data);
-  void freeTimeouts(gpointer data);
+    static void w_ConnectionConnected(PurpleConnection *gc);
+    void ConnectionConnected(PurpleConnection *gc);
+
+    static gboolean w_SignOn(gpointer data);
+    gboolean SignOn(gpointer data);
+
+    static void w_DisconnectReason(PurpleConnection *gc, 
+            PurpleConnectionError reason, const char *text);
+    void DisconnectReason(PurpleConnection *gc,
+            PurpleConnectionError reason, const char *text);
+
+    static void w_NetworkConnected (void);
+    void NetworkConnected (void);
+
+    static void w_FreeTimeouts(gpointer data);
+    void FreeTimeouts(gpointer data);
 };
 
 #endif

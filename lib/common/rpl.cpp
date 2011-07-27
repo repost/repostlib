@@ -1,4 +1,3 @@
-
 #include "rpl.h"
 #include "rpl_network.h"
 #include "rpl_storage.h"
@@ -8,6 +7,7 @@
 #include <iostream>
 #include "glib.h"
 #include <sys/stat.h>
+#include <stdio.h>
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -28,7 +28,7 @@ void rePoster::init()
     InitRepostLogging(GetUserDir());
     LOG(INFO) << "Repost home directory - " << GetUserDir();
     rpl_storage::init(GetUserDir());
-    pnet = new rpl_network(GetUserDir());
+    pnet_ = new rpl_network(GetUserDir(), networkuiops_);
 }
 
 void rePoster::startRepost()
@@ -36,35 +36,35 @@ void rePoster::startRepost()
     LOG(INFO) << "Starting repost...";
 
     /* Start the networks */
-    pnet->go();
+    pnet_->go();
 
     /* lets create bonjour user here */
     Account bacct;
     bacct.set_user("reposter");
     bacct.set_type("Bonjour");
-    pnet->addAccount(bacct);
+    pnet_->addAccount(bacct);
 
     /* Create storage class here */
-    pstore = rpl_storage::get_instance();
+    pstore_ = rpl_storage::get_instance();
 
     /* Create consumer here */
-    pcon = new rpl_con(pnet, pstore, postuiops_);
-    pcon->go();
+    pcon_ = new rpl_con(pnet_, pstore_, postuiops_);
+    pcon_->go();
 }
 
 void rePoster::stopRepost()
 {
     LOG(INFO) << "Stopping repost";
-    pnet->stop();
-    pcon->stop();
-    pstore->uninit();
+    pnet_->stop();
+    pcon_->stop();
+    pstore_->uninit();
 }
 
 void rePoster::sendPost(Post p)
 {
     LOG(INFO) << "Sending Post UUID " << p.uuid();
-    pnet->post(p);
-    pstore->add_post(&p);
+    pnet_->post(p);
+    pstore_->add_post(&p);
 }
 
 void rePoster::setPostUiOps(PostUiOps postuiops)
@@ -72,10 +72,15 @@ void rePoster::setPostUiOps(PostUiOps postuiops)
     postuiops_ = postuiops;
 }
 
+void rePoster::setNetworkUiOps(NetworkUiOps networkuiops)
+{
+    networkuiops_ = networkuiops;
+}
+
 std::vector<Account> rePoster::getAccounts()
 {
     LOG(INFO) << "Get Accounts";
-    return pnet->getAccounts();
+    return pnet_->getAccounts();
 }
 
 void rePoster::InitUserDir()
@@ -114,7 +119,7 @@ void rePoster::addAccount(Account newaccount)
 {
     LOG(INFO) << "Add Account " << newaccount.user()
         << " Type " << newaccount.type();
-    pnet->addAccount(newaccount);
+    pnet_->addAccount(newaccount);
 }   
 
 void rePoster::getInitialPosts()
@@ -122,7 +127,7 @@ void rePoster::getInitialPosts()
     LOG(INFO) << "Get Initial Posts";
     int i = 0;
     Post *post[16];
-    int rowsReturned = this->pstore->get_post( post, 0, 16 );
+    int rowsReturned = this->pstore_->get_post( post, 0, 16 );
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
@@ -133,58 +138,58 @@ void rePoster::getInitialPosts()
 void rePoster::rmAccount(Account account)
 {
     LOG(INFO) << "Remove Account " << account.user();
-    pnet->rmAccount(account);
+    pnet_->rmAccount(account);
 }
 
 std::vector<Link> rePoster::getLinks()
 {
     LOG(INFO) << "Get Links";
-    return pnet->getLinks();
+    return pnet_->getLinks();
 }
 
 void rePoster::addLink(Link newlink)
 {
     LOG(INFO) << "Add Link " << newlink.name();
-    pnet->addLink(newlink);
+    pnet_->addLink(newlink);
 }
 
 void rePoster::rmLink(Link link)
 {
     LOG(INFO) << "Remove Link " << link.name();
-    pnet->rmLink(link);
+    pnet_->rmLink(link);
 }
 
 void rePoster::upboat(string u) 
 {
     LOG(INFO) << "Upboating post " << u;
     Post *uppost = NULL;
-    pstore->update_metric(u);
-    pstore->get_post(&uppost, u);
+    pstore_->update_metric(u);
+    pstore_->get_post(&uppost, u);
     if(uppost)
     {
       LOG(DEBUG) << "content " << uppost->content();
-      pnet->post(*uppost);
+      pnet_->post(*uppost);
     }
 }
 
 void rePoster::downboat(std::string uuid) 
 {
     LOG(INFO) << "Downboating post UUID " << uuid;
-    pstore->delete_post(uuid);
+    pstore_->delete_post(uuid);
 }
 
 rePoster::~rePoster()
 {
-    if(pnet)
+    if(pnet_)
     {
-        pnet->stop();
+        pnet_->stop();
     }
-    if(pcon)
+    if(pcon_)
     {
-        pcon->stop();
+        pcon_->stop();
     }
-    delete pnet;
-    delete pstore;
-    delete pcon;
+    delete pnet_;
+    delete pstore_;
+    delete pcon_;
     ShutdownRepostLogging();
 }

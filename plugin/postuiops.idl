@@ -3,6 +3,9 @@
     PostUiOps();
 
     callback void NewPostCB(Post p, int rank);
-    void setNewPostCB(NewPostCB? newpostcb);
+    [setter] NewPostCB? newpostcb_;
+
+    callback void PostMetricCB(std::string uuid, int metric);
+    [setter] PostMetricCB? postmetriccb_;
 };
 

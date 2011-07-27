@@ -8,6 +8,7 @@
     void sendPost(Post p);
 
     void setPostUiOps(PostUiOps postuiops);
+    void setNetworkUiOps(NetworkUiOps networkuiops);
 
     Account[] getAccounts();
     void addAccount(Account newaccount);

@@ -14,11 +14,13 @@ extern "C" {
 }
 
 class LockStep;
+class NetworkUiOps;
 
 class JabPoster : public slavenet
 {
 public:
-    JabPoster(rpqueue<Post*>* rq, string repostdir);
+    JabPoster(rpqueue<Post*>* rq, string repostdir, 
+        NetworkUiOps networkuiops);
     ~JabPoster();
 
     /* External Thread-safe Interface */
@@ -38,13 +40,14 @@ public:
     void Stop();
 
 private:
-    jabconnections *jabconn;  /* Connection handlers */
-    rpqueue<Post*> *in_queue; /* Post message in queue */
-    std::string repostdir;    /* .repost directory */
-    GHashTable* resMap;       /* Map of users XMPP resources */
-    GMainLoop *loop;          /* LibpurpleLoop glib loop */
-    GMainContext* con;        /* Libpurple loop context. Null on everything but linux */
-    LockStep *lock;           /* Lock for sync between lploop and extern interfaces */
+    JabConnections *jabconn_;  /* Connection handlers */
+    NetworkUiOps networkuiops_;  /* Network Ui handler */
+    rpqueue<Post*> *in_queue_; /* Post message in queue */
+    std::string repostdir_;    /* .repost directory */
+    GHashTable* resmap_;       /* Map of users XMPP resources */
+    GMainLoop *loop_;          /* LibpurpleLoop glib loop */
+    GMainContext* con_;        /* Libpurple loop context. Null on everything but linux */
+    LockStep *lock_;           /* Lock for sync between lploop and extern interfaces */
 
     void ConnectToSignals();
     static void w_InitUI();

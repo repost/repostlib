@@ -7,6 +7,7 @@
 #include "jabconnections.h"
 #include "lockstep.h"
 #include "rpdebug.h"
+#include "networkuiops.h"
 
 #ifndef WIN32 /* Always last include */
 #include <unistd.h>
@@ -123,8 +124,8 @@ void JabPoster::InitUI(void)
 #if OS_MACOSX
     init_ssl_plugins();
 #endif
-    this->jabconn = new jabconnections();
-    purple_connections_set_ui_ops(this->jabconn->getUiOps());
+    jabconn_ = new JabConnections(networkuiops_);
+    purple_connections_set_ui_ops(jabconn_->GetUiOps());
     purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
 }
 
@@ -170,7 +171,7 @@ void JabPoster::ReceivedIm(PurpleAccount *account, char *sender, char *message,
         }
         else
         {
-            jabint->in_queue->add(post);
+            jabint->in_queue_->add(post);
         }
     }
 }
@@ -200,7 +201,7 @@ void JabPoster::PrintSupportedProtocols(void)
 
 std::string JabPoster::GetRepostDir(void)
 {
-  return repostdir;
+  return repostdir_;
 }
 
 /**
@@ -268,7 +269,7 @@ gboolean JabPoster::RetrieveUserInfo(gpointer data)
             else /* signed off remove resources */
             {
                 LOG(DEBUG) << "buddy is offline " << name;
-                g_hash_table_remove(resMap, name); 
+                g_hash_table_remove(resmap_, name); 
             }
         }
         bnode = purple_blist_node_next (bnode, false);
@@ -320,7 +321,7 @@ void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
     {
         char *who_cpy = (char *) g_malloc(strlen(who));
         strncpy(who_cpy, who, strlen(who));
-        g_hash_table_replace(resMap, (void *)who_cpy, resources);
+        g_hash_table_replace(resmap_, (void *)who_cpy, resources);
     }
     return NULL;
 }
@@ -335,14 +336,13 @@ GList* JabPoster::ReposterName(PurpleBuddy* pb)
 
     if(!strncmp(proto_id, "prpl-jabber", sizeof("prpl-jabber")))
     {
-        GList* resources = (GList*)g_hash_table_lookup(this->resMap, bname);
-        LOG(DEBUG) << "prpl-jabber looking up " << bname;
+        GList* resources = (GList*)g_hash_table_lookup(resmap_, bname);
         for(resources = g_list_first(resources);resources; resources = g_list_next(resources))
         {
             char* resname = (char*) resources->data;
-            LOG(DEBUG) << "resource " << resname;
             if(strstr(resname, IDENTIFY_STRING))
             {
+                LOG(DEBUG) << "resource " << resname;
                 char* resname_cpy = (char*) g_malloc(strlen(resname)+1);
                 strncpy(resname_cpy, resname, strlen(resname)+1);
                 reposters = g_list_prepend(reposters, resname_cpy);
@@ -713,11 +713,11 @@ static void ZombieKiller_Signal(int i)
 }
 #endif
 
-JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir):
-    lock(NULL), in_queue(rq)
+JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir, NetworkUiOps networkuiops):
+    lock_(NULL), in_queue_(rq), repostdir_(repostdir), networkuiops_(networkuiops)
 {
     jabint = this;
-    this->resMap = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &JabPoster::w_ResFree);
+    resmap_ = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, &JabPoster::w_ResFree);
     
 #ifdef LINUX 
     /* libpurple's built-in DNS resolution forks processes to perform
@@ -752,7 +752,7 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir):
     purple_eventloop_set_ui_ops(RepostEventloopUiOps());
 
     /* set the users directory to live inside the repost settings dir */
-    purple_util_set_user_dir(repostdir.c_str());
+    purple_util_set_user_dir(repostdir_.c_str());
 
     /* Set 
      * Now that all the essential stuff has been set, let's try to init the core. It's
@@ -778,17 +778,18 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir):
     g_timeout_add(60000, &JabPoster::w_RetrieveUserInfo, NULL);
 
 #ifdef RPTHREAD_SAFE
-    lock = new LockStep();
+    lock_ = new LockStep();
     GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
-    g_source_attach(lockeventsource, this->con);
+    g_source_attach(lockeventsource, con_);
 #endif
 }
 
 JabPoster::~JabPoster()
 {
-    delete jabconn;
+    delete jabconn_;
     uninit_xml();
-    g_hash_table_destroy(this->resMap);
+    g_hash_table_destroy(this->resmap_);
+
 }
 
 void JabPoster::Go()
@@ -805,8 +806,8 @@ void JabPoster::Stop()
     if(running == true)
     {
         running = false;
-        this->in_queue->add(NULL); /* we going down */
-        g_main_loop_quit(this->loop);
+        this->in_queue_->add(NULL); /* we going down */
+        g_main_loop_quit(loop_);
         pthread_join(m_thread,0);
         LOG(DEBUG) << "Jabposter thread joined";
     }
@@ -820,34 +821,34 @@ void *JabPoster::StartThread(void *obj)
 
 void JabPoster::LibpurpleLoop()
 {
-    this->con = NULL;
+    con_ = NULL;
 #ifdef LINUX
-    con = g_main_context_new();
+    con_ = g_main_context_new();
 #endif
-    this->loop = g_main_loop_new(con, FALSE);
-    if(loop == NULL)
+    loop_ = g_main_loop_new(con_, FALSE);
+    if(loop_ == NULL)
     {
       LOG(FATAL) << "GLOOP FAIL WE IN DA SHIT";
     }
-    g_main_loop_run(loop);
+    g_main_loop_run(loop_);
     LOG(DEBUG) << "Quiting Libpurple core";
     purple_core_quit();
 }
 
 void JabPoster::LockSpinner(void)
 {
-    this->lock->LockSpinner();
-    this->lock->CheckBoss();
+    lock_->LockSpinner();
+    lock_->CheckBoss();
 }
 
 void JabPoster::UnlockSpinner(void)
 {
-    this->lock->UnlockSpinner();
+    lock_->UnlockSpinner();
 }
 
 void JabPoster::CheckForLock(void)
 {
-    this->lock->CheckSpinner();
+    lock_->CheckSpinner();
 }
 
 gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)

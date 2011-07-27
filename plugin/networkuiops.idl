@@ -1,0 +1,23 @@
+/* All functions must be camel case. */
+[binding_model=by_value, include="networkuiops.h"] class NetworkUiOps {
+    NetworkUiOps();
+
+    /* Buddy List Callbacks */
+    callback void NotifyAddedCB(Account acct, Link link, std::string msg);
+    [setter] NotifyAddedCB? notifyaddedcb_;
+
+    callback void RequestAddCB(Account acct, Link link, std::string msg);
+    [setter] RequestAddCB? requestaddcb_;
+
+    callback void RequestAuthorizeAddedCB(Account acct, Link link, std::string msg,
+        bool onlist);
+    [setter] RequestAuthorizeAddedCB? requestauthorizeaddedcb_;
+
+    callback void StatusChangedCB(Account acct);
+    [setter] StatusChangedCB? statuschangedcb_;
+
+    /* Connection Callbacks */
+    callback void AccountDisconnectCB(Account acct, std::string reason);
+    [setter] AccountDisconnectCB? accountdisconnectcb_;
+
+};

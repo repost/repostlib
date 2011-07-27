@@ -9,11 +9,12 @@
 template <class> class rpqueue;
 class JabPoster;
 class Post;
+class NetworkUiOps;
 
 class rpl_network 
 {
 public:
-    rpl_network(std::string repostdir);
+    rpl_network(std::string repostdir, NetworkUiOps networkuiops);
     ~rpl_network();
     Post *getpost(); /* Blocking call */
     void post(Post &post);
@@ -33,6 +34,7 @@ private:
     rpqueue<Post*> *out_queue;
     rpqueue<Post*> *in_queue;
     JabPoster *jbp;
+    NetworkUiOps networkuiops_;
 };
 
 #endif
