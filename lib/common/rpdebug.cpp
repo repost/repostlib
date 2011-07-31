@@ -169,6 +169,7 @@ bool IsLogOld(const char* logname)
 {
     const time_t now = time(NULL);
     const time_t twodaysago = now - 60*60*24; /* Give us two days ago */
+    time_t logfiletime = now; 
     struct tm *logtime;
     logtime = localtime(&now);
     char year[5];
@@ -185,9 +186,11 @@ bool IsLogOld(const char* logname)
     logtime->tm_year = atoi(year) - 1900;
     logtime->tm_mon = atoi(month) - 1;
     logtime->tm_mday = atoi(day);
-    LOG(DEBUG) << "Time of log " << mktime(logtime) 
-      << " Time two days ago " << twodaysago;
-    return (mktime(logtime) < twodaysago);
+    logfiletime = mktime(logtime);
+    LOG(DEBUG) << "Time of log " << logfiletime
+      << " Time two days ago " << twodaysago 
+			<< " " << (logfiletime < twodaysago);
+    return (logfiletime < twodaysago);
 }
 
 #ifdef WIN32
