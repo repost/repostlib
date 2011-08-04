@@ -93,6 +93,19 @@ PurpleNotifyUiOps JabPoster::NotifyUiOps =
         NULL 
 };
 
+PurpleAccountUiOps JabPoster::AccountUiOps =
+{
+    &JabPoster::w_NotifyAdded,
+    NULL,
+    &JabPoster::w_RequestAdd,
+    &JabPoster::w_RequestAuthorize,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 GSourceFuncs JabPoster::lockevent =
 {
     &JabPoster::w_prepare,
@@ -106,8 +119,14 @@ void JabPoster::ConnectToSignals(void)
     static int handle;
     purple_signal_connect(purple_conversations_get_handle(), "received-im-msg", &handle,
             PURPLE_CALLBACK(&JabPoster::w_ReceivedIm), NULL);
-    purple_signal_connect(purple_accounts_get_handle(), "account-authorization-requested", &handle,
-            PURPLE_CALLBACK(&JabPoster::AuthorizationRequested), NULL);
+	purple_signal_connect(purple_blist_get_handle(), "buddy-status-changed", &handle,
+				PURPLE_CALLBACK(&JabPoster::w_BuddyStatusChanged), NULL);
+	purple_signal_connect(purple_blist_get_handle(), "buddy-idle-changed", &handle,
+				PURPLE_CALLBACK(&JabPoster::w_BuddyStatusChanged), NULL);
+	purple_signal_connect(purple_blist_get_handle(), "buddy-signed-on", &handle,
+				PURPLE_CALLBACK(&JabPoster::w_BuddyStatusChanged), NULL);
+	purple_signal_connect(purple_blist_get_handle(), "buddy-signed-off", &handle,
+				PURPLE_CALLBACK(&JabPoster::w_BuddyStatusChanged), NULL);
 }
 
 void JabPoster::w_InitUI(void)
@@ -127,6 +146,7 @@ void JabPoster::InitUI(void)
     jabconn_ = new JabConnections(networkuiops_);
     purple_connections_set_ui_ops(jabconn_->GetUiOps());
     purple_notify_set_ui_ops(&JabPoster::NotifyUiOps);
+    purple_accounts_set_ui_ops(&JabPoster::AccountUiOps);
 }
 
 void JabPoster::w_ReceivedIm(PurpleAccount *account, char *sender, char *message,
@@ -176,11 +196,95 @@ void JabPoster::ReceivedIm(PurpleAccount *account, char *sender, char *message,
     }
 }
 
-int JabPoster::AuthorizationRequested(PurpleAccount *account, const char *user)
+void JabPoster::w_NotifyAdded(PurpleAccount *account, const char *remote_user, const char *id,
+	                            const char *alias, const char *message)
 {
-    purple_account_add_buddy(account, purple_buddy_new(account,user,NULL));
-    return 1;
-} 
+    if( jabint )
+    {
+        jabint->NotifyAdded(account, remote_user, id, alias, message);   
+    }
+}
+
+void JabPoster::NotifyAdded(PurpleAccount *account, const char *remote_user, const char *id,
+	                            const char *alias, const char *message)
+{
+    Account acct;
+    Link link;
+
+    PurpleAccount2Repost(account, &acct);
+    link.set_name(remote_user);
+    networkuiops_.NotifyAdded(acct, link, message);
+}
+
+void JabPoster::w_RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
+                            const char *alias, const char *message)
+{
+    if( jabint )
+    {
+        jabint->RequestAdd(account, remote_user, id, alias, message);   
+    }
+}
+
+void JabPoster::RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
+                            const char *alias, const char *message)
+{
+   Account acct;
+    Link link;
+
+    PurpleAccount2Repost(account, &acct);
+    link.set_name(remote_user);
+    networkuiops_.RequestAdd(acct, link, message);
+
+}
+
+void* JabPoster::w_RequestAuthorize(PurpleAccount *account, const char *remote_user,
+                             const char *id, const char *alias, const char *message,
+                             gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb,
+                             PurpleAccountRequestAuthorizationCb deny_cb, void *user_data)
+{
+    if( jabint )
+    {
+        return jabint->RequestAuthorize(account, remote_user, id, alias, message, on_list, 
+                                    authorize_cb, deny_cb, user_data);   
+    }
+		return NULL;
+}
+
+void* JabPoster::RequestAuthorize(PurpleAccount *account, const char *remote_user,
+                             const char *id, const char *alias, const char *message,
+                             gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb,
+                             PurpleAccountRequestAuthorizationCb deny_cb, void *user_data)
+{
+    Account acct;
+    Link link;
+
+    PurpleAccount2Repost(account, &acct);
+    link.set_name(remote_user);
+    if (networkuiops_.RequestAuthorizeAdded(acct, link, message, on_list))
+    {
+        authorize_cb(NULL);
+    }
+    else
+    {
+        deny_cb(NULL);
+    }
+    return NULL;
+}
+
+void JabPoster::w_BuddyStatusChanged(PurpleBuddy *buddy)
+{
+    if( jabint )
+    {
+        jabint->BuddyStatusChanged(buddy);  
+    }
+}
+
+void JabPoster::BuddyStatusChanged(PurpleBuddy *buddy)
+{
+    Link link;
+    PurpleBuddy2Link(buddy, &link);
+    networkuiops_.LinkStatusChanged(link);
+}
 
 void JabPoster::PrintSupportedProtocols(void)
 {
@@ -449,6 +553,70 @@ void JabPoster::SendPost(Post *post)
     END_THREADSAFE
 }
 
+bool JabPoster::PurpleAccount2Repost(PurpleAccount* account, Account* acct)
+{
+    const char* user = NULL;
+    const char* type = NULL;
+
+    user = purple_account_get_username(account);
+    type = purple_account_get_protocol_name(account);
+    if(user && type)
+    {
+        acct->set_user(user);
+        acct->set_type(type);
+        if(purple_account_is_connected(account))
+        {
+            acct->set_status(STATUS_ONLINE);
+        }
+        else
+        {
+            acct->set_status(STATUS_OFFLINE);
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
+bool JabPoster::PurpleBuddy2Link(PurpleBuddy* buddy, Link* link)
+{
+    const char* name = NULL;
+    const char* host = NULL;
+    PurpleStatus* status = NULL; 
+    PurplePresence* pres = NULL;
+    PurpleAccount* acct = NULL;
+    GList* reposters = NULL;
+    
+    acct = purple_buddy_get_account(buddy);
+    name = purple_buddy_get_name(buddy);
+    host = purple_account_get_username(acct);
+    pres = purple_buddy_get_presence(buddy);
+    if(name && host && pres)
+    {
+        link->set_name(name);
+        link->set_host(host);
+        if( !purple_presence_is_online(pres) )
+        {
+            link->set_status(STATUS_OFFLINE);
+        }
+        else if((reposters = this->ReposterName(buddy)))
+        {
+            link->set_status(STATUS_REPOSTER);
+        }
+        else
+        {
+            link->set_status(STATUS_ONLINE);
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
 int JabPoster::GetAccounts(Account* accts, int num)
 {
     int x = 0;
@@ -465,20 +633,8 @@ int JabPoster::GetAccounts(Account* accts, int num)
         PurpleAccount* account = (PurpleAccount*) alist->data;
         if(account)
         {
-            user = purple_account_get_username(account);
-            type = purple_account_get_protocol_name(account);
-            if(user && type)
+            if(PurpleAccount2Repost(account, &accts[x]))
             {
-                accts[x].set_user(user);
-                accts[x].set_type(type);
-                if(purple_account_is_connected(account))
-                {
-                    accts[x].set_status(STATUS_ONLINE);
-                }
-                else
-                {
-                    accts[x].set_status(STATUS_OFFLINE);
-                }
                 x++;
             }
         }
@@ -540,7 +696,6 @@ int JabPoster::GetLinks(Link* links, int num)
     const char* host = NULL;
     PurpleStatus* status = NULL; 
     PurplePresence* pres = NULL;
-    PurpleAccount* acct = NULL;
     PurpleBlistNode* bnode = NULL;
     GList* reposters = NULL;
     
@@ -551,26 +706,8 @@ int JabPoster::GetLinks(Link* links, int num)
     {
         if(bnode->type == PURPLE_BLIST_BUDDY_NODE)
         {
-            acct = purple_buddy_get_account(PURPLE_BUDDY(bnode));
-            name = purple_buddy_get_name(PURPLE_BUDDY(bnode));
-            host = purple_account_get_username(acct);
-            pres = purple_buddy_get_presence(PURPLE_BUDDY(bnode));
-            if(name && host && pres)
+            if(PurpleBuddy2Link(PURPLE_BUDDY(bnode), &links[x]))
             {
-                links[x].set_name(name);
-                links[x].set_host(host);
-                if( !purple_presence_is_online(pres) )
-                {
-                    links[x].set_status(STATUS_OFFLINE);
-                }
-                else if((reposters = this->ReposterName(PURPLE_BUDDY(bnode))))
-                {
-                    links[x].set_status(STATUS_REPOSTER);
-                }
-                else
-                {
-                    links[x].set_status(STATUS_ONLINE);
-                }
                 x++;
             }
             else

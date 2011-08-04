@@ -18,6 +18,7 @@ private:
     RpSemaphore *empty_;
     RpSemaphore *lock_;
     RpSemaphore *usd_;
+    unsigned int pos_;
     obj rpq[QUEUE_SIZE];
 };
 

@@ -21,9 +21,9 @@ public:
 
     class PostMetricCB{
     public:
-        virtual void Run(const std::string &uuid, const int metric)=0;
+        virtual void Run(const Post &p)=0;
     };
-    void PostMetric(std::string uuid, int metric);
+    void PostMetric(Post *p);
     void set_postmetriccb(PostMetricCB* pmcb){postmetriccb_ = pmcb;};
 
 private:

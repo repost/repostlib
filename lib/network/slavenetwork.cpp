@@ -44,6 +44,7 @@ void slavenet::xml2post(string *spost, Post *post)
         else
         {
             LOG(WARNING) << "Unexpected XML section: " << name;
+            LOG(INFO) << *spost;
         }
         n = n->next;
     }

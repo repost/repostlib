@@ -8,9 +8,9 @@ void PostUiOps::NewPost(Post *p, int rank)
     if(newpostcb_)newpostcb_->Run(*p, rank);
 }
 
-void PostUiOps::PostMetric(std::string uuid, int metric)
+void PostUiOps::PostMetric(Post *p)
 {
-    LOG_IF(WARNING, !newpostcb_) << "PostUiOp::PostMetric == NULL \
+    LOG_IF(WARNING, !postmetriccb_) << "PostUiOp::PostMetric == NULL \
         Callback thrown away.";
-    if(postmetriccb_)postmetriccb_->Run(uuid, metric);
+    if(postmetriccb_)postmetriccb_->Run(*p);
 }

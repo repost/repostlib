@@ -34,6 +34,8 @@ RpSemaphore::RpSemaphore(int value)
 #else
     semaphore_ = new sem_t;
     sem_init(semaphore_, 0, value_);
+    valsema_ = new sem_t;
+    sem_init(valsema_, 0, 1);
 #endif
 }
 
@@ -44,54 +46,44 @@ RpSemaphore::~RpSemaphore()
     sem_close(valsema_);
 #else
     sem_destroy(semaphore_);
+    sem_destroy(valsema_);
 #endif
 }
 
 bool RpSemaphore::TryWait()
 {
-#ifdef NAMED_SEMAPHORE
     if(sem_trywait(semaphore_))
     {
         sem_wait(valsema_);
         value_ -= 1;
         sem_post(valsema_);
+        return true;
     }
-#else
-    return sem_trywait(semaphore_);
-#endif
+    return false;
 }
 
 void RpSemaphore::Wait()
 {
     sem_wait(semaphore_);
-#ifdef NAMED_SEMAPHORE
     sem_wait(valsema_);
     value_ -= 1;
     sem_post(valsema_);
-#endif
 }
 
 void RpSemaphore::Post()
 {
     sem_post(semaphore_);
-#ifdef NAMED_SEMAPHORE
     sem_wait(valsema_);
     value_ += 1;
     sem_post(valsema_);
-#endif
 }
 
 int RpSemaphore::GetValue()
 {
     int ret; 
-#ifdef NAMED_SEMAPHORE
     sem_wait(valsema_);
     ret = value_;
     sem_post(valsema_);
-#else
-    sem_getvalue(semaphore_, &ret);
-    ret = ret < 0 ? 0 : ret;
-#endif
     return ret;
 }
 

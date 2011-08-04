@@ -188,7 +188,7 @@ bool rpl_storage::add_post (Post *post)
     bool ret = false;
     sqlite3_stmt *sql_stmt = NULL;
     time_t now = time ( NULL );
-    const char * post_insert = "INSERT INTO posts ( uuid, content, time, "
+    const char *post_insert = "INSERT INTO posts ( uuid, content, time, "
         "upvotes) SELECT ?, ?, ?, 0 WHERE NOT EXISTS (SELECT * FROM posts "
         "WHERE posts.uuid = ?);";
 
@@ -731,37 +731,126 @@ void rpl_storage::delete_post ( string uuid )
     sqlite3_close( this->db );
 }
 
-void rpl_storage::update_metric ( string uuid )
+bool rpl_storage::update_metric(string uuid, int increment)
 {
-    int rc;
-    char *errmsg;
-    stringstream sql_stmt;
+    int rc = 0;
+    bool ret = 0;
+    sqlite3_stmt *sql_stmt = NULL;
+    const char *metric_update = "UPDATE posts SET upvotes = upvotes + ? "
+        "WHERE uuid = ?;";
 
-    LOG(DEBUG) << __FUNCTION__ << " do some shit here with uuid " << uuid;
+
     rc = sqlite3_open( this->db_location(), &this->db );
     if ( rc )
     {
         LOG(WARNING) << "Couldn't open db " << this->db_location();
-        return;
+        return ret;
     }
 
-    sql_stmt << "UPDATE posts SET upvotes = upvotes + 1 WHERE uuid = \"" << uuid << "\"";
+    rc = sqlite3_prepare_v2( this->db, metric_update, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << metric_update;
+        return ret;
+    }
 
-    rc = sqlite3_exec ( this->db, 
-                        sql_stmt.str().c_str(), 
-                        NULL, 
-                        NULL, 
-                        &errmsg );
+    rc += sqlite3_bind_int(sql_stmt, 1, increment); 
+    rc += sqlite3_bind_text(sql_stmt, 2, uuid.c_str(), uuid.length(), SQLITE_TRANSIENT);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
 
+    // TODO Tidy up expressions here
+    rc = sqlite3_step( sql_stmt );
+    if ( rc != SQLITE_DONE )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
     if ( rc != SQLITE_OK )
     {
-        LOG(WARNING) << "sqlite error! error number " << rc;
+        LOG(WARNING) << "error insert: " << rc;
     }
-    else
+
+    if( sqlite3_changes(this->db) > 0 )
     {
-        LOG(DEBUG) << "sqlite ok!";
+        ret = true;
     }
     sqlite3_close( this->db );
+
+    return ret;
+}
+
+bool rpl_storage::get_metric(string uuid, int* metric)
+{
+    int rc = 0;
+    bool ret = 0;
+    sqlite3_stmt *sql_stmt = NULL;
+    const char *post_insert = "SELECT upvotes FROM posts WHERE posts.uuid = ?";
+
+    rc = sqlite3_open( this->db_location(), &this->db );
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't open db " << this->db_location();
+        return ret;
+    }
+
+    rc = sqlite3_prepare_v2( this->db, post_insert, -1, &sql_stmt, NULL);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't prepare insert statement err = " << rc 
+                     << " db = " << this->db << " " << post_insert;
+        return ret;
+    }
+
+    rc += sqlite3_bind_text(sql_stmt, 1, uuid.c_str(), uuid.length(), SQLITE_TRANSIENT);
+    if ( rc )
+    {
+        LOG(WARNING) << "Couldn't bind text and int accumlative err = " << rc;
+        return ret;
+    }
+
+    // TODO Tidy up expressions here
+    while( sqlite3_step( sql_stmt ) == SQLITE_ROW)
+    {
+        int columns = sqlite3_column_count(sql_stmt);
+        for ( int i = 0; i < columns; i ++ )
+        {
+            if ( strstr(sqlite3_column_name(sql_stmt, i), "upvotes") 
+                    != NULL )
+            {
+                *metric = (sqlite3_column_int(sql_stmt, i));
+            }
+            else
+            {
+                LOG(INFO) << "Missed column " << sqlite3_column_name(sql_stmt , i);
+            }
+            rc += 1;
+        }
+    }
+    
+    if(rc > 1)
+    {
+        LOG(WARNING) << "More than 1 row returned.";
+    }
+    else if( rc == 1)
+    {
+        ret = true;
+    }
+
+    rc = sqlite3_finalize( sql_stmt );
+    if ( rc != SQLITE_OK )
+    {
+        LOG(WARNING) << "error insert: " << rc;
+    }
+
+    sqlite3_close( this->db );
+
+    return ret;
 }
 
 bool rpl_storage::db_check()

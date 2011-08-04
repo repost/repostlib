@@ -20,7 +20,8 @@ class rpl_storage
     int get_post ( Post **post, int len, int count );
     int get_post ( Post **post, std::string uuid );
     void delete_post ( std::string uuid );
-    void update_metric ( std::string uuid );
+    bool update_metric ( std::string uuid, int increment );
+    bool get_metric ( std::string uuid, int* metric );
     static rpl_storage *INSTANCE;
     bool update_account ( Account *olddetails, Account *newdetails );
     bool delete_account ( Account *account);

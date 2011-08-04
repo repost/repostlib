@@ -9,10 +9,14 @@
     callback void RequestAddCB(Account acct, Link link, std::string msg);
     [setter] RequestAddCB? requestaddcb_;
 
-    callback void RequestAuthorizeAddedCB(Account acct, Link link, std::string msg,
-        bool onlist);
+    callback bool RequestAuthorizeAddedCB(Account acct, Link link, 
+        std::string msg, bool onlist);
     [setter] RequestAuthorizeAddedCB? requestauthorizeaddedcb_;
 
+    callback void LinkStatusChangedCB(Link link);
+    [setter] LinkStatusChangedCB? linkstatuschangedcb_;
+
+    /* Account Callbacks */
     callback void StatusChangedCB(Account acct);
     [setter] StatusChangedCB? statuschangedcb_;
 

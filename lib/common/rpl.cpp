@@ -163,7 +163,7 @@ void rePoster::upboat(string u)
 {
     LOG(INFO) << "Upboating post " << u;
     Post *uppost = NULL;
-    pstore_->update_metric(u);
+    pstore_->update_metric(u, 1);
     pstore_->get_post(&uppost, u);
     if(uppost)
     {

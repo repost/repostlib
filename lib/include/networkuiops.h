@@ -12,6 +12,7 @@ public:
     NetworkUiOps(): notifyaddedcb_(NULL),
                     requestaddcb_(NULL),
                     requestauthorizeaddedcb_(NULL),
+                    linkstatuschangedcb_(NULL),
                     statuschangedcb_(NULL),
                     accountdisconnectcb_(NULL){};
 
@@ -37,13 +38,20 @@ public:
 
     class RequestAuthorizeAddedCB{
     public:
-        virtual void Run(const Account &acct, const Link &link, 
+        virtual bool Run(const Account &acct, const Link &link, 
             const std::string &msg, const bool onlist)=0;
     };
-    void RequestAuthorizeAdded(Account acct, Link link, std::string msg,
+    bool RequestAuthorizeAdded(Account acct, Link link, std::string msg,
         bool onlist);   
     void set_requestauthorizeaddedcb(RequestAuthorizeAddedCB* racb)
         {requestauthorizeaddedcb_ = racb;};
+
+    class LinkStatusChangedCB{
+    public:
+        virtual void Run(const Link &link)=0;
+    };
+    void LinkStatusChanged(Link link);   
+    void set_linkstatuschangedcb(LinkStatusChangedCB* sccb){linkstatuschangedcb_ = sccb;};
 
     class StatusChangedCB{
     public:
@@ -65,6 +73,9 @@ private:
     NotifyAddedCB *notifyaddedcb_;
     RequestAddCB *requestaddcb_;
     RequestAuthorizeAddedCB *requestauthorizeaddedcb_;
+    LinkStatusChangedCB *linkstatuschangedcb_;
+
+    /* Account Callbacks */
     StatusChangedCB *statuschangedcb_;
 
     /* Connection Callbacks */

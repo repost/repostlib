@@ -5,7 +5,7 @@
     callback void NewPostCB(Post p, int rank);
     [setter] NewPostCB? newpostcb_;
 
-    callback void PostMetricCB(std::string uuid, int metric);
+    callback void PostMetricCB(Post p);
     [setter] PostMetricCB? postmetriccb_;
 };
 

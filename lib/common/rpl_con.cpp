@@ -55,7 +55,16 @@ void rpl_con::consume()
             else
             {
                 LOG(INFO) << "Already received UUID " << p->uuid();
+                pstore_->update_metric(p->uuid(), 1);
+                Post *updated_p = NULL;
+                pstore_->get_post(&updated_p, p->uuid());
+                if(updated_p)
+                {
+                    postuiops_.PostMetric(updated_p);
+                    delete updated_p;
+                }
             }
+            delete p;
         }
         else
         {
