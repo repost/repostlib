@@ -447,9 +447,17 @@ void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
     /* Replace current resources for user. GHashTable takes care of cleanup */
     if(resources)
     {
+        GList *was_reposter = ReposterName(pb);
         char *who_cpy = (char *) g_malloc(strlen(who));
         strncpy(who_cpy, who, strlen(who));
         g_hash_table_replace(resmap_, (void *)who_cpy, resources);
+        GList *is_reposter = ReposterName(pb);
+        /* Have they changed to being a reposter or from */
+        if((was_reposter == NULL && is_reposter) ||
+            (was_reposter && is_reposter == NULL))
+        {
+            BuddyStatusChanged(pb);
+        }
     }
     return NULL;
 }
