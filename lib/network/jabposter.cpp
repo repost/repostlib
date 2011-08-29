@@ -860,12 +860,10 @@ void JabPoster::RmAccount(Account& acct)
     START_THREADSAFE
     if((acct.type() == "XMPP")||(acct.type() == "Gtalk"))
     {
-			  LOG(DEBUG) << "Trying to find XMPP " << acct.user();
         pbacct = purple_accounts_find(acct.user().c_str(), "prpl-jabber");
     }
     else if(acct.type() == "Bonjour")
     {
-			   LOG(DEBUG) << "Trying to find Jabber " << acct.user();
          pbacct = purple_accounts_find(acct.user().c_str(), "prpl-bonjour");
     }
     
