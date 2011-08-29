@@ -751,7 +751,8 @@ void JabPoster::AddGtalk(string user, string pass)
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
-    /* Get the password for the account */
+    /* Set the password for the account */
+    purple_account_set_remember_password(jabacct, true);
     purple_account_set_password(jabacct, pass.c_str());
 
     /* For gtalk account as we have special settings */
@@ -789,7 +790,8 @@ void JabPoster::AddJabber(string user, string pass)
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
-    /* Get the password for the account */
+    /* Set the password for the account */
+    purple_account_set_remember_password(jabacct, true);
     purple_account_set_password(jabacct, pass.c_str());
 
     purple_account_set_bool(jabacct,"opportunistic_tls", TRUE);
@@ -826,15 +828,18 @@ void JabPoster::RmAccount(Account& acct)
     START_THREADSAFE
     if((acct.type() == "XMPP")||(acct.type() == "Gtalk"))
     {
+			  LOG(DEBUG) << "Trying to find XMPP " << acct.user();
         pbacct = purple_accounts_find(acct.user().c_str(), "prpl-jabber");
     }
     else if(acct.type() == "Bonjour")
     {
+			   LOG(DEBUG) << "Trying to find Jabber " << acct.user();
          pbacct = purple_accounts_find(acct.user().c_str(), "prpl-bonjour");
     }
     
     if(pbacct)
     {
+			  LOG(INFO) << "Removing " << acct.user();
         purple_accounts_delete(pbacct);
     }
     END_THREADSAFE
@@ -919,6 +924,8 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir, NetworkUiOps networku
     GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
     g_source_attach(lockeventsource, con_);
 #endif
+    purple_savedstatus_activate(purple_savedstatus_get_startup());
+    purple_accounts_restore_current_statuses();
 }
 
 JabPoster::~JabPoster()
