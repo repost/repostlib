@@ -96,7 +96,7 @@ PurpleNotifyUiOps JabPoster::NotifyUiOps =
 PurpleAccountUiOps JabPoster::AccountUiOps =
 {
     &JabPoster::w_NotifyAdded,
-    NULL,
+    &JabPoster::w_StatusChanged,
     &JabPoster::w_RequestAdd,
     &JabPoster::w_RequestAuthorize,
     NULL,
@@ -216,6 +216,30 @@ void JabPoster::NotifyAdded(PurpleAccount *account, const char *remote_user, con
     networkuiops_.NotifyAdded(acct, link, message);
 }
 
+void JabPoster::w_StatusChanged(PurpleAccount *account, PurpleStatus *status)
+{
+    if( jabint )
+    {
+        jabint->StatusChanged(account, status);
+    }
+}
+
+void JabPoster::StatusChanged(PurpleAccount *account, PurpleStatus *status)
+{
+    Account acct;
+    LOG(DEBUG) << "STATUS CHANGED";
+    PurpleAccount2Repost(account, &acct);
+    if( purple_status_is_online(status) )
+    {
+        acct.set_status(STATUS_ONLINE);
+    }
+    else
+    {
+        acct.set_status(STATUS_OFFLINE);
+    }
+    networkuiops_.StatusChanged(acct);
+}
+
 void JabPoster::w_RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
                             const char *alias, const char *message)
 {
@@ -228,7 +252,7 @@ void JabPoster::w_RequestAdd(PurpleAccount *account, const char *remote_user, co
 void JabPoster::RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
                             const char *alias, const char *message)
 {
-   Account acct;
+    Account acct;
     Link link;
 
     PurpleAccount2Repost(account, &acct);
@@ -423,9 +447,17 @@ void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
     /* Replace current resources for user. GHashTable takes care of cleanup */
     if(resources)
     {
+        GList *was_reposter = ReposterName(pb);
         char *who_cpy = (char *) g_malloc(strlen(who));
         strncpy(who_cpy, who, strlen(who));
         g_hash_table_replace(resmap_, (void *)who_cpy, resources);
+        GList *is_reposter = ReposterName(pb);
+        /* Have they changed to being a reposter or from */
+        if((was_reposter == NULL && is_reposter) ||
+            (was_reposter && is_reposter == NULL))
+        {
+            BuddyStatusChanged(pb);
+        }
     }
     return NULL;
 }
@@ -839,7 +871,7 @@ void JabPoster::RmAccount(Account& acct)
     
     if(pbacct)
     {
-			  LOG(INFO) << "Removing " << acct.user();
+        LOG(INFO) << "Deleting " << acct.user();
         purple_accounts_delete(pbacct);
     }
     END_THREADSAFE

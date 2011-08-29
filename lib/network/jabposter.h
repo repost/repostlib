@@ -84,6 +84,9 @@ private:
 	                            const char *alias, const char *message);
     void NotifyAdded(PurpleAccount *account,const char *remote_user, const char *id,
 	                            const char *alias, const char *message);
+    /* Account Status has changed */
+    static void w_StatusChanged(PurpleAccount *account, PurpleStatus *status);
+    void StatusChanged(PurpleAccount *account, PurpleStatus *status);
     /* Someone not on our list added us to theirs. Prompt to add them */
     static void w_RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
                                 const char *alias, const char *message);
