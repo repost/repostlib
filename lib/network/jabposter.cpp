@@ -210,10 +210,20 @@ void JabPoster::NotifyAdded(PurpleAccount *account, const char *remote_user, con
 {
     Account acct;
     Link link;
+    string message_safe;
 
+    /* Need to check message is not null */
+    if(!message)
+    {
+        message_safe.assign("");
+    }
+    else
+    {
+        message_safe.assign(message);
+    }
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    networkuiops_.NotifyAdded(acct, link, message);
+    networkuiops_.NotifyAdded(acct, link, message_safe);
 }
 
 void JabPoster::w_StatusChanged(PurpleAccount *account, PurpleStatus *status)
@@ -254,10 +264,20 @@ void JabPoster::RequestAdd(PurpleAccount *account, const char *remote_user, cons
 {
     Account acct;
     Link link;
+    string message_safe;
 
+    /* Need to check message is not null */
+    if(!message)
+    {
+        message_safe.assign("");
+    }
+    else
+    {
+        message_safe.assign(message);
+    }
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    networkuiops_.RequestAdd(acct, link, message);
+    networkuiops_.RequestAdd(acct, link, message_safe);
 
 }
 
