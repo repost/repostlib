@@ -281,16 +281,28 @@ void* JabPoster::RequestAuthorize(PurpleAccount *account, const char *remote_use
 {
     Account acct;
     Link link;
+    string message_safe;
+    char *remote_user_safe = NULL;
 
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    if (networkuiops_.RequestAuthorizeAdded(acct, link, message, on_list))
+    /* Need to check message is not null */
+    if(!message)
     {
-        authorize_cb(NULL);
+        message_safe.assign("");
     }
     else
     {
-        deny_cb(NULL);
+        message_safe.assign(message);
+    }
+    networkuiops_.RequestAuthorizeAdded(acct, link, message_safe, on_list);
+    if (1) /* TODO: Actually check whether we want to authorise user */
+    {
+        authorize_cb(user_data);
+    }
+    else
+    {
+        deny_cb(user_data);
     }
     return NULL;
 }
