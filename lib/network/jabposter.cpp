@@ -878,6 +878,12 @@ void JabPoster::AddBonjour(string user)
     END_THREADSAFE
 }
 
+gboolean delacc(void* pbacct)
+{
+    purple_accounts_delete((PurpleAccount*)pbacct);
+    return FALSE;
+}
+
 void JabPoster::RmAccount(Account& acct)
 {
     PurpleAccount* pbacct = NULL;
@@ -894,8 +900,8 @@ void JabPoster::RmAccount(Account& acct)
     if(pbacct)
     {
         LOG(INFO) << "Deleting " << acct.user();
-        purple_accounts_delete(pbacct);
-    }
+        g_idle_add(delacc, pbacct);
+    }   
     END_THREADSAFE
 }
 
