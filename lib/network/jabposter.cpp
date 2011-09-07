@@ -106,14 +106,6 @@ PurpleAccountUiOps JabPoster::AccountUiOps =
     NULL
 };
 
-GSourceFuncs JabPoster::lockevent =
-{
-    &JabPoster::w_prepare,
-    &JabPoster::w_check,
-    &JabPoster::w_dispatch,
-    NULL
-};
-
 void JabPoster::ConnectToSignals(void)
 {
     static int handle;
@@ -983,8 +975,9 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir, NetworkUiOps networku
 
 #ifdef RPTHREAD_SAFE
     lock_ = new LockStep();
-    GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
-    g_source_attach(lockeventsource, con_);
+ //   GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
+ //   g_source_attach(lockeventsource, con_);
+    g_idle_add(&JabPoster::w_prepare, NULL);
 #endif
     purple_savedstatus_activate(purple_savedstatus_get_startup());
     purple_accounts_restore_current_statuses();
@@ -1057,15 +1050,15 @@ void JabPoster::CheckForLock(void)
     lock_->CheckSpinner();
 }
 
-gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
+gboolean JabPoster::w_prepare(gpointer data)
 { 
     if( jabint )
     {
         jabint->CheckForLock();
     }
     LOG(DEBUG) << "Prepare";
-    *timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
-    return true;
+    //*timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
+    return TRUE;
 }
 
 gboolean JabPoster::w_check(GSource *source)
