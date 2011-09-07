@@ -106,14 +106,6 @@ PurpleAccountUiOps JabPoster::AccountUiOps =
     NULL
 };
 
-GSourceFuncs JabPoster::lockevent =
-{
-    &JabPoster::w_prepare,
-    &JabPoster::w_check,
-    &JabPoster::w_dispatch,
-    NULL
-};
-
 void JabPoster::ConnectToSignals(void)
 {
     static int handle;
@@ -886,6 +878,23 @@ void JabPoster::AddBonjour(string user)
     END_THREADSAFE
 }
 
+/**
+ * Hack-tastic-fix. Problem was calling delete across
+ * two threads as libpurple isn't thread safe. Now 
+ * we add the function call to the glib main loop 
+ * which I think it thread safe and let the loop 
+ * execute on its thread whenever it is idle.
+ * Thread-safety really needs to be formalised if we 
+ * get a chance. Lock-step didn't really work and this
+ * is yet another workaround. It will get us out the
+ * door though.
+ */
+gboolean delacc(void* pbacct)
+{
+    purple_accounts_delete((PurpleAccount*)pbacct);
+    return FALSE;
+}
+
 void JabPoster::RmAccount(Account& acct)
 {
     PurpleAccount* pbacct = NULL;
@@ -902,8 +911,8 @@ void JabPoster::RmAccount(Account& acct)
     if(pbacct)
     {
         LOG(INFO) << "Deleting " << acct.user();
-        purple_accounts_delete(pbacct);
-    }
+        g_idle_add(delacc, pbacct);
+    }   
     END_THREADSAFE
 }
 
@@ -983,8 +992,9 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir, NetworkUiOps networku
 
 #ifdef RPTHREAD_SAFE
     lock_ = new LockStep();
-    GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
-    g_source_attach(lockeventsource, con_);
+ //   GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
+ //   g_source_attach(lockeventsource, con_);
+    g_idle_add(&JabPoster::w_prepare, NULL);
 #endif
     purple_savedstatus_activate(purple_savedstatus_get_startup());
     purple_accounts_restore_current_statuses();
@@ -1057,15 +1067,15 @@ void JabPoster::CheckForLock(void)
     lock_->CheckSpinner();
 }
 
-gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
+gboolean JabPoster::w_prepare(gpointer data)
 { 
     if( jabint )
     {
         jabint->CheckForLock();
     }
     LOG(DEBUG) << "Prepare";
-    *timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
-    return true;
+    //*timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
+    return TRUE;
 }
 
 gboolean JabPoster::w_check(GSource *source)

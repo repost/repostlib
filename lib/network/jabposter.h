@@ -65,7 +65,7 @@ private:
     void UnlockSpinner(void);
     void CheckForLock(void);
     static GSourceFuncs lockevent;
-    static gboolean w_prepare(GSource *source, gint *timeout_);
+    static gboolean w_prepare(gpointer data);
     static gboolean w_check(GSource *source);
     static gboolean w_dispatch(GSource *source, GSourceFunc callback, gpointer user_data);
 

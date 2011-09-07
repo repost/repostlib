@@ -31,6 +31,9 @@ if int(ARGUMENTS.get('lp_debug', 0)):
 if int(ARGUMENTS.get('lp_workaround',0)):
     env.Append(CCFLAGS='-DLIBPURPLE_WORKAROUND')
 
+if int(ARGUMENTS.get('lp_threadsafe',0)):
+    env.Append(CCFLAGS='-DRPTHREAD_SAFE')
+
 if int(ARGUMENTS.get('localpath',0)):
     env.AppendENVPath('PATH',os.environ['PATH'])
 
