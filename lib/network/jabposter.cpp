@@ -878,6 +878,17 @@ void JabPoster::AddBonjour(string user)
     END_THREADSAFE
 }
 
+/**
+ * Hack-tastic-fix. Problem was calling delete across
+ * two threads as libpurple isn't thread safe. Now 
+ * we add the function call to the glib main loop 
+ * which I think it thread safe and let the loop 
+ * execute on its thread whenever it is idle.
+ * Thread-safety really needs to be formalised if we 
+ * get a chance. Lock-step didn't really work and this
+ * is yet another workaround. It will get us out the
+ * door though.
+ */
 gboolean delacc(void* pbacct)
 {
     purple_accounts_delete((PurpleAccount*)pbacct);
