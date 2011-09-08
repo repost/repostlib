@@ -172,7 +172,7 @@ static void ssl_cdsa_handshake_cb(gpointer data, gint source, PurpleInputConditi
     userdata->gsc = gsc;
     SSLCopyPeerCertificates(cdsa_data->ssl_ctx, &userdata->certs);
 
-    certificate_ui_cb(gsc, userdata->hostname, userdata->certs, query_cert_result, userdata);
+    certificate_ui_cb(gsc, userdata->hostname, (void *)userdata->certs, query_cert_result, userdata);
   } else {
     purple_debug_info("cdsa", "SSL_connect complete (did not verify certificate)\n");
 

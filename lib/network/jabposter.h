@@ -65,7 +65,7 @@ private:
     void UnlockSpinner(void);
     void CheckForLock(void);
     static GSourceFuncs lockevent;
-    static gboolean w_prepare(GSource *source, gint *timeout_);
+    static gboolean w_prepare(gpointer data);
     static gboolean w_check(GSource *source);
     static gboolean w_dispatch(GSource *source, GSourceFunc callback, gpointer user_data);
 
@@ -84,6 +84,9 @@ private:
 	                            const char *alias, const char *message);
     void NotifyAdded(PurpleAccount *account,const char *remote_user, const char *id,
 	                            const char *alias, const char *message);
+    /* Account Status has changed */
+    static void w_StatusChanged(PurpleAccount *account, PurpleStatus *status);
+    void StatusChanged(PurpleAccount *account, PurpleStatus *status);
     /* Someone not on our list added us to theirs. Prompt to add them */
     static void w_RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
                                 const char *alias, const char *message);

@@ -96,21 +96,13 @@ PurpleNotifyUiOps JabPoster::NotifyUiOps =
 PurpleAccountUiOps JabPoster::AccountUiOps =
 {
     &JabPoster::w_NotifyAdded,
-    NULL,
+    &JabPoster::w_StatusChanged,
     &JabPoster::w_RequestAdd,
     &JabPoster::w_RequestAuthorize,
     NULL,
     NULL,
     NULL,
     NULL,
-    NULL
-};
-
-GSourceFuncs JabPoster::lockevent =
-{
-    &JabPoster::w_prepare,
-    &JabPoster::w_check,
-    &JabPoster::w_dispatch,
     NULL
 };
 
@@ -210,10 +202,44 @@ void JabPoster::NotifyAdded(PurpleAccount *account, const char *remote_user, con
 {
     Account acct;
     Link link;
+    string message_safe;
 
+    /* Need to check message is not null */
+    if(!message)
+    {
+        message_safe.assign("");
+    }
+    else
+    {
+        message_safe.assign(message);
+    }
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    networkuiops_.NotifyAdded(acct, link, message);
+    networkuiops_.NotifyAdded(acct, link, message_safe);
+}
+
+void JabPoster::w_StatusChanged(PurpleAccount *account, PurpleStatus *status)
+{
+    if( jabint )
+    {
+        jabint->StatusChanged(account, status);
+    }
+}
+
+void JabPoster::StatusChanged(PurpleAccount *account, PurpleStatus *status)
+{
+    Account acct;
+    LOG(DEBUG) << "STATUS CHANGED";
+    PurpleAccount2Repost(account, &acct);
+    if( purple_status_is_online(status) )
+    {
+        acct.set_status(STATUS_ONLINE);
+    }
+    else
+    {
+        acct.set_status(STATUS_OFFLINE);
+    }
+    networkuiops_.StatusChanged(acct);
 }
 
 void JabPoster::w_RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
@@ -228,12 +254,22 @@ void JabPoster::w_RequestAdd(PurpleAccount *account, const char *remote_user, co
 void JabPoster::RequestAdd(PurpleAccount *account, const char *remote_user, const char *id,
                             const char *alias, const char *message)
 {
-   Account acct;
+    Account acct;
     Link link;
+    string message_safe;
 
+    /* Need to check message is not null */
+    if(!message)
+    {
+        message_safe.assign("");
+    }
+    else
+    {
+        message_safe.assign(message);
+    }
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    networkuiops_.RequestAdd(acct, link, message);
+    networkuiops_.RequestAdd(acct, link, message_safe);
 
 }
 
@@ -257,16 +293,31 @@ void* JabPoster::RequestAuthorize(PurpleAccount *account, const char *remote_use
 {
     Account acct;
     Link link;
+    string message_safe;
+    char *remote_user_safe = NULL;
 
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
-    if (networkuiops_.RequestAuthorizeAdded(acct, link, message, on_list))
+    link.set_host(acct.user());
+    /* Need to check message is not null */
+    if(!message)
     {
-        authorize_cb(NULL);
+        message_safe.assign("");
     }
     else
     {
-        deny_cb(NULL);
+        message_safe.assign(message);
+    }
+    networkuiops_.RequestAuthorizeAdded(acct, link, message_safe, on_list);
+    if (1) /* TODO: Actually check whether we want to authorise user */
+    {
+        authorize_cb(user_data);
+        /* Add to our list */
+        AddLink(link);
+    }
+    else
+    {
+        deny_cb(user_data);
     }
     return NULL;
 }
@@ -423,9 +474,17 @@ void* JabPoster::NotifyUserInfo(PurpleConnection *gc, const char *who,
     /* Replace current resources for user. GHashTable takes care of cleanup */
     if(resources)
     {
+        GList *was_reposter = ReposterName(pb);
         char *who_cpy = (char *) g_malloc(strlen(who));
         strncpy(who_cpy, who, strlen(who));
         g_hash_table_replace(resmap_, (void *)who_cpy, resources);
+        GList *is_reposter = ReposterName(pb);
+        /* Have they changed to being a reposter or from */
+        if((was_reposter == NULL && is_reposter) ||
+            (was_reposter && is_reposter == NULL))
+        {
+            BuddyStatusChanged(pb);
+        }
     }
     return NULL;
 }
@@ -751,7 +810,8 @@ void JabPoster::AddGtalk(string user, string pass)
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
-    /* Get the password for the account */
+    /* Set the password for the account */
+    purple_account_set_remember_password(jabacct, true);
     purple_account_set_password(jabacct, pass.c_str());
 
     /* For gtalk account as we have special settings */
@@ -789,7 +849,8 @@ void JabPoster::AddJabber(string user, string pass)
     /* Create the account */
     PurpleAccount *jabacct = purple_account_new(user.c_str(), "prpl-jabber");
 
-    /* Get the password for the account */
+    /* Set the password for the account */
+    purple_account_set_remember_password(jabacct, true);
     purple_account_set_password(jabacct, pass.c_str());
 
     purple_account_set_bool(jabacct,"opportunistic_tls", TRUE);
@@ -820,6 +881,23 @@ void JabPoster::AddBonjour(string user)
     END_THREADSAFE
 }
 
+/**
+ * Hack-tastic-fix. Problem was calling delete across
+ * two threads as libpurple isn't thread safe. Now 
+ * we add the function call to the glib main loop 
+ * which I think it thread safe and let the loop 
+ * execute on its thread whenever it is idle.
+ * Thread-safety really needs to be formalised if we 
+ * get a chance. Lock-step didn't really work and this
+ * is yet another workaround. It will get us out the
+ * door though.
+ */
+gboolean delacc(void* pbacct)
+{
+    purple_accounts_delete((PurpleAccount*)pbacct);
+    return FALSE;
+}
+
 void JabPoster::RmAccount(Account& acct)
 {
     PurpleAccount* pbacct = NULL;
@@ -835,8 +913,9 @@ void JabPoster::RmAccount(Account& acct)
     
     if(pbacct)
     {
-        purple_accounts_delete(pbacct);
-    }
+        LOG(INFO) << "Deleting " << acct.user();
+        g_idle_add(delacc, pbacct);
+    }   
     END_THREADSAFE
 }
 
@@ -916,9 +995,12 @@ JabPoster::JabPoster(rpqueue<Post*>* rq, string repostdir, NetworkUiOps networku
 
 #ifdef RPTHREAD_SAFE
     lock_ = new LockStep();
-    GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
-    g_source_attach(lockeventsource, con_);
+ //   GSource *lockeventsource = g_source_new(&JabPoster::lockevent, sizeof(GSource));
+ //   g_source_attach(lockeventsource, con_);
+    g_idle_add(&JabPoster::w_prepare, NULL);
 #endif
+    purple_savedstatus_activate(purple_savedstatus_get_startup());
+    purple_accounts_restore_current_statuses();
 }
 
 JabPoster::~JabPoster()
@@ -988,15 +1070,15 @@ void JabPoster::CheckForLock(void)
     lock_->CheckSpinner();
 }
 
-gboolean JabPoster::w_prepare(GSource *source, gint *timeout_)
+gboolean JabPoster::w_prepare(gpointer data)
 { 
     if( jabint )
     {
         jabint->CheckForLock();
     }
     LOG(DEBUG) << "Prepare";
-    *timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
-    return true;
+    //*timeout_ = 100; /* ensure that this idle event isn't blocked by poll */
+    return TRUE;
 }
 
 gboolean JabPoster::w_check(GSource *source)
