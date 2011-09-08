@@ -19,6 +19,7 @@
     void rmLink(Link link);
 
     void getInitialPosts();
+    std::string GetUserDir();
 
     void upboat(std::string u);
     void downboat(std::string u);
