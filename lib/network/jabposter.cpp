@@ -298,6 +298,7 @@ void* JabPoster::RequestAuthorize(PurpleAccount *account, const char *remote_use
 
     PurpleAccount2Repost(account, &acct);
     link.set_name(remote_user);
+    link.set_host(acct.user());
     /* Need to check message is not null */
     if(!message)
     {
@@ -311,6 +312,8 @@ void* JabPoster::RequestAuthorize(PurpleAccount *account, const char *remote_use
     if (1) /* TODO: Actually check whether we want to authorise user */
     {
         authorize_cb(user_data);
+        /* Add to our list */
+        AddLink(link);
     }
     else
     {
