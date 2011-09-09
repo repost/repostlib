@@ -8,10 +8,10 @@
 #include "glib.h"
 #include <sys/stat.h>
 #include <stdio.h>
-#include <dirent.h>
 
 #ifndef WIN32
 #include <dlfcn.h>
+#include <dirent.h>
 #else
 #include "win32/win32dep.h"
 #endif
@@ -120,8 +120,23 @@ std::vector<std::string> rePoster::getUserLogs()
 {
     string path;
     string home(PATH_SEPARATOR ".repost");
+    std::vector<std::string> logs;
 #ifndef WIN32
     path = home.insert(0, g_get_home_dir());
+
+    static struct dirent *dp;
+    DIR *dfd = opendir(path.c_str());
+
+    if ( dfd != NULL )
+    {
+        while((dp = readdir(dfd)) != NULL)
+        {
+            string f (dp->d_name);
+            if ( f.find("repostlog") != string::npos )
+                logs.push_back(dp->d_name);
+        }
+        closedir(dfd);
+    }
 #else
     char *retval = NULL;
     wchar_t utf_16_dir[MAX_PATH + 1];
@@ -134,21 +149,6 @@ std::vector<std::string> rePoster::getUserLogs()
 
     path = home.insert(0, retval);
 #endif
-
-    static struct dirent *dp;
-    DIR *dfd = opendir(path.c_str());
-    std::vector<std::string> logs;
-
-    if ( dfd != NULL )
-    {
-        while((dp = readdir(dfd)) != NULL)
-        {
-            string f (dp->d_name);
-            if ( f.find("repostlog") != string::npos )
-                logs.push_back(dp->d_name);
-        }
-        closedir(dfd);
-    }
     return logs;
 }
 
