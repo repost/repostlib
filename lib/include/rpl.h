@@ -42,8 +42,8 @@ public:
     void rmLink(Link link);
 
     void getInitialPosts();
-    std::string GetUserDir(void);
-    std::vector<std::string> GetUserLogs(void);
+    std::string getUserDir(void);
+    std::vector<std::string> getUserLogs(void);
 
     void upboat(std::string uuid);
     void downboat(std::string uuid);
