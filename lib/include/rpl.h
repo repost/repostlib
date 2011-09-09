@@ -43,6 +43,7 @@ public:
 
     void getInitialPosts();
     std::string GetUserDir(void);
+    std::vector<std::string> GetUserLogs(void);
 
     void upboat(std::string uuid);
     void downboat(std::string uuid);

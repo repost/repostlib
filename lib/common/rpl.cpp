@@ -8,6 +8,7 @@
 #include "glib.h"
 #include <sys/stat.h>
 #include <stdio.h>
+#include <dirent.h>
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -113,6 +114,42 @@ std::string rePoster::GetUserDir()
 
     return home.insert(0, retval);
 #endif
+}
+
+std::vector<std::string> rePoster::GetUserLogs()
+{
+    string path;
+    string home(PATH_SEPARATOR ".repost");
+#ifndef WIN32
+    path = home.insert(0, g_get_home_dir());
+#else
+    char *retval = NULL;
+    wchar_t utf_16_dir[MAX_PATH + 1];
+
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL,
+                    SHGFP_TYPE_CURRENT, utf_16_dir))) 
+    {
+        retval = g_utf16_to_utf8((const gunichar2 *)utf_16_dir, -1, NULL, NULL, NULL);
+    }
+
+    path = home.insert(0, retval);
+#endif
+
+    static struct dirent *dp;
+    DIR *dfd = opendir(path.c_str());
+    std::vector<std::string> logs;
+
+    if ( dfd != NULL )
+    {
+        while((dp = readdir(dfd)) != NULL)
+        {
+            string f (dp->d_name);
+            if (f.compare("log") == 0)
+                logs.push_back(f);
+        }
+        closedir(dfd);
+    }
+    return logs;
 }
 
 void rePoster::addAccount(Account newaccount)
