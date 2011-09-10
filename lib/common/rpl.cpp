@@ -11,6 +11,7 @@
 
 #ifndef WIN32
 #include <dlfcn.h>
+#include <dirent.h>
 #else
 #include "win32/win32dep.h"
 #endif
@@ -25,10 +26,10 @@ void rePoster::init()
     void *handle = dlopen("/usr/lib/libpurple.so",RTLD_LAZY| RTLD_GLOBAL); 
 #endif
     InitUserDir();
-    InitRepostLogging(GetUserDir());
-    LOG(INFO) << "Repost home directory - " << GetUserDir();
-    rpl_storage::init(GetUserDir());
-    pnet_ = new rpl_network(GetUserDir(), networkuiops_);
+    InitRepostLogging(getUserDir());
+    LOG(INFO) << "Repost home directory - " << getUserDir();
+    rpl_storage::init(getUserDir());
+    pnet_ = new rpl_network(getUserDir(), networkuiops_);
 }
 
 void rePoster::startRepost()
@@ -85,7 +86,7 @@ std::vector<Account> rePoster::getAccounts()
 
 void rePoster::InitUserDir()
 {
-    string home(GetUserDir());
+    string home(getUserDir());
 	if (!g_file_test(home.c_str(), G_FILE_TEST_EXISTS))
 	{
 		/* Folder doesn't exist so lets create it */
@@ -96,7 +97,7 @@ void rePoster::InitUserDir()
 	}
 }
 
-std::string rePoster::GetUserDir()
+std::string rePoster::getUserDir()
 {
     string home(PATH_SEPARATOR ".repost");
 #ifndef WIN32
@@ -113,6 +114,42 @@ std::string rePoster::GetUserDir()
 
     return home.insert(0, retval);
 #endif
+}
+
+std::vector<std::string> rePoster::getUserLogs()
+{
+    string path;
+    string home(PATH_SEPARATOR ".repost");
+    std::vector<std::string> logs;
+#ifndef WIN32
+    path = home.insert(0, g_get_home_dir());
+
+    static struct dirent *dp;
+    DIR *dfd = opendir(path.c_str());
+
+    if ( dfd != NULL )
+    {
+        while((dp = readdir(dfd)) != NULL)
+        {
+            string f (dp->d_name);
+            if ( f.find("repostlog") != string::npos )
+                logs.push_back(dp->d_name);
+        }
+        closedir(dfd);
+    }
+#else
+    char *retval = NULL;
+    wchar_t utf_16_dir[MAX_PATH + 1];
+
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL,
+                    SHGFP_TYPE_CURRENT, utf_16_dir))) 
+    {
+        retval = g_utf16_to_utf8((const gunichar2 *)utf_16_dir, -1, NULL, NULL, NULL);
+    }
+
+    path = home.insert(0, retval);
+#endif
+    return logs;
 }
 
 void rePoster::addAccount(Account newaccount)

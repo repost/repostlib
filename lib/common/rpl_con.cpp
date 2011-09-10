@@ -50,6 +50,8 @@ void rpl_con::consume()
             if(pstore_->add_post(p))
             {
                 LOG(INFO) << "Sending post to UI UUID = " << p->uuid();
+                /* Make metric zero for now when we receive new post */
+                p->set_metric(0);
                 postuiops_.NewPost(p, 0);
             }
             else
