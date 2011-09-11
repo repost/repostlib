@@ -710,8 +710,11 @@ void JabPoster::AddLink(Link& link)
     for (l = purple_accounts_get_all_active(); l != NULL; l = l->next) 
     {
         PurpleAccount *account = (PurpleAccount *)l->data;
-        if(account && (purple_account_get_username(account) == link.host()))
+        LOG(INFO) << "Account " << purple_account_get_username(account);
+        LOG(INFO) << "Host account " <<link.host();
+        if(account && !strncmp(purple_account_get_username(account), link.host().c_str(),link.host().length() ))
         {
+            LOG(INFO) << "Actually adding account";
             purple_account_add_buddy(account, 
                 purple_buddy_new(account, link.name().c_str(), NULL));
         }
