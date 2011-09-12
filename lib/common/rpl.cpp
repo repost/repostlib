@@ -180,8 +180,9 @@ void rePoster::getPosts(int postfrom, int postto)
     Post *post = NULL;
     post = (Post *)calloc ( postto-postfrom, sizeof(Post *) );
     int rowsReturned = this->pstore_->get_post( &post, postfrom, postto );
+    int min = rowsReturned < (postto-postfrom) ? rowsReturned : (postto-postfrom);
     LOG(DEBUG) << "Posts returned " << rowsReturned;
-    for ( int i = 0; i < rowsReturned; i++ )
+    for ( int i = 0; i < min; i++ )
     {
         postuiops_.NewPost(&post[i],0);
     }
