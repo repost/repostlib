@@ -19,6 +19,8 @@
     void rmLink(Link link);
 
     void getInitialPosts();
+    void getPosts(int postfrom, int postto);
+
     std::string getUserDir();
     std::string[] getUserLogs();
 
