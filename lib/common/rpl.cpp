@@ -8,6 +8,7 @@
 #include "glib.h"
 #include <sys/stat.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifndef WIN32
 #include <dlfcn.h>
@@ -176,13 +177,13 @@ void rePoster::getPosts(int postfrom, int postto)
 {
     LOG(INFO) << "Get Posts";
     /* stupid. workaround windows compiler, lets hope this works */
-    Post *post;
-    post = calloc ( postto-postfrom, sizeof(*Post));
-    int rowsReturned = this->pstore_->get_post( post, postfrom, postto );
+    Post *post = NULL;
+    post = (Post *)calloc ( postto-postfrom, sizeof(Post *) );
+    int rowsReturned = this->pstore_->get_post( &post, postfrom, postto );
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
-        postuiops_.NewPost(post[i],0);
+        postuiops_.NewPost(&post[i],0);
     }
     free ( post );
 }
