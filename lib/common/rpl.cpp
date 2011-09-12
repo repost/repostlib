@@ -175,13 +175,16 @@ void rePoster::getInitialPosts()
 void rePoster::getPosts(int postfrom, int postto)
 {
     LOG(INFO) << "Get Posts";
-    Post *post[postto-postfrom];
+    /* stupid. workaround windows compiler, lets hope this works */
+    Post *post;
+    post = calloc ( postto-postfrom, sizeof(*Post));
     int rowsReturned = this->pstore_->get_post( post, postfrom, postto );
     LOG(DEBUG) << "Posts returned " << rowsReturned;
     for ( int i = 0; i < rowsReturned; i++ )
     {
         postuiops_.NewPost(post[i],0);
     }
+    free ( post );
 }
 
 
