@@ -172,6 +172,19 @@ void rePoster::getInitialPosts()
     }
 }
 
+void rePoster::getPosts(int postfrom, int postto)
+{
+    LOG(INFO) << "Get Posts";
+    Post *post[postto-postfrom];
+    int rowsReturned = this->pstore_->get_post( post, postfrom, postto );
+    LOG(DEBUG) << "Posts returned " << rowsReturned;
+    for ( int i = 0; i < rowsReturned; i++ )
+    {
+        postuiops_.NewPost(post[i],0);
+    }
+}
+
+
 void rePoster::rmAccount(Account account)
 {
     LOG(INFO) << "Remove Account " << account.user();
